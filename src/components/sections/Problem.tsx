@@ -14,7 +14,7 @@ const problemData = [
 
 export default function Problem() {
   return (
-    <section className="py-12 lg:py-12 bg-[#fafbfe] relative overflow-hidden">
+    <section className="py-12 lg:py-10 bg-[#fafbfe] relative overflow-hidden">
       <div className="mx-auto max-w-[1200px] px-5 lg:px-8 relative z-10">
 
         {/* Header - Compact */}

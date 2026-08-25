@@ -25,7 +25,7 @@ export default function Hero() {
 
             <h1 className="mt-6 text-4xl font-extrabold leading-[1.1] tracking-tight text-navy-900 sm:text-5xl lg:text-[52px]">
               Turn Cloud Spend Into{' '}
-              <span className="text-gradient-save">Actionable Savings.</span>
+              <span className="text-brand-600">Actionable Savings.</span>
             </h1>
 
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-navy-600 lg:mx-0 mx-auto">
@@ -96,7 +96,7 @@ function HeroDashboard() {
         </div>
         <div className="flex-1 flex ml-2">
           <div className="flex items-center rounded bg-slate-50 px-2 py-1 text-[10px] font-medium text-slate-400 max-w-[180px] truncate">
-            ccm.maitsys.com/dashboard
+            mavera.maitsys.com/dashboard
           </div>
         </div>
         <div className="flex items-center gap-1 rounded bg-brand-50 px-2 py-1 text-[10px] font-bold text-brand-600 border border-brand-100">

@@ -1,13 +1,13 @@
-// ─── CCM — Cloud Cost Monitor ──────────────────────────────────────────────
-// All content sourced from the CCM product brief.
+// ─── Mavera — Cloud Cost Monitor ──────────────────────────────────────────────
+// All content sourced from the Mavera product brief.
 
 export const heroContent = {
   headline: 'Turn Cloud Spend Into Actionable Savings.',
   subhead:
-    'CCM gives enterprises a unified view of cloud costs, resources, savings opportunities, forecasting, smart alerts and AI-driven FinOps insights across Azure, AWS and SAP BTP.',
+    'Mavera gives enterprises a unified view of cloud costs, resources, savings opportunities, forecasting, smart alerts and AI-driven FinOps insights across Azure, AWS and SAP BTP.',
   tagline: 'Monitor. Understand. Optimize. Predict. Save.',
   primaryCta: 'Request a Demo',
-  secondaryCta: 'Explore CCM',
+  secondaryCta: 'Explore Mavera',
   closingMessage:
     "Don't just monitor your cloud bill. Understand it, optimize it, and continuously reduce it.",
 };
@@ -325,7 +325,7 @@ export const howItWorksSteps: HowItWorksStep[] = [
     icon: 'Search',
     title: 'Discover & Baseline',
     description:
-      'CCM maps your hierarchy, normalises tags, and learns per-service baselines so anomalies and waste surface from day one.',
+      'Mavera maps your hierarchy, normalises tags, and learns per-service baselines so anomalies and waste surface from day one.',
   },
   {
     number: '03',
@@ -356,73 +356,31 @@ export type FeatureTab = {
 
 export const featureTabs: FeatureTab[] = [
   {
-    id: 'dashboard',
-    label: 'Unified Dashboard',
-    category: 'Visibility · 01 / 05',
-    title: 'Unified Cloud Cost Dashboard',
+    id: 'platform',
+    label: 'Platform & Savings',
+    category: 'Platform · 01 / 02',
+    title: 'Unified Visibility & Optimization',
     description:
-      'A single pane of glass for Azure, AWS, and GCP — every dollar across every account, subscription, and project rolled up in real time. Stop reconciling three different billing portals at month-end. CCM ingests native billing APIs, normalises currency, tags, and resource hierarchies, then surfaces blended trends, anomaly bands, and run-rate forecasts on one editorial dashboard. Drill from total spend to CSP to service to tag to resource in two clicks.',
-    quote: 'One pane. Three clouds. Zero spreadsheets.',
+      'A single pane of glass for Azure, AWS, and GCP. Stop reconciling billing portals at month-end. Our platform gives you a live dashboard of your costs, coupled with a prioritised queue of actionable saving opportunities. From rightsizing to reservations, confidently reduce waste and track realised savings.',
+    quote: 'One pane. Three clouds. $10,250 in pre-validated savings.',
     bullets: [
-      'Live Azure, AWS, GCP roll-up',
-      'Tag-normalised drill-down',
-      'Run-rate vs. budget bands',
-    ],
-  },
-  {
-    id: 'savings',
-    label: 'Savings Center',
-    category: 'Optimization · 02 / 05',
-    title: 'Savings Center',
-    description:
-      'A prioritised queue of every actionable saving opportunity in your environment — rightsizing, reservations, idle shutdowns, storage tiering — ranked by dollar impact. Each opportunity is paired with a confidence score, projected monthly saving, implementation effort, and a one-click runbook. Approve, schedule, or ignore from inside the platform — no Terraform diffs to copy-paste. Track realised savings against forecast so finance can audit the FinOps program in numbers, not narrative.',
-    quote: '$10,250 in pre-validated savings, waiting on a click.',
-    bullets: [
-      'Confidence-scored recommendations',
+      'Live multi-cloud roll-up',
+      'Prioritised savings recommendations',
       'One-click runbook execution',
-      'Realised vs. forecast tracking',
     ],
   },
   {
-    id: 'alerts',
-    label: 'Smart Alerts',
-    category: 'Detection · 03 / 05',
-    title: 'Smart Alerts & Anomaly Detection',
+    id: 'ai-btp',
+    label: 'AI Intelligence & BTP',
+    category: 'Intelligence · 02 / 02',
+    title: 'Smart Alerts & Forecasting',
     description:
-      "Models trained on your historical spend catch cost spikes the moment they form — not after the invoice lands. Per-service baselines learn weekday/weekend, business-hours, and seasonal patterns. Deviations beyond a configurable z-score fire to Slack, Teams, email, or webhook with a chart, a likely-cause hypothesis, and the responsible resource owner pre-tagged. Catch a rogue test cluster at hour 2, not at $42,000.",
-    quote: 'Caught at hour 2 — not at the invoice.',
-    bullets: [
-      'Per-service learned baselines',
-      'Multi-channel notification',
-      'Cause hypothesis + owner tag',
-    ],
-  },
-  {
-    id: 'ai-summary',
-    label: 'AI Executive Summary',
-    category: 'Intelligence · 04 / 05',
-    title: 'AI Executive Summary',
-    description:
-      "A board-ready paragraph generated weekly that explains what happened to spend — and why — in plain English. No more screenshotting charts for the CFO deck. CCM's LLM layer compresses thousands of cost events into a narrated brief: top movers, what drove them, which optimisations landed, and where attention is needed next week. Editable, exportable to PDF, and signed with the data window it was generated from.",
+      'Let AI detect anomalies and narrate your cost story. Models trained on your historical spend catch spikes instantly, while confidence-banded forecasts project your 90-day trajectory. Get board-ready weekly summaries generated by LLMs, and extend this deep financial visibility directly to your SAP BTP landscape.',
     quote: 'Your weekly cost story, written for you.',
     bullets: [
-      'Narrated weekly brief',
-      'Top-mover attribution',
-      'Editable PDF export',
-    ],
-  },
-  {
-    id: 'forecasting',
-    label: 'Cost Forecasting',
-    category: 'Forecasting · 05 / 05',
-    title: 'Cost Forecasting',
-    description:
-      'Confidence-banded forecasts at the account, service, and tag level — so finance plans against ranges, not vibes. An ensemble of seasonal-decomposition and gradient-boosted models projects 30, 60, and 90-day spend with P50/P80/P95 bands. Overlay planned releases, freeze windows, or reservation purchases to see their impact before commit. Export to FP&A in CSV or push directly into Anaplan / Workday Adaptive.',
-    quote: 'Plan against ranges. Not against vibes.',
-    bullets: [
-      '30 / 60 / 90-day projections',
-      'P50 / P80 / P95 bands',
-      'FP&A-ready exports',
+      'Per-service anomaly detection',
+      'AI-generated executive briefs',
+      'P50 / P80 / P95 forecasting bands',
     ],
   },
 ];

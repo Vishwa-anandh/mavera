@@ -22,11 +22,8 @@ import { featureTabs } from '@/lib/content';
 import { useReveal } from '@/lib/hooks';
 
 const tabIcons: Record<string, LucideIcon> = {
-  dashboard: LayoutDashboard,
-  savings: PiggyBank,
-  alerts: BellRing,
-  'ai-summary': Sparkles,
-  forecasting: TrendingUp,
+  platform: LayoutDashboard,
+  'ai-btp': Sparkles,
 };
 
 export default function FeatureTabs() {
@@ -126,11 +123,8 @@ function FeaturePanel({ tab, index }: { tab: (typeof featureTabs)[number]; index
 
 function FeatureMockup({ id }: { id: string }) {
   switch (id) {
-    case 'dashboard': return <DashboardMockup />;
-    case 'savings': return <SavingsMockup />;
-    case 'alerts': return <AlertsMockup />;
-    case 'ai-summary': return <AISummaryMockup />;
-    case 'forecasting': return <ForecastMockup />;
+    case 'platform': return <DashboardMockup />;
+    case 'ai-btp': return <AISummaryMockup />;
     default: return null;
   }
 }
@@ -166,7 +160,7 @@ function MockupShell({ path, children }: { path: string; children: React.ReactNo
 
 function DashboardMockup() {
   return (
-    <MockupShell path="ccm.maitsys.com/dashboard">
+    <MockupShell path="mavera.maitsys.com/dashboard">
       <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-white p-2 shadow-sm">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-700">
           <div className="flex h-5 w-5 items-center justify-center rounded bg-brand-50 text-brand-600 text-[10px] font-bold">M</div>
@@ -255,7 +249,7 @@ function DashboardMockup() {
 
 function SavingsMockup() {
   return (
-    <MockupShell path="ccm.maitsys.com/savings">
+    <MockupShell path="mavera.maitsys.com/savings">
       <div className="rounded-lg border border-slate-100 bg-white p-3 sm:p-4 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
           <div>
@@ -365,7 +359,7 @@ function SavingsMockup() {
 
 function AlertsMockup() {
   return (
-    <MockupShell path="ccm.maitsys.com/alerts">
+    <MockupShell path="mavera.maitsys.com/alerts">
       <div className="rounded-lg border border-slate-100 bg-white p-3 sm:p-4 shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3 sm:gap-0">
           <div>
@@ -449,7 +443,7 @@ function AlertsMockup() {
 
 function AISummaryMockup() {
   return (
-    <MockupShell path="ccm.maitsys.com/executive-summary">
+    <MockupShell path="mavera.maitsys.com/executive-summary">
       <div className="rounded-xl border border-rose-100 bg-white shadow-sm overflow-hidden">
         <div className="bg-rose-50 px-3 sm:px-4 py-3 border-b border-rose-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -501,7 +495,7 @@ function AISummaryMockup() {
 
 function ForecastMockup() {
   return (
-    <MockupShell path="ccm.maitsys.com/forecast">
+    <MockupShell path="mavera.maitsys.com/forecast">
       <div className="rounded-lg border border-slate-100 bg-white p-4 sm:p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4 sm:mb-5">
           <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">

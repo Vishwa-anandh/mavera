@@ -3,7 +3,7 @@ import { ShieldCheck, ChevronRight } from 'lucide-react';
 
 const sections = [
   { id: 'acceptance', title: '1. Acceptance' },
-  { id: 'services', title: '2. CCM Services' },
+  { id: 'services', title: '2. Mavera Services' },
   { id: 'account', title: '3. Account and Access' },
   { id: 'authorization', title: '4. Cloud Provider Authorization' },
   { id: 'responsibilities', title: '5. Customer Responsibilities' },
@@ -69,9 +69,6 @@ export default function TermsAndConditions() {
           <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight mb-4">
             Terms & Conditions
           </h1>
-          <p className="text-slate-500 font-medium text-sm">
-            Effective Date: [DD Month YYYY] <span className="mx-2">•</span> Last Updated: [DD Month YYYY]
-          </p>
         </div>
       </div>
 
@@ -101,24 +98,24 @@ export default function TermsAndConditions() {
         {/* Content Area */}
         <div className="flex-1 max-w-3xl space-y-12 text-slate-600 leading-relaxed text-[15px]">
           
-          <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl">
+          {/* <div className="bg-amber-50 border-l-4 border-amber-500 p-5 rounded-r-xl">
             <h3 className="text-amber-800 font-bold mb-2">Important Notice</h3>
             <p className="text-amber-700 text-sm">
               This is a business-ready draft and must be reviewed by Maitsys legal counsel before publication and before use in customer contracts. Replace bracketed placeholders and align it with the final subscription agreement, SLA, DPA and security terms.
             </p>
-          </div>
+          </div> */}
 
           <div id="acceptance" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">1. Acceptance</h2>
             <p>
-              These Terms govern access to and use of CCM – Cloud Cost Monitor by [MAITSYS LEGAL ENTITY NAME] (“Maitsys”). By creating an account, accessing or using CCM, the customer agrees to these Terms. If acting for an organization, the user represents that they have authority to bind it.
+              These Terms govern access to and use of Mavera – Cloud Cost Monitor by [MAITSYS LEGAL ENTITY NAME] (“Maitsys”). By creating an account, accessing or using Mavera, the customer agrees to these Terms. If acting for an organization, the user represents that they have authority to bind it.
             </p>
           </div>
 
           <div id="services" className="scroll-mt-32">
-            <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">2. CCM Services</h2>
+            <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">2. Mavera Services</h2>
             <p>
-              CCM provides cloud cost monitoring, resource monitoring, savings analysis, forecasting, alerts, reporting, AI-assisted insights and related FinOps capabilities. Functionality depends on the selected plan, provider integration and configuration.
+              Mavera provides cloud cost monitoring, resource monitoring, savings analysis, forecasting, alerts, reporting, AI-assisted insights and related FinOps capabilities. Functionality depends on the selected plan, provider integration and configuration.
             </p>
           </div>
 
@@ -134,7 +131,7 @@ export default function TermsAndConditions() {
           <div id="authorization" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">4. Cloud Provider Authorization</h2>
             <p>
-              CCM may connect to Azure, AWS, SAP BTP and other supported environments through customer-authorized APIs, roles, service principals, access keys, OAuth or other methods. The Customer authorizes retrieval of data required for selected CCM functionality. CCM does not take ownership of Customer cloud accounts or resources.
+              Mavera may connect to Azure, AWS, SAP BTP and other supported environments through customer-authorized APIs, roles, service principals, access keys, OAuth or other methods. The Customer authorizes retrieval of data required for selected Mavera functionality. Mavera does not take ownership of Customer cloud accounts or resources.
             </p>
           </div>
 
@@ -152,28 +149,28 @@ export default function TermsAndConditions() {
           <div id="costs" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">6. Costs, Savings and Forecasts</h2>
             <p>
-              CCM cost calculations, savings estimates, forecasts, anomaly scores and recommendations are decision-support outputs and are not guarantees of actual provider charges or savings. Actual charges depend on provider pricing, usage, taxes, commitments, contracts and resource changes. Customers must validate recommendations before acting.
+              Mavera cost calculations, savings estimates, forecasts, anomaly scores and recommendations are decision-support outputs and are not guarantees of actual provider charges or savings. Actual charges depend on provider pricing, usage, taxes, commitments, contracts and resource changes. Customers must validate recommendations before acting.
             </p>
           </div>
 
           <div id="ai" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">7. AI Services</h2>
             <p>
-              AI-generated summaries, recommendations, forecasts, anomaly explanations and chat responses may contain errors or omissions and should not be treated as financial, legal, tax, security or operational advice. Customers remain responsible for decisions and actions based on CCM outputs.
+              AI-generated summaries, recommendations, forecasts, anomaly explanations and chat responses may contain errors or omissions and should not be treated as financial, legal, tax, security or operational advice. Customers remain responsible for decisions and actions based on Mavera outputs.
             </p>
           </div>
 
           <div id="subscription" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">8. Subscription and Fees</h2>
             <p>
-              CCM may be offered in Standard and AI-enabled plans. Fees, billing frequency, limits, renewal and payment terms will be specified in the applicable order form or subscription agreement. Fees are non-refundable except where required by law or contract.
+              Mavera may be offered in Standard and AI-enabled plans. Fees, billing frequency, limits, renewal and payment terms will be specified in the applicable order form or subscription agreement. Fees are non-refundable except where required by law or contract.
             </p>
           </div>
 
           <div id="third-party" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">9. Third-Party Services</h2>
             <p>
-              CCM relies on third-party cloud providers and services. Their availability, pricing, APIs and functionality are controlled by those providers and may affect CCM.
+              Mavera relies on third-party cloud providers and services. Their availability, pricing, APIs and functionality are controlled by those providers and may affect Mavera.
             </p>
           </div>
 
@@ -182,7 +179,7 @@ export default function TermsAndConditions() {
             <ul className="grid sm:grid-cols-2 gap-4">
               <li className="flex gap-3 bg-slate-50 p-3 rounded-lg"><ChevronRight className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />Do not violate applicable law or third-party rights.</li>
               <li className="flex gap-3 bg-slate-50 p-3 rounded-lg"><ChevronRight className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />Do not attempt unauthorized access.</li>
-              <li className="flex gap-3 bg-slate-50 p-3 rounded-lg"><ChevronRight className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />Do not interfere with CCM availability or security.</li>
+              <li className="flex gap-3 bg-slate-50 p-3 rounded-lg"><ChevronRight className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />Do not interfere with Mavera availability or security.</li>
               <li className="flex gap-3 bg-slate-50 p-3 rounded-lg"><ChevronRight className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />Do not reverse engineer or misuse the service except where law permits.</li>
               <li className="flex gap-3 bg-slate-50 p-3 rounded-lg"><ChevronRight className="w-4 h-4 text-brand-500 shrink-0 mt-0.5" />Do not upload malicious code.</li>
             </ul>
@@ -191,14 +188,14 @@ export default function TermsAndConditions() {
           <div id="ip" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">11. Intellectual Property</h2>
             <p>
-              Maitsys and its licensors retain rights in CCM software, interfaces, designs, trademarks, documentation and technology, except for Customer Data. No rights are granted other than those expressly provided.
+              Maitsys and its licensors retain rights in Mavera software, interfaces, designs, trademarks, documentation and technology, except for Customer Data. No rights are granted other than those expressly provided.
             </p>
           </div>
 
           <div id="customer-data" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">12. Customer Data</h2>
             <p>
-              The Customer retains its rights in Customer Data. The Customer grants Maitsys the rights necessary to host, process and use Customer Data to provide CCM and related services. Additional data-processing terms may apply.
+              The Customer retains its rights in Customer Data. The Customer grants Maitsys the rights necessary to host, process and use Customer Data to provide Mavera and related services. Additional data-processing terms may apply.
             </p>
           </div>
 
@@ -212,14 +209,14 @@ export default function TermsAndConditions() {
           <div id="security" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">14. Security</h2>
             <p>
-              Maitsys will maintain reasonable technical and organizational security measures for CCM. Customers remain responsible for the security of their cloud accounts, credentials, configurations and users.
+              Maitsys will maintain reasonable technical and organizational security measures for Mavera. Customers remain responsible for the security of their cloud accounts, credentials, configurations and users.
             </p>
           </div>
 
           <div id="availability" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">15. Availability and Support</h2>
             <p>
-              CCM availability, support hours and response commitments, if any, will be described in the applicable SLA or subscription/order documentation. Planned maintenance and events outside Maitsys's reasonable control may affect availability.
+              Mavera availability, support hours and response commitments, if any, will be described in the applicable SLA or subscription/order documentation. Planned maintenance and events outside Maitsys's reasonable control may affect availability.
             </p>
           </div>
 
@@ -233,7 +230,7 @@ export default function TermsAndConditions() {
           <div id="disclaimers" className="scroll-mt-32">
             <h2 className="text-xl font-bold text-slate-900 mb-4 pb-2 border-b border-slate-100">17. Disclaimers</h2>
             <p>
-              To the maximum extent permitted by law, CCM analytics, forecasts and recommendations are provided as decision support information and are not guaranteed to be error-free or uninterrupted. Customers should independently verify material decisions.
+              To the maximum extent permitted by law, Mavera analytics, forecasts and recommendations are provided as decision support information and are not guaranteed to be error-free or uninterrupted. Customers should independently verify material decisions.
             </p>
           </div>
 

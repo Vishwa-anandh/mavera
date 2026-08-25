@@ -55,7 +55,7 @@ export default function Pricing() {
 }
 
 const comparisonRows = [
-  { label: 'CCM', standard: true, ai: true },
+  { label: 'Mavera', standard: true, ai: true },
   { label: 'Savings Center', standard: true, ai: true },
   { label: 'Resource Monitoring', standard: true, ai: true },
   { label: 'Daily Health Reports', standard: true, ai: true },

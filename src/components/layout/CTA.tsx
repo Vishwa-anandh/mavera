@@ -8,7 +8,7 @@ export default function CTA() {
   const [submitted, setSubmitted] = useState(false);
 
   return (
-    <section className="py-12 lg:py-16 relative overflow-hidden bg-white">
+    <section className="pt-6 pb-12 lg:pt-8 lg:pb-16 relative overflow-hidden bg-white">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_0%_50%,rgba(47,126,245,0.08),transparent)] pointer-events-none" />
       
       <div className="relative mx-auto max-w-6xl px-5 lg:px-8">
@@ -128,9 +128,9 @@ export function Footer() {
       title: 'Product',
       links: [
         { label: 'Platform Deep Dive', path: '/platform' },
-        { label: 'Cloud Savings', path: '/savings' },
+        { label: 'Cloud Savings', path: '/platform#savings' },
         { label: 'AI FinOps', path: '/ai' },
-        { label: 'SAP BTP Monitoring', path: '/btp' },
+        { label: 'SAP BTP Monitoring', path: '/ai#btp' },
       ],
     },
     {

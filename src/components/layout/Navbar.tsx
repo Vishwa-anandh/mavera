@@ -6,9 +6,7 @@ import { useTheme } from '@/components/ui/ThemeProvider';
 const navLinks: { label: string; path: string }[] = [
   { label: 'Home', path: '/' },
   { label: 'Platform', path: '/platform' },
-  { label: 'Savings', path: '/savings' },
-  { label: 'AI FinOps', path: '/ai' },
-  { label: 'SAP BTP', path: '/btp' },
+  { label: 'Intelligence', path: '/ai' },
   { label: 'Pricing', path: '/pricing' },
   { label: 'Security', path: '/security' },
 ];

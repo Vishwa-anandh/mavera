@@ -2,6 +2,19 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import { StatusTag } from './StatusTag';
+import { lightColors } from '../theme/tokens';
+
+// Convert hex color to rgb() string format
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) {
+    throw new Error(`Invalid hex color: ${hex}`);
+  }
+  const r = parseInt(result[1], 16);
+  const g = parseInt(result[2], 16);
+  const b = parseInt(result[3], 16);
+  return `rgb(${r}, ${g}, ${b})`;
+}
 
 describe('StatusTag', () => {
   it('renders its label text', () => {
@@ -21,7 +34,7 @@ describe('StatusTag', () => {
     );
     const tag = screen.getByText('Critical').closest('.ant-tag') as HTMLElement;
     const computedStyle = window.getComputedStyle(tag);
-    expect(computedStyle.color).toBe('rgb(180, 35, 24)');
-    expect(computedStyle.backgroundColor).toBe('rgb(241, 243, 245)');
+    expect(computedStyle.color).toBe(hexToRgb(lightColors.danger));
+    expect(computedStyle.backgroundColor).toBe(hexToRgb(lightColors.surfaceSubtle));
   });
 });

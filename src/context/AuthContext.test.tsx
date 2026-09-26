@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -24,6 +25,32 @@ function Consumer() {
       <span data-testid="email">{user?.email ?? 'none'}</span>
       <button onClick={() => login('a@b.com', 'secret')}>login</button>
       <button onClick={logout}>logout</button>
+    </div>
+  );
+}
+
+function RefreshConsumer() {
+  const { user, isAuthenticated, refreshUser } = useAuth();
+  // `refresh-done` only flips after refreshUser()'s promise (i.e. fetchMe's
+  // full try/catch/finally cycle) has settled, regardless of which branch it
+  // took. Using it as the wait condition — rather than asserting on
+  // authed/email directly right after the click — avoids a false pass: since
+  // the "preserved" assertion's expected value is identical to its
+  // pre-click value, a plain post-click check could pass on a stale render
+  // before the async catch/finally has actually run.
+  const [done, setDone] = useState(false);
+  return (
+    <div>
+      <span data-testid="authed">{String(isAuthenticated)}</span>
+      <span data-testid="email">{user?.email ?? 'none'}</span>
+      <span data-testid="refresh-done">{String(done)}</span>
+      <button
+        onClick={() => {
+          void refreshUser().finally(() => setDone(true));
+        }}
+      >
+        refresh
+      </button>
     </div>
   );
 }
@@ -87,6 +114,36 @@ describe('AuthContext', () => {
     // The redirect to /subscription-expired itself is the api client's job
     // (Task 7); this test only pins that AuthContext does not race it by
     // rendering a /login redirect first.
+  });
+
+  it('preserves an already-authenticated user when a later /auth/me call reveals a lapsed subscription', async () => {
+    localStorage.setItem(TOKEN_KEY, 'existing-token');
+    getMock.mockResolvedValueOnce({ data: { id: '1', email: 'a@b.com', role: 'member' } });
+    const user = userEvent.setup();
+
+    render(
+      <AuthProvider>
+        <RefreshConsumer />
+      </AuthProvider>,
+    );
+
+    // Establish a real, non-null user first.
+    await waitFor(() => expect(screen.getByTestId('authed')).toHaveTextContent('true'));
+    expect(screen.getByTestId('email')).toHaveTextContent('a@b.com');
+
+    // A later /auth/me call (e.g. from a background refresh) reveals the
+    // org's subscription has lapsed.
+    getMock.mockRejectedValueOnce({ response: { status: 403, data: { subscriptionExpired: true } } });
+
+    await user.click(screen.getByText('refresh'));
+    await waitFor(() => expect(screen.getByTestId('refresh-done')).toHaveTextContent('true'));
+
+    // The existing, already-authenticated user must be preserved — not
+    // nulled out — so nothing renders a premature /login redirect ahead of
+    // the api client's own /subscription-expired redirect.
+    expect(getMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('authed')).toHaveTextContent('true');
+    expect(screen.getByTestId('email')).toHaveTextContent('a@b.com');
   });
 
   it('login re-fetches /auth/me rather than trusting the login response alone', async () => {

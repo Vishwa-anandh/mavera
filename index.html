@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mavera — Cloud Cost Monitoring</title>
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('mavera.theme');
+          var density = localStorage.getItem('mavera.density');
+          document.documentElement.setAttribute(
+            'data-theme',
+            mode === 'dark' ? 'dark' : 'light',
+          );
+          document.documentElement.setAttribute(
+            'data-density',
+            density === 'compact' ? 'compact' : 'comfortable',
+          );
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.setAttribute('data-density', 'comfortable');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AppShell } from './AppShell';
@@ -9,6 +9,35 @@ const useAuthMock = vi.fn<() => AuthContextValue>();
 vi.mock('../context/AuthContext', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../context/AuthContext')>();
   return { ...actual, useAuth: () => useAuthMock() };
+});
+
+// @rc-component/overflow (used internally by AntD's Menu in horizontal mode,
+// which AppShell renders via ModuleNavigation) measures item widths on
+// mount/unmount and batches those state updates through a real MessageChannel
+// postMessage that resolves on a later tick, entirely outside React's own
+// scheduler and therefore outside the synchronous act() scope
+// @testing-library/react's render() wraps around the commit. This logs a
+// "not wrapped in act(...)" warning even though no application code triggers
+// it and no assertion here depends on it — a documented, benign interaction
+// between @rc-component/overflow and jsdom test environments, not a bug in
+// AppShell/ModuleNavigation. Scoped to only this file's tests (rather than
+// shared src/test/setup.ts) so a genuine act violation in any other test
+// file's component is never silently swallowed.
+const RC_OVERFLOW_ACT_WARNING = 'An update to %s inside a test was not wrapped in act';
+let originalConsoleError: typeof console.error;
+
+beforeEach(() => {
+  originalConsoleError = console.error;
+  console.error = (...args: unknown[]) => {
+    if (typeof args[0] === 'string' && args[0].includes(RC_OVERFLOW_ACT_WARNING)) {
+      return;
+    }
+    originalConsoleError(...args);
+  };
+});
+
+afterEach(() => {
+  console.error = originalConsoleError;
 });
 
 function baseAuth(overrides: Partial<AuthContextValue>): AuthContextValue {

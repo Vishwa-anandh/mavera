@@ -1,0 +1,36 @@
+import { Navigate, Outlet } from 'react-router-dom';
+import { Layout, Spin } from 'antd';
+import { useAuth } from '../context/AuthContext';
+import { ModuleNavigation } from './ModuleNavigation';
+
+const { Header, Content } = Layout;
+
+export function AppShell() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
+        <Spin size="large" aria-label="Loading application" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <Header style={{ display: 'flex', alignItems: 'center', gap: 24, position: 'sticky', top: 0, zIndex: 100 }}>
+        <span className="mv-heading" style={{ fontSize: 18, letterSpacing: '0.04em', color: 'var(--mv-on-action)' }}>
+          MAVERA
+        </span>
+        <ModuleNavigation />
+      </Header>
+      <Content style={{ padding: 24 }}>
+        <Outlet />
+      </Content>
+    </Layout>
+  );
+}

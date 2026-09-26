@@ -11,6 +11,10 @@ vi.mock('../context/AuthContext', async (importOriginal) => {
   return { ...actual, useAuth: () => useAuthMock() };
 });
 
+vi.mock('./ProfileMenu', () => ({
+  ProfileMenu: () => <div>Profile menu stub</div>,
+}));
+
 // @rc-component/overflow (used internally by AntD's Menu in horizontal mode,
 // which AppShell renders via ModuleNavigation) measures item widths on
 // mount/unmount and batches those state updates through a real MessageChannel
@@ -93,11 +97,13 @@ describe('AppShell', () => {
     expect(screen.getByText('Login page')).toBeInTheDocument();
   });
 
-  it('renders the brand, navigation, and routed content once authenticated', () => {
+  it('renders the brand, navigation, profile menu, footer, and routed content once authenticated', () => {
     useAuthMock.mockReturnValue(baseAuth({}));
     renderShell();
     expect(screen.getByText('MAVERA')).toBeInTheDocument();
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Home content')).toBeInTheDocument();
+    expect(screen.getByText('Profile menu stub')).toBeInTheDocument();
+    expect(screen.getByText('Powered by Maitsys')).toBeInTheDocument();
   });
 });

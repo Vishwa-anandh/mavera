@@ -12,3 +12,20 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   }
   globalThis.ResizeObserver = ResizeObserverPolyfill as unknown as typeof ResizeObserver;
 }
+
+// jsdom does not implement window.matchMedia, which AntD's responsive
+// breakpoint observer (used internally by Dropdown, Grid, and other
+// components) subscribes to at mount time. Polyfill it globally, following
+// the same rationale as the ResizeObserver polyfill above.
+if (typeof window.matchMedia === 'undefined') {
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+}

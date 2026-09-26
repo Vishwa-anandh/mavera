@@ -1,0 +1,70 @@
+/* Real WOFF2 files are not yet present in this repo (spec §3/§10 tracked
+   gap). These @font-face rules are wired per MAVERA_DESIGN_SYSTEM.md §3.2;
+   until the actual files are added at the paths below, each failed source
+   silently falls back to the next family in its --mv-font-* stack — text
+   never disappears and no action becomes unavailable. */
+@font-face {
+  font-family: 'Google Sans Text';
+  src: url('/fonts/google-sans-text-400.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Google Sans Text';
+  src: url('/fonts/google-sans-text-500.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Google Sans Text';
+  src: url('/fonts/google-sans-text-600.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/poppins-500.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/poppins-600.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+:root {
+  --mv-font-body: 'Google Sans Text', 'Segoe UI', Arial, sans-serif;
+  --mv-font-heading: 'Poppins', 'Segoe UI', Arial, sans-serif;
+  --mv-font-mono: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+body {
+  font-family: var(--mv-font-body);
+  font-size: 14px;
+  line-height: 22px;
+  margin: 0;
+  background: var(--mv-canvas);
+  color: var(--mv-text);
+}
+
+.mv-heading {
+  font-family: var(--mv-font-heading);
+  font-weight: 600;
+}
+
+.mv-number {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.mv-code {
+  font-family: var(--mv-font-mono);
+  font-size: 13px;
+  line-height: 20px;
+}

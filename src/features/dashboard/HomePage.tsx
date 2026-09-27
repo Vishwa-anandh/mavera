@@ -1,8 +1,11 @@
-import { Alert, Card, Col, Row, Skeleton, Statistic, Typography } from 'antd';
+import { useState } from 'react';
+import { Alert, Button, Card, Col, Row, Skeleton, Statistic, Typography } from 'antd';
 import { useAuth } from '../../context/AuthContext';
 import { derivePermissions } from '../../lib/permissions';
 import { useDashboardData } from './useDashboardData';
 import { EmptyState } from '../../components/EmptyState';
+import { SpendTrendChart } from './SpendTrendChart';
+import { ConnectCloudAccountWizard } from './ConnectCloudAccountWizard';
 
 function formatCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
@@ -33,6 +36,7 @@ export function HomePage() {
   const { user, cloudAccess, invoiceOnly } = useAuth();
   const permissions = derivePermissions(user, cloudAccess, invoiceOnly);
   const { summary, recommendations, smartAlerts, budgets, mspSavings, invoices } = useDashboardData();
+  const [wizardProvider, setWizardProvider] = useState<'azure' | 'aws' | null>(null);
 
   const noCloudAccessAtAll =
     !permissions.azure.orgHasAccess &&
@@ -50,11 +54,24 @@ export function HomePage() {
     );
   }
 
+  const connectableProvider: 'azure' | 'aws' | null = permissions.azure.allowConnect
+    ? 'azure'
+    : permissions.aws.allowConnect
+      ? 'aws'
+      : null;
+
   return (
     <div>
-      <Typography.Title level={3} className="mv-heading">
-        Dashboard
-      </Typography.Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Typography.Title level={3} className="mv-heading" style={{ margin: 0 }}>
+          Dashboard
+        </Typography.Title>
+        {connectableProvider && (
+          <Button type="primary" onClick={() => setWizardProvider(connectableProvider)}>
+            Connect a cloud account
+          </Button>
+        )}
+      </div>
 
       <Row gutter={[16, 16]}>
         <Col span={8}>
@@ -106,6 +123,20 @@ export function HomePage() {
           />
         </Col>
       </Row>
+
+      <Card title="Daily spend trend" style={{ marginTop: 16 }}>
+        {summary.loading ? (
+          <Skeleton active />
+        ) : summary.error ? (
+          <Alert type="error" showIcon title={summary.error} />
+        ) : (
+          <SpendTrendChart data={summary.data?.dailyTrend ?? []} />
+        )}
+      </Card>
+
+      {wizardProvider && (
+        <ConnectCloudAccountWizard provider={wizardProvider} open onClose={() => setWizardProvider(null)} />
+      )}
     </div>
   );
 }

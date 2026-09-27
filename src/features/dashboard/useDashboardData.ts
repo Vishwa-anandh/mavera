@@ -6,6 +6,7 @@ export interface DashboardSummary {
   currency: string;
   periodLabel: string;
   previousPeriodChangePct?: number;
+  dailyTrend?: { date: string; amount: number }[];
 }
 
 export interface RecommendationItem {

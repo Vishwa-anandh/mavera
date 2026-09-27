@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HomePage } from './HomePage';
 import type { AuthContextValue } from '../../context/AuthContext';
 import type { DashboardData } from './useDashboardData';
@@ -13,6 +14,16 @@ vi.mock('../../context/AuthContext', async (importOriginal) => {
 });
 
 vi.mock('./useDashboardData', () => ({ useDashboardData: () => useDashboardDataMock() }));
+
+vi.mock('./SpendTrendChart', () => ({ SpendTrendChart: () => <div>Spend trend chart stub</div> }));
+vi.mock('./ConnectCloudAccountWizard', () => ({
+  ConnectCloudAccountWizard: ({ onClose }: { onClose: () => void }) => (
+    <div>
+      Wizard stub
+      <button onClick={onClose}>Close wizard</button>
+    </div>
+  ),
+}));
 
 function auth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   return {
@@ -95,5 +106,34 @@ describe('HomePage', () => {
     render(<HomePage />);
     expect(screen.getByText('Unable to load this data right now.')).toBeInTheDocument();
     expect(screen.getByText('$12,000.00')).toBeInTheDocument();
+  });
+
+  it('shows a "Connect a cloud account" button when the user can connect Azure', () => {
+    useAuthMock.mockReturnValue(auth({ user: { id: '1', email: 'a@b.com', role: 'member', canViewAzure: true } }));
+    useDashboardDataMock.mockReturnValue(dashboardData());
+    render(<HomePage />);
+    expect(screen.getByRole('button', { name: 'Connect a cloud account' })).toBeInTheDocument();
+  });
+
+  it('hides the "Connect a cloud account" button when the user cannot connect any cloud', () => {
+    useAuthMock.mockReturnValue(
+      auth({
+        cloudAccess: ['azure'],
+        user: { id: '1', email: 'a@b.com', role: 'member', canViewAzure: true, azureReadOnly: true },
+      }),
+    );
+    useDashboardDataMock.mockReturnValue(dashboardData());
+    render(<HomePage />);
+    expect(screen.queryByRole('button', { name: 'Connect a cloud account' })).not.toBeInTheDocument();
+  });
+
+  it('opens the connect-account wizard when the button is clicked', async () => {
+    useAuthMock.mockReturnValue(auth({ user: { id: '1', email: 'a@b.com', role: 'member', canViewAzure: true } }));
+    useDashboardDataMock.mockReturnValue(dashboardData());
+    const user = userEvent.setup();
+    render(<HomePage />);
+
+    await user.click(screen.getByRole('button', { name: 'Connect a cloud account' }));
+    expect(screen.getByText('Wizard stub')).toBeInTheDocument();
   });
 });

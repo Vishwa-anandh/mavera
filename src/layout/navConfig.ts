@@ -1,10 +1,38 @@
 import type { PermissionSet } from '../lib/permissions';
+import type { AuthContextValue } from '../context/AuthContext';
+
+export type NavFeatures = AuthContextValue['features'];
+
+/**
+ * Subscription-derived inputs, alongside the user's permissions. Mirrors the
+ * reference app's components/Sidebar.jsx, which gates on `user.features.*`
+ * and on the org's invoice-only / hybrid mode.
+ */
+export interface NavContext {
+  features: NavFeatures;
+  invoiceOnly: boolean;
+}
+
+const ALL_FEATURES: NavFeatures = {
+  budgets: true,
+  smartAlerts: true,
+  syncLogs: true,
+  recommendations: true,
+  cloudManagement: true,
+  invoices: true,
+};
+
+type NavPredicate = (permissions: PermissionSet, context: NavContext) => boolean;
+
+/** Hybrid = invoice-only flag but cloud providers also configured. */
+const isPureInvoiceOnly: NavPredicate = (p, c) => c.invoiceOnly && !p.isHybridOrg;
 
 interface NavLeafDef {
   key: string;
   label: string;
   path: string;
-  locked?: (permissions: PermissionSet) => boolean;
+  locked?: NavPredicate;
+  visible?: NavPredicate;
 }
 
 type NavNodeDef =
@@ -13,7 +41,7 @@ type NavNodeDef =
       type: 'group';
       key: string;
       label: string;
-      visible?: (permissions: PermissionSet) => boolean;
+      visible?: NavPredicate;
       children: NavLeafDef[];
     };
 
@@ -23,6 +51,8 @@ const NAV_TREE: NavNodeDef[] = [
     type: 'group',
     key: 'cloud-costs',
     label: 'Cloud Costs',
+    // Reference hides every cloud menu for a pure invoice-only org.
+    visible: (p, c) => !isPureInvoiceOnly(p, c),
     children: [
       { key: 'azure', label: 'Azure', path: '/azure', locked: (p) => !p.azure.canView || !p.azure.orgHasAccess },
       { key: 'aws', label: 'AWS', path: '/aws', locked: (p) => !p.aws.canView || !p.aws.orgHasAccess },
@@ -35,15 +65,28 @@ const NAV_TREE: NavNodeDef[] = [
     key: 'optimisation',
     label: 'Optimisation',
     children: [
-      { key: 'recommendations', label: 'Recommendations', path: '/recommendations' },
-      { key: 'smart-alerts', label: 'Smart Alerts', path: '/smart-alerts' },
+      {
+        key: 'recommendations',
+        label: 'Recommendations',
+        path: '/recommendations',
+        locked: (_p, c) => !c.features.recommendations,
+      },
+      { key: 'smart-alerts', label: 'Smart Alerts', path: '/smart-alerts', locked: (_p, c) => !c.features.smartAlerts },
     ],
   },
   {
     type: 'group',
     key: 'operations',
     label: 'Operations',
-    children: [{ key: 'invoices', label: 'Invoices', path: '/invoices' }],
+    children: [
+      {
+        key: 'invoices',
+        label: 'Invoices',
+        path: '/invoices',
+        // Reference: shown only for invoice-only or hybrid orgs.
+        visible: (p, c) => c.invoiceOnly || p.isHybridOrg,
+      },
+    ],
   },
   {
     type: 'group',
@@ -54,10 +97,12 @@ const NAV_TREE: NavNodeDef[] = [
         key: 'budgets',
         label: 'Budgets & Alerts',
         path: '/budgets',
-        // Matches the reference app's own gating exactly (GCP is excluded
-        // from this OR-check there too) — a known quirk in the reference
-        // app, reproduced rather than silently "fixed" here.
-        locked: (p) => !(p.isPrivileged || p.azure.canView || p.aws.canView || p.btp.canView),
+        // The subscription's budgets feature (reference Sidebar.jsx), plus
+        // the reference's permission gate (GCP is excluded from this
+        // OR-check there too — a known quirk in the reference app,
+        // reproduced rather than silently "fixed" here).
+        locked: (p, c) =>
+          !c.features.budgets || !(p.isPrivileged || p.azure.canView || p.aws.canView || p.btp.canView),
       },
     ],
   },
@@ -74,7 +119,7 @@ const NAV_TREE: NavNodeDef[] = [
     visible: (p) => p.isPrivileged,
     children: [
       { key: 'users', label: 'User Management', path: '/users' },
-      { key: 'sync-logs', label: 'Sync Logs', path: '/sync-logs' },
+      { key: 'sync-logs', label: 'Sync Logs', path: '/sync-logs', locked: (_p, c) => !c.features.syncLogs },
     ],
   },
 ];
@@ -90,29 +135,27 @@ export type ResolvedNavEntry =
   | ({ type: 'leaf' } & ResolvedNavLeaf)
   | { type: 'group'; key: string; label: string; children: ResolvedNavLeaf[] };
 
-export function resolveNav(permissions: PermissionSet): ResolvedNavEntry[] {
-  return NAV_TREE.filter((node) => (node.type === 'group' && node.visible ? node.visible(permissions) : true)).map(
-    (node): ResolvedNavEntry => {
-      if (node.type === 'leaf') {
-        return {
-          type: 'leaf',
-          key: node.key,
-          label: node.label,
-          path: node.path,
-          locked: node.locked?.(permissions) ?? false,
-        };
-      }
-      return {
-        type: 'group',
-        key: node.key,
-        label: node.label,
-        children: node.children.map((leaf) => ({
-          key: leaf.key,
-          label: leaf.label,
-          path: leaf.path,
-          locked: leaf.locked?.(permissions) ?? false,
-        })),
-      };
-    },
-  );
+function resolveLeaf(leaf: NavLeafDef, permissions: PermissionSet, context: NavContext): ResolvedNavLeaf {
+  return {
+    key: leaf.key,
+    label: leaf.label,
+    path: leaf.path,
+    locked: leaf.locked?.(permissions, context) ?? false,
+  };
+}
+
+export function resolveNav(
+  permissions: PermissionSet,
+  context: NavContext = { features: ALL_FEATURES, invoiceOnly: false },
+): ResolvedNavEntry[] {
+  const isVisible = (node: { visible?: NavPredicate }) => node.visible?.(permissions, context) ?? true;
+
+  return NAV_TREE.filter(isVisible).flatMap((node): ResolvedNavEntry[] => {
+    if (node.type === 'leaf') {
+      return [{ type: 'leaf', ...resolveLeaf(node, permissions, context) }];
+    }
+    const children = node.children.filter(isVisible).map((leaf) => resolveLeaf(leaf, permissions, context));
+    // A group whose every child is hidden is hidden too.
+    return children.length > 0 ? [{ type: 'group', key: node.key, label: node.label, children }] : [];
+  });
 }

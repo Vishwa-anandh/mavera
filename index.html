@@ -4,6 +4,43 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mavera — Cloud Cost Monitoring</title>
+    <!--
+      Pre-paint theme tokens. The script below sets data-theme before React
+      mounts; these rules make that attribute actually paint the right
+      canvas/surface/text colours until ThemeProvider writes the full --mv-*
+      set. Values must match src/theme/tokens.ts (guarded by
+      src/theme/prepaint.test.ts).
+    -->
+    <style>
+      :root,
+      :root[data-theme='light'] {
+        color-scheme: light;
+        --mv-canvas: #F6F7F9;
+        --mv-surface: #FFFFFF;
+        --mv-surface-subtle: #F1F3F5;
+        --mv-text: #182230;
+        --mv-text-secondary: #475467;
+        --mv-border: #D6DCE5;
+        --mv-divider: #E7EBF0;
+        --mv-primary: #175CD3;
+      }
+      :root[data-theme='dark'] {
+        color-scheme: dark;
+        --mv-canvas: #111318;
+        --mv-surface: #191D24;
+        --mv-surface-subtle: #222832;
+        --mv-text: #F2F4F7;
+        --mv-text-secondary: #C0C8D4;
+        --mv-border: #3D4756;
+        --mv-divider: #303846;
+        --mv-primary: #84ADFF;
+      }
+      html,
+      body {
+        background: var(--mv-canvas);
+        color: var(--mv-text);
+      }
+    </style>
     <script>
       (function () {
         try {

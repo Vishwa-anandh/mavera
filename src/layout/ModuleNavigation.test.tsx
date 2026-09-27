@@ -79,7 +79,9 @@ describe('ModuleNavigation', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Cloud Costs')).toBeInTheDocument();
     expect(screen.getByText('Optimisation')).toBeInTheDocument();
-    expect(screen.getByText('Operations')).toBeInTheDocument();
+    // Operations holds only Invoices, which the reference Sidebar shows only
+    // to invoice-only or hybrid orgs — so a plain cloud org doesn't get it.
+    expect(screen.queryByText('Operations')).not.toBeInTheDocument();
     expect(screen.getByText('Governance')).toBeInTheDocument();
     expect(screen.getByText('Account')).toBeInTheDocument();
     expect(screen.queryByText('Administration')).not.toBeInTheDocument();

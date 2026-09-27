@@ -23,13 +23,16 @@ function LeafLabel({ leaf }: { leaf: ResolvedNavLeaf }) {
 }
 
 export function ModuleNavigation() {
-  const { user, cloudAccess, invoiceOnly } = useAuth();
+  const { user, cloudAccess, invoiceOnly, features } = useAuth();
   const location = useLocation();
   const permissions = useMemo(
     () => derivePermissions(user, cloudAccess, invoiceOnly),
     [user, cloudAccess, invoiceOnly],
   );
-  const entries = useMemo(() => resolveNav(permissions), [permissions]);
+  const entries = useMemo(
+    () => resolveNav(permissions, { features, invoiceOnly }),
+    [permissions, features, invoiceOnly],
+  );
 
   const items: MenuProps['items'] = useMemo(
     () =>

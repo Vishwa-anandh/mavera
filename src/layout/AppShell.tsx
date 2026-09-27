@@ -24,8 +24,18 @@ export function AppShell() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ display: 'flex', alignItems: 'center', gap: 24, position: 'sticky', top: 0, zIndex: 100 }}>
-        <span className="mv-heading" style={{ fontSize: 18, letterSpacing: '0.04em', color: 'var(--mv-on-action)' }}>
+      <Header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 24,
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          borderBottom: '1px solid var(--mv-divider)',
+        }}
+      >
+        <span className="mv-heading" style={{ fontSize: 18, letterSpacing: '0.04em', color: 'var(--mv-text)' }}>
           MAVERA
         </span>
         <div style={{ flex: 1 }}>

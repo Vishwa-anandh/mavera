@@ -29,4 +29,10 @@ describe('buildThemeConfig', () => {
     expect(comfortable.algorithm).not.toContain(antdTheme.compactAlgorithm);
     expect(compact.algorithm).toContain(antdTheme.compactAlgorithm);
   });
+
+  it('drives the Layout header background from the surface token in both modes', () => {
+    expect(buildThemeConfig('light').components?.Layout?.headerBg).toBe(lightColors.surface);
+    expect(buildThemeConfig('dark').components?.Layout?.headerBg).toBe(darkColors.surface);
+    expect(buildThemeConfig('dark').components?.Layout?.headerColor).toBe(darkColors.text);
+  });
 });

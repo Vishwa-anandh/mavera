@@ -31,5 +31,20 @@ export function buildThemeConfig(mode: ThemeMode, density: Density = 'comfortabl
       borderRadiusSM: radius.sm,
       fontFamily: 'var(--mv-font-body)',
     },
+    components: {
+      // AntD's Layout.Header defaults to a fixed dark navy (#001529) in both
+      // modes; drive it from Mavera's surface token instead.
+      Layout: {
+        headerBg: colors.surface,
+        headerColor: colors.text,
+        bodyBg: colors.canvas,
+        footerBg: colors.canvas,
+      },
+      // The horizontal module menu sits in the header; keep it on the same surface.
+      Menu: {
+        itemBg: colors.surface,
+        horizontalItemSelectedColor: colors.primary,
+      },
+    },
   };
 }

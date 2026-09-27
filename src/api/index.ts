@@ -37,15 +37,19 @@ export function createApiClient(baseURL: string | undefined, options: CreateApiC
   const wait = options.waitMs ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
 
   let isRefreshing = false;
-  let refreshSubscribers: Array<(token: string) => void> = [];
+  // Each queued subscriber is settled exactly once: with the new token when
+  // the refresh succeeds, or with the refresh error when it fails (matching
+  // the reference app's onRefreshed(err, token) — otherwise queued requests
+  // would hang forever on a failed refresh).
+  let refreshSubscribers: Array<(error: unknown, token: string | null) => void> = [];
   let isRedirectingToExpired = false;
 
-  function subscribeTokenRefresh(callback: (token: string) => void) {
+  function subscribeTokenRefresh(callback: (error: unknown, token: string | null) => void) {
     refreshSubscribers.push(callback);
   }
 
-  function onRefreshed(token: string) {
-    refreshSubscribers.forEach((callback) => callback(token));
+  function onRefreshed(error: unknown, token: string | null) {
+    refreshSubscribers.forEach((callback) => callback(error, token));
     refreshSubscribers = [];
   }
 
@@ -83,6 +87,9 @@ export function createApiClient(baseURL: string | undefined, options: CreateApiC
           await wait(delay);
           return instance(config);
         }
+        // Retries exhausted — surface it rather than failing silently
+        // (reference api/index.js resolveToast: no-response branch).
+        fireToast({ type: 'error', message: 'Cannot reach the server. Check your connection and try again.' });
         return Promise.reject(error);
       }
 
@@ -96,26 +103,41 @@ export function createApiClient(baseURL: string | undefined, options: CreateApiC
           isRefreshing = true;
           try {
             const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-            const { data: refreshData } = await axios.post<{ token: string }>(
+            if (!refreshToken) throw new Error('No refresh token');
+            const { data: refreshData } = await axios.post<{ token: string; refreshToken?: string }>(
               `${baseURL}/auth/refresh-token`,
               { refreshToken },
             );
             localStorage.setItem(TOKEN_KEY, refreshData.token);
+            // The backend rotates the refresh token on every refresh
+            // (reference api/index.js persists res.data.refreshToken too).
+            if (refreshData.refreshToken) {
+              localStorage.setItem(REFRESH_TOKEN_KEY, refreshData.refreshToken);
+            }
             isRefreshing = false;
-            onRefreshed(refreshData.token);
+            onRefreshed(null, refreshData.token);
             config.headers = config.headers ?? ({} as InternalAxiosRequestConfig['headers']);
             config.headers.Authorization = `Bearer ${refreshData.token}`;
             return instance(config);
           } catch (refreshError) {
             isRefreshing = false;
-            refreshSubscribers = [];
-            hardLogout('/login?error=session_expired');
+            onRefreshed(refreshError, null);
+            // Subscription expired — the 403 handler owns that redirect;
+            // don't override it with /login (reference behaviour).
+            const refreshData = (refreshError as AxiosError<ErrorPayload>).response?.data;
+            if (!refreshData?.subscriptionExpired) {
+              hardLogout('/login?error=session_expired');
+            }
             return Promise.reject(refreshError);
           }
         }
 
-        return new Promise((resolve) => {
-          subscribeTokenRefresh((token) => {
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh((refreshError, token) => {
+            if (refreshError || !token) {
+              reject(refreshError ?? error);
+              return;
+            }
             config.headers = config.headers ?? ({} as InternalAxiosRequestConfig['headers']);
             config.headers.Authorization = `Bearer ${token}`;
             resolve(instance(config));
@@ -124,22 +146,31 @@ export function createApiClient(baseURL: string | undefined, options: CreateApiC
       }
 
       if (status === 403 && data?.subscriptionExpired) {
-        clearCloudSummaryCaches();
-        sessionStorage.setItem('ccm_expired_sub', JSON.stringify(data.subscription ?? {}));
-        if (!isRedirectingToExpired) {
+        // Guard on the current path as well as the in-flight flag: a user
+        // already on /subscription-expired whose page (or AuthProvider) hits
+        // another 403 must not be redirected again — that remounts the app,
+        // re-runs /auth/me, 403s again, and loops forever.
+        const alreadyOnExpiredPage = window.location.pathname === '/subscription-expired';
+        if (!isRedirectingToExpired && !alreadyOnExpiredPage) {
           isRedirectingToExpired = true;
+          clearCloudSummaryCaches();
+          if (data.subscription) {
+            sessionStorage.setItem('ccm_expired_sub', JSON.stringify(data.subscription));
+          }
           navigate('/subscription-expired');
         }
         return Promise.reject(error);
       }
 
-      if (status === 403 && /deactivated|locked/i.test(data?.message ?? '')) {
+      // The backend reports error text in `error` (reference api/index.js
+      // reads error.response.data?.error for this branch).
+      if (status === 403 && /deactivated|locked/i.test(data?.error ?? '')) {
         hardLogout('/login?error=account_deactivated');
         return Promise.reject(error);
       }
 
       if (status && RETRYABLE_STATUS_CODES.includes(status)) {
-        fireToast({ type: 'error', message: data?.message ?? 'Something went wrong. Please try again.' });
+        fireToast({ type: 'error', message: data?.error ?? 'Something went wrong. Please try again.' });
       }
 
       return Promise.reject(error);

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { useDashboardData } from './useDashboardData';
 import { api } from '../../api';
 
@@ -8,31 +8,11 @@ vi.mock('../../api', async (importOriginal) => {
   return { ...actual, api: { ...actual.api, get: vi.fn() } };
 });
 
-// The "refetch resets..." test below deliberately calls result.current.refetch()
-// as a plain synchronous call (mirroring a real onClick handler) and asserts
-// state was updated synchronously via the hook's internal flushSync. That
-// assertion is exactly what the act(...) warning is cautioning against, but
-// it is intentional here, not a genuine violation — so this suppression is
-// scoped to this file only, not src/test/setup.ts.
-const ACT_WARNING = 'was not wrapped in act';
-let originalConsoleError: typeof console.error;
-
-beforeEach(() => {
-  originalConsoleError = console.error;
-  console.error = (...args: unknown[]) => {
-    if (typeof args[0] === 'string' && args[0].includes(ACT_WARNING)) {
-      return;
-    }
-    originalConsoleError(...args);
-  };
-  vi.mocked(api.get).mockReset();
-});
-
-afterEach(() => {
-  console.error = originalConsoleError;
-});
-
 describe('useDashboardData', () => {
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset();
+  });
+
   it('starts every source in a loading state', () => {
     vi.mocked(api.get).mockImplementation(() => new Promise(() => {}));
     const { result } = renderHook(() => useDashboardData());
@@ -82,7 +62,9 @@ describe('useDashboardData', () => {
     await waitFor(() => expect(result.current.invoices.loading).toBe(false));
 
     vi.mocked(api.get).mockClear();
-    result.current.refetch();
+    act(() => {
+      result.current.refetch();
+    });
 
     expect(result.current.summary.loading).toBe(true);
     await waitFor(() => expect(api.get).toHaveBeenCalled());

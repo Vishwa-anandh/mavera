@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { flushSync } from 'react-dom';
 import { api } from '../../api';
 
 export interface DashboardSummary {
@@ -71,10 +70,16 @@ export function useDashboardData(): DashboardData & { refetch: () => void } {
     invoices: initialSource(),
   });
 
-  // Kicks off all six requests. Each one resolves independently and merges
-  // only its own slice back into state, so one slow or failing source never
-  // blocks (or clobbers) another's result.
-  const fetchAll = useCallback(() => {
+  const load = useCallback(() => {
+    setState({
+      summary: initialSource(),
+      recommendations: initialSource(),
+      smartAlerts: initialSource(),
+      budgets: initialSource(),
+      mspSavings: initialSource(),
+      invoices: initialSource(),
+    });
+
     loadSource<DashboardSummary>(() => api.get('/summary/dashboard')).then((summary) =>
       setState((s) => ({ ...s, summary })),
     );
@@ -94,30 +99,8 @@ export function useDashboardData(): DashboardData & { refetch: () => void } {
   }, []);
 
   useEffect(() => {
-    // Initial state is already "every source loading" (see useState above),
-    // so the mount effect only needs to kick off the requests.
-    fetchAll();
-  }, [fetchAll]);
+    load();
+  }, [load]);
 
-  const refetch = useCallback(() => {
-    // React 19 batches state updates from plain (non-DOM-event) callbacks
-    // into a microtask, so a caller that synchronously inspects state right
-    // after invoking refetch() would still see the pre-reset values.
-    // flushSync forces the reset to commit before refetch() returns, so
-    // "refetch immediately flips every source back to loading" holds for
-    // synchronous callers.
-    flushSync(() => {
-      setState({
-        summary: initialSource(),
-        recommendations: initialSource(),
-        smartAlerts: initialSource(),
-        budgets: initialSource(),
-        mspSavings: initialSource(),
-        invoices: initialSource(),
-      });
-    });
-    fetchAll();
-  }, [fetchAll]);
-
-  return { ...state, refetch };
+  return { ...state, refetch: load };
 }

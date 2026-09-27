@@ -55,8 +55,10 @@ describe('RegisterPage', () => {
   // click. This test drives many real clicks across 5 steps, and those
   // accumulated real-timer delays push past vitest's default 5000ms
   // per-test timeout even though nothing is actually hanging — bump it
-  // locally rather than touching the shared vitest.config.ts.
-  it('walks through all 5 steps and submits with the collected values', { timeout: 15000 }, async () => {
+  // locally rather than touching the shared vitest.config.ts. 15000ms was
+  // enough in isolation but still flaked under full-suite parallel worker
+  // contention, so this is bumped further to give consistent headroom.
+  it('walks through all 5 steps and submits with the collected values', { timeout: 30000 }, async () => {
     const register = vi.fn().mockResolvedValue(undefined);
     useAuthMock.mockReturnValue(auth({ register }));
     const user = userEvent.setup();

@@ -40,7 +40,7 @@ describe('SpendTrendChart', () => {
     expect(screen.getByRole('img', { name: 'Daily spend trend' })).toBeInTheDocument();
 
     await user.click(screen.getByText('View data'));
-    expect(screen.getByRole('columnheader', { name: 'Date' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Period' })).toBeInTheDocument();
     expect(screen.getByText('2026-09-01')).toBeInTheDocument();
     expect(screen.getByText('120.50')).toBeInTheDocument();
   });

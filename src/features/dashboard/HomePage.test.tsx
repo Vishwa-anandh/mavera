@@ -13,7 +13,10 @@ vi.mock('../../context/AuthContext', async (importOriginal) => {
   return { ...actual, useAuth: () => useAuthMock() };
 });
 
-vi.mock('./useDashboardData', () => ({ useDashboardData: () => useDashboardDataMock() }));
+vi.mock('./useDashboardData', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./useDashboardData')>();
+  return { ...actual, useDashboardData: () => useDashboardDataMock() };
+});
 
 vi.mock('./SpendTrendChart', () => ({ SpendTrendChart: () => <div>Spend trend chart stub</div> }));
 vi.mock('./ConnectCloudAccountWizard', () => ({
@@ -64,15 +67,31 @@ function erroredSource(error: string) {
 
 function dashboardData(overrides: Partial<DashboardData> = {}): DashboardData & { refetch: () => void } {
   return {
-    summary: loadedSource({ totalSpend: 12000, currency: 'USD', periodLabel: 'Month to date' }),
-    recommendations: loadedSource([{ id: 'r1' }]),
-    smartAlerts: loadedSource([{ id: 'a1', severity: 'high' as const }]),
+    // Real backend shapes (reference HomePage.jsx data load).
+    summary: loadedSource({
+      totals: { azure: 8000, aws: 4000, btp: 0, gcp: 0, forecast: 13000 },
+      accounts: { azure: [{ id: 'az1' }], aws: [{ id: 'aw1' }] },
+      monthly: [{ key: '2026-08', total: 12000, azure: 8000, aws: 4000 }],
+    }),
+    recommendations: loadedSource({ data: [{ id: 'r1' }], summary: { totalRecommendations: 4 } }),
+    smartAlerts: loadedSource({
+      alerts: [
+        { id: 'a1', severity: 'high' as const, status: 'open' },
+        { id: 'a2', severity: 'low' as const, status: 'resolved' },
+      ],
+      summary: { bySeverity: { high: 1 } },
+    }),
     budgets: loadedSource([{ id: 'b1' }]),
-    mspSavings: loadedSource({ estimatedSavings: 800, currency: 'USD' }),
-    invoices: loadedSource([{ id: 'i1' }]),
+    mspSavings: loadedSource({ totalSpend: 12000, totalSavings: 800, invoiceSavings: null, breakdown: [] }),
+    invoices: loadedSource({ data: [{ id: 'i1' }, { id: 'i2' }] }),
     refetch: vi.fn(),
     ...overrides,
   } as DashboardData & { refetch: () => void };
+}
+
+function kpiValue(title: string): string | null {
+  const card = screen.getByText(title).closest('.ant-statistic');
+  return card?.querySelector('.ant-statistic-content')?.textContent ?? null;
 }
 
 describe('HomePage', () => {
@@ -90,12 +109,33 @@ describe('HomePage', () => {
     expect(screen.queryByText('$12,000.00')).not.toBeInTheDocument();
   });
 
-  it('renders each KPI value once its source has loaded', () => {
+  it('renders each KPI value from the real response shapes once its source has loaded', () => {
     useAuthMock.mockReturnValue(auth());
     useDashboardDataMock.mockReturnValue(dashboardData());
     render(<HomePage />);
+    // totals.azure + totals.aws
     expect(screen.getByText('$12,000.00')).toBeInTheDocument();
-    expect(screen.getByText('Open recommendations')).toBeInTheDocument();
+    // msp-savings totalSavings
+    expect(screen.getByText('$800.00')).toBeInTheDocument();
+    expect(kpiValue('Open recommendations')).toBe('4');
+    expect(kpiValue('Active alerts')).toBe('1');
+    expect(kpiValue('Tracked budgets')).toBe('1');
+    expect(kpiValue('Invoices on file')).toBe('2');
+  });
+
+  it('renders without crashing when a source returns an unexpected shape', () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(
+      dashboardData({
+        summary: loadedSource([] as never),
+        recommendations: loadedSource([] as never),
+        smartAlerts: loadedSource([] as never),
+        invoices: loadedSource([] as never),
+      }),
+    );
+    render(<HomePage />);
+    expect(screen.getByText('$0.00')).toBeInTheDocument();
+    expect(kpiValue('Open recommendations')).toBe('0');
   });
 
   it('shows a per-source error without hiding KPIs that loaded successfully', () => {

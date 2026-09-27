@@ -9,7 +9,7 @@ export interface SpendTrendPoint {
   amount: number;
 }
 
-export function SpendTrendChart({ data }: { data: SpendTrendPoint[] }) {
+export function SpendTrendChart({ data, title = 'Daily spend trend' }: { data: SpendTrendPoint[]; title?: string }) {
   const { mode } = useMaveraTheme();
   const colors = chartColors[mode];
   const [tableOpen, setTableOpen] = useState(false);
@@ -20,7 +20,7 @@ export function SpendTrendChart({ data }: { data: SpendTrendPoint[] }) {
 
   return (
     <div>
-      <div role="img" aria-label="Daily spend trend" style={{ width: '100%', height: 240 }}>
+      <div role="img" aria-label={title} style={{ width: '100%', height: 240 }}>
         <ResponsiveContainer>
           <AreaChart data={data}>
             <CartesianGrid stroke={colors.grid} vertical={false} />
@@ -34,13 +34,13 @@ export function SpendTrendChart({ data }: { data: SpendTrendPoint[] }) {
       <Button type="link" onClick={() => setTableOpen(true)}>
         View data
       </Button>
-      <Modal title="Daily spend trend" open={tableOpen} onCancel={() => setTableOpen(false)} footer={null}>
+      <Modal title={title} open={tableOpen} onCancel={() => setTableOpen(false)} footer={null}>
         <Table
           dataSource={data}
           rowKey="date"
           pagination={false}
           columns={[
-            { title: 'Date', dataIndex: 'date' },
+            { title: 'Period', dataIndex: 'date' },
             { title: 'Amount', dataIndex: 'amount', render: (value: number) => value.toFixed(2) },
           ]}
         />

@@ -31,6 +31,12 @@ describe('App', () => {
     localStorage.setItem(TOKEN_KEY, 'valid-token');
     vi.mocked(api.get).mockImplementation((url: string) => {
       if (url === '/auth/me') return Promise.resolve({ data: { id: '1', email: 'a@b.com', role: 'member' } });
+      // Real backend shapes (reference HomePage.jsx data load).
+      if (url === '/summary/dashboard') return Promise.resolve({ data: { totals: {}, accounts: {}, monthly: [] } });
+      if (url === '/recommendations') return Promise.resolve({ data: { data: [], summary: null } });
+      if (url === '/smart-alerts') return Promise.resolve({ data: { alerts: [], summary: {} } });
+      if (url === '/insights/msp-savings') return Promise.resolve({ data: { totalSpend: 0, totalSavings: 0 } });
+      if (url === '/invoices') return Promise.resolve({ data: { data: [] } });
       return Promise.resolve({ data: [] });
     });
 

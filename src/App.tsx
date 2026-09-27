@@ -3,6 +3,7 @@ import { App as AntdApp } from 'antd';
 import { ThemeProvider } from './theme/ThemeProvider';
 import { ToastListener } from './components/ToastListener';
 import { ConfirmProvider } from './components/ConfirmProvider';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
 import { AppShell } from './layout/AppShell';
 import { LoginPage } from './features/auth/LoginPage';
@@ -26,28 +27,32 @@ function App() {
   return (
     <ThemeProvider>
       <AntdApp>
-        <ToastListener />
-        <ConfirmProvider>
-          <AuthProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password" element={<ResetPasswordPage />} />
-                <Route path="/subscription-expired" element={<SubscriptionExpiredPage />} />
+        {/* Any render error below (e.g. an unexpected API response shape)
+            degrades to an error message instead of a blank page. */}
+        <ErrorBoundary>
+          <ToastListener />
+          <ConfirmProvider>
+            <AuthProvider>
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/subscription-expired" element={<SubscriptionExpiredPage />} />
 
-                <Route element={<AppShell />}>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/account" element={<ComingSoonPage title="Account" />} />
-                  <Route path="/subscription" element={<ComingSoonPage title="Subscription" />} />
-                </Route>
+                  <Route element={<AppShell />}>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/account" element={<ComingSoonPage title="Account" />} />
+                    <Route path="/subscription" element={<ComingSoonPage title="Subscription" />} />
+                  </Route>
 
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </BrowserRouter>
-          </AuthProvider>
-        </ConfirmProvider>
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </BrowserRouter>
+            </AuthProvider>
+          </ConfirmProvider>
+        </ErrorBoundary>
       </AntdApp>
     </ThemeProvider>
   );

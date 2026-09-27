@@ -191,8 +191,12 @@ export function monthlyTrendOf(summary: DashboardSummary | null): SpendTrendPoin
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-/** Reference: `recsSummary?.totalRecommendations ?? recs.length`. */
-export function recommendationCountOf(response: RecommendationsResponse | null): number {
+/**
+ * Reference: `recsSummary?.totalRecommendations ?? recs.length`, where
+ * `recs = r?.data?.data ?? r?.data` (a bare array is tolerated too).
+ */
+export function recommendationCountOf(response: RecommendationsResponse | RecommendationItem[] | null): number {
+  if (Array.isArray(response)) return response.length;
   if (!isObject(response)) return 0;
   const summaryCount = isObject(response.summary) ? response.summary.totalRecommendations : undefined;
   if (typeof summaryCount === 'number') return summaryCount;
@@ -213,7 +217,8 @@ export function mspSavingsTotalOf(savings: MspSavings | null): number {
   return isObject(savings) ? num(savings.totalSavings) : 0;
 }
 
-/** Reference: `inv?.data?.data ?? inv?.data ?? []`, then `.length`. */
-export function invoiceCountOf(response: InvoicesResponse | null): number {
+/** Reference: `inv?.data?.data ?? inv?.data ?? []` (bare array tolerated), then `.length`. */
+export function invoiceCountOf(response: InvoicesResponse | InvoiceItem[] | null): number {
+  if (Array.isArray(response)) return response.length;
   return isObject(response) && Array.isArray(response.data) ? response.data.length : 0;
 }

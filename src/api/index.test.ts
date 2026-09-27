@@ -152,6 +152,13 @@ describe('api client interceptors', () => {
     expect(mocks.navigate).not.toHaveBeenCalled();
   });
 
+  it('leaves a login lock-out (isLocked) to LoginPage instead of hard-redirecting', async () => {
+    mocks.mock.onPost('/auth/login').reply(403, { isLocked: true, error: 'Account locked' });
+
+    await expect(mocks.client.post('/auth/login')).rejects.toBeTruthy();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
   it('hard-logs-out when the account is deactivated', async () => {
     mocks.mock.onGet('/one').reply(403, { error: 'Account deactivated by administrator' });
 

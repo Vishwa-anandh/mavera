@@ -126,8 +126,13 @@ describe('dashboard derivations', () => {
     expect(budgetCountOf([{ id: 1 }])).toBe(1);
   });
 
+  it('tolerates a bare array for /recommendations and /invoices, as the reference does', () => {
+    expect(recommendationCountOf([{ id: 1 }, { id: 2 }])).toBe(2);
+    expect(invoiceCountOf([{ id: 1 }])).toBe(1);
+  });
+
   it('degrades to zero/empty instead of throwing on unexpected shapes', () => {
-    const garbage = [] as never;
+    const garbage = 'not-an-object' as never;
     expect(() => totalSpendOf(garbage)).not.toThrow();
     expect(totalSpendOf(garbage)).toBe(0);
     expect(monthlyTrendOf(garbage)).toEqual([]);

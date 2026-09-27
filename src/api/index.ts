@@ -17,6 +17,7 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
 
 interface ErrorPayload {
   error?: string;
+  isLocked?: boolean;
   message?: string;
   subscriptionExpired?: boolean;
   subscription?: unknown;
@@ -164,7 +165,9 @@ export function createApiClient(baseURL: string | undefined, options: CreateApiC
 
       // The backend reports error text in `error` (reference api/index.js
       // reads error.response.data?.error for this branch).
-      if (status === 403 && /deactivated|locked/i.test(data?.error ?? '')) {
+      // A login lock-out (isLocked) is not an org deactivation: LoginPage
+      // handles it inline with the unlock sub-flow, so don't hard-redirect.
+      if (status === 403 && !data?.isLocked && /deactivated|locked/i.test(data?.error ?? '')) {
         hardLogout('/login?error=account_deactivated');
         return Promise.reject(error);
       }

@@ -19,10 +19,12 @@ export function ResetPasswordPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await api.post('/auth/reset-password', { token, password: values.password });
+      // Backend expects `newPassword` (reference pages/ResetPasswordPage.jsx).
+      await api.post('/auth/reset-password', { token, newPassword: values.password });
       navigate('/login');
-    } catch {
-      setError('That reset link is invalid or has expired.');
+    } catch (err) {
+      const data = (err as { response?: { data?: { error?: string } } }).response?.data;
+      setError(data?.error ?? 'That reset link is invalid or has expired.');
     } finally {
       setSubmitting(false);
     }

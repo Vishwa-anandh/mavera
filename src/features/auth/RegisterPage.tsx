@@ -1,16 +1,29 @@
 import { useState } from 'react';
-import { Button, Checkbox, Form, Input, Steps, Typography } from 'antd';
+import { Alert, Button, Checkbox, Form, Input, Result, Steps, Typography } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, type RegisterPayload } from '../../context/AuthContext';
 import type { CloudProvider } from '../../types/auth';
 
-const STEP_FIELDS: string[][] = [
-  ['organizationName'],
-  ['fullName', 'email'],
-  ['password', 'confirmPassword'],
-  ['cloudAccess', 'invoiceOnly'],
-  [],
-];
+/*
+ * Registration flow, as implemented by the reference app
+ * (pages/RegisterPage.jsx):
+ *
+ *   0 Email        → POST /auth/send-otp; response says whether the email's
+ *                    org already exists (orgExists, orgName)
+ *   1 Verify       → POST /auth/verify-otp
+ *   2 Details      → full name + password; for a NEW org also an invitation
+ *                    token (required) and company name, role = admin.
+ *                    Joining an EXISTING org submits straight from here
+ *                    (role = member).
+ *   3 Cloud access → new orgs only: cloud providers and/or invoice upload,
+ *                    at least one required; then POST /auth/register
+ *   4 Done         → success screen
+ *
+ * Every step's fields stay mounted (hidden with display:none) so values
+ * survive moving between steps.
+ */
+
+const STEP = { email: 0, verify: 1, details: 2, cloud: 3, done: 4 } as const;
 
 const CLOUD_OPTIONS: { label: string; value: CloudProvider }[] = [
   { label: 'Azure', value: 'azure' },
@@ -20,13 +33,28 @@ const CLOUD_OPTIONS: { label: string; value: CloudProvider }[] = [
 ];
 
 interface RegisterFormValues {
-  organizationName: string;
-  fullName: string;
   email: string;
+  otp: string;
+  fullName: string;
+  inviteToken: string;
+  orgName: string;
   password: string;
   confirmPassword: string;
-  cloudAccess: CloudProvider[];
+  cloudPreference: CloudProvider[];
   invoiceOnly: boolean;
+}
+
+interface OrgInfo {
+  exists: boolean;
+  name: string;
+}
+
+interface ApiErrorLike {
+  response?: { data?: { error?: string } };
+}
+
+function apiErrorText(err: unknown, fallback: string): string {
+  return (err as ApiErrorLike).response?.data?.error ?? fallback;
 }
 
 function passwordStrengthScore(password: string): number {
@@ -40,48 +68,129 @@ function passwordStrengthScore(password: string): number {
 }
 
 export function RegisterPage() {
-  const { register } = useAuth();
+  const { register, sendOtp, verifyOtp } = useAuth();
   const navigate = useNavigate();
   const [form] = Form.useForm<RegisterFormValues>();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState<number>(STEP.email);
+  const [orgInfo, setOrgInfo] = useState<OrgInfo>({ exists: false, name: '' });
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [password, setPassword] = useState('');
+  const cloudPreference = (Form.useWatch('cloudPreference', form) ?? []) as CloudProvider[];
+  const invoiceOnly = Boolean(Form.useWatch('invoiceOnly', form));
+  const email = Form.useWatch('email', form) as string | undefined;
 
-  const goNext = async () => {
+  const values = () => form.getFieldsValue(true) as RegisterFormValues;
+
+  /** Validates `fields`, returning false (field errors already shown) on failure. */
+  const validate = async (fields: (keyof RegisterFormValues)[]) => {
     try {
-      await form.validateFields(STEP_FIELDS[step]);
-      setStep((s) => s + 1);
+      await form.validateFields(fields);
+      return true;
     } catch {
-      // form.validateFields already renders the field-level error text
+      return false;
     }
   };
 
-  const goBack = () => setStep((s) => Math.max(0, s - 1));
-
-  const handleSubmit = async () => {
+  const handleSendOtp = async () => {
+    if (!(await validate(['email']))) return;
     setError(null);
-    setSubmitting(true);
+    setBusy(true);
     try {
-      const values = form.getFieldsValue(true) as RegisterFormValues;
-      const payload: RegisterPayload = {
-        organizationName: values.organizationName,
-        email: values.email,
-        password: values.password,
-        fullName: values.fullName,
-        cloudAccess: values.cloudAccess ?? [],
-        invoiceOnly: values.invoiceOnly ?? false,
-      };
-      await register(payload);
-      navigate('/login');
-    } catch {
-      setError('Registration failed. Please check your details and try again.');
+      const result = await sendOtp(values().email);
+      setOrgInfo({ exists: result.orgExists, name: result.orgName ?? '' });
+      if (result.orgExists) form.setFieldValue('orgName', result.orgName ?? '');
+      setStep(STEP.verify);
+    } catch (err) {
+      setError(apiErrorText(err, 'Failed to send the verification code.'));
     } finally {
-      setSubmitting(false);
+      setBusy(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!(await validate(['otp']))) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const { email, otp } = values();
+      await verifyOtp(email, otp);
+      setStep(STEP.details);
+    } catch (err) {
+      setError(apiErrorText(err, 'Invalid or expired verification code.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitRegistration = async () => {
+    setError(null);
+    setBusy(true);
+    const v = values();
+    const payload: RegisterPayload = {
+      email: v.email,
+      password: v.password,
+      fullName: v.fullName,
+      orgName: orgInfo.exists ? orgInfo.name : v.orgName,
+      role: orgInfo.exists ? 'member' : 'admin',
+      otp: v.otp,
+      inviteToken: orgInfo.exists ? '' : (v.inviteToken ?? '').trim(),
+      cloudPreference: orgInfo.exists ? '' : (v.cloudPreference ?? []).join(','),
+      invoiceOnly: orgInfo.exists ? false : Boolean(v.invoiceOnly),
+    };
+    try {
+      await register(payload);
+      setStep(STEP.done);
+    } catch (err) {
+      const message = apiErrorText(err, 'Registration failed. Please try again.');
+      const lower = message.toLowerCase();
+      // Same error routing as the reference: send the user back to the
+      // field the backend rejected.
+      if (lower.includes('invitation token') || lower.includes('invalid or already used')) {
+        setStep(STEP.details);
+        form.setFields([
+          {
+            name: 'inviteToken',
+            errors: [
+              'This invitation token is invalid or has already been used. Please request a new one from your Maitsys administrator.',
+            ],
+          },
+        ]);
+      } else if (lower.includes('slug') || lower.includes('unique constraint')) {
+        setStep(STEP.details);
+        form.setFields([
+          {
+            name: 'orgName',
+            errors: ['An organization with a similar name already exists. Please use a more specific company name.'],
+          },
+        ]);
+      } else {
+        setError(message);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDetails = async () => {
+    const fields: (keyof RegisterFormValues)[] = orgInfo.exists
+      ? ['fullName', 'password', 'confirmPassword']
+      : ['fullName', 'inviteToken', 'orgName', 'password', 'confirmPassword'];
+    if (!(await validate(fields))) return;
+    if (orgInfo.exists) {
+      await submitRegistration();
+    } else {
+      setError(null);
+      setStep(STEP.cloud);
     }
   };
 
   const strength = passwordStrengthScore(password);
+  const newOrg = !orgInfo.exists;
+  const canCreate = cloudPreference.length > 0 || invoiceOnly;
+
+  const stepItems = [{ title: 'Email' }, { title: 'Verify' }, { title: 'Your details' }];
+  if (newOrg) stepItems.push({ title: 'Cloud access' });
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: 24 }}>
@@ -89,56 +198,102 @@ export function RegisterPage() {
         Create your Mavera account
       </Typography.Title>
 
-      <Steps
-        current={step}
-        size="small"
-        items={[
-          { title: 'Organization' },
-          { title: 'Personal info' },
-          { title: 'Password' },
-          { title: 'Cloud providers' },
-          { title: 'Review' },
-        ]}
-        style={{ marginBottom: 24 }}
-      />
+      {step !== STEP.done && (
+        <Steps current={Math.min(step, stepItems.length - 1)} size="small" items={stepItems} style={{ marginBottom: 24 }} />
+      )}
 
-      {error && <Typography.Text type="danger">{error}</Typography.Text>}
+      {error && <Alert type="error" showIcon title={error} style={{ marginBottom: 16 }} />}
 
-      <Form form={form} layout="vertical" initialValues={{ cloudAccess: [], invoiceOnly: false }}>
-        <div style={{ display: step === 0 ? 'block' : 'none' }}>
-          <Form.Item
-            name="organizationName"
-            label="Organization name"
-            rules={[{ required: step === 0, message: 'Organization name is required.' }]}
-          >
-            <Input />
-          </Form.Item>
-        </div>
-
-        <div style={{ display: step === 1 ? 'block' : 'none' }}>
-          <Form.Item
-            name="fullName"
-            label="Full name"
-            rules={[{ required: step === 1, message: 'Full name is required.' }]}
-          >
-            <Input />
-          </Form.Item>
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={{ cloudPreference: [], invoiceOnly: false, inviteToken: '', orgName: '' }}
+        style={{ display: step === STEP.done ? 'none' : 'block' }}
+      >
+        {/* Step 0 — email */}
+        <div style={{ display: step === STEP.email ? 'block' : 'none' }}>
           <Form.Item
             name="email"
-            label="Email"
-            rules={[{ required: step === 1, type: 'email', message: 'Enter a valid email address.' }]}
+            label="Work email"
+            rules={[{ required: true, type: 'email', message: 'Enter a valid email address.' }]}
           >
-            <Input />
+            <Input autoComplete="email" />
           </Form.Item>
+          <Button type="primary" block loading={busy} onClick={handleSendOtp}>
+            Get verification code
+          </Button>
         </div>
 
-        <div style={{ display: step === 2 ? 'block' : 'none' }}>
+        {/* Step 1 — OTP */}
+        <div style={{ display: step === STEP.verify ? 'block' : 'none' }}>
+          <Typography.Paragraph type="secondary">
+            We sent a 6-digit code to <Typography.Text strong>{email}</Typography.Text>.
+          </Typography.Paragraph>
+          <Form.Item
+            name="otp"
+            label="Verification code"
+            rules={[{ required: true, message: 'Enter the verification code we emailed you.' }]}
+          >
+            <Input maxLength={6} inputMode="numeric" autoComplete="one-time-code" />
+          </Form.Item>
+          <Button type="primary" block loading={busy} onClick={handleVerifyOtp}>
+            Verify code
+          </Button>
+          <Button type="link" block onClick={() => setStep(STEP.email)} style={{ marginTop: 8 }}>
+            Change email
+          </Button>
+        </div>
+
+        {/* Step 2 — details */}
+        <div style={{ display: step === STEP.details ? 'block' : 'none' }}>
+          {orgInfo.exists && (
+            <Alert
+              type="info"
+              showIcon
+              title={`You are joining ${orgInfo.name}`}
+              description="Account role: Member"
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          <Form.Item name="fullName" label="Full name" rules={[{ required: true, message: 'Full name is required.' }]}>
+            <Input autoComplete="name" />
+          </Form.Item>
+
+          {newOrg && (
+            <>
+              <Form.Item
+                name="inviteToken"
+                label="Invitation token"
+                extra="Required to register a new organization."
+                rules={[
+                  {
+                    required: true,
+                    whitespace: true,
+                    message: 'Invitation token is required to register a new organization.',
+                  },
+                ]}
+              >
+                <Input />
+              </Form.Item>
+              <Form.Item
+                name="orgName"
+                label="Company name"
+                rules={[{ required: true, whitespace: true, message: 'Company name is required.' }]}
+              >
+                <Input autoComplete="organization" />
+              </Form.Item>
+              <Form.Item label="Your role" extra="You will be the primary administrator for this organization.">
+                <Input value="Administrator (Company Owner)" disabled aria-label="Your role" />
+              </Form.Item>
+            </>
+          )}
+
           <Form.Item
             name="password"
             label="Password"
-            rules={[{ required: step === 2, min: 8, message: 'Password must be at least 8 characters.' }]}
+            rules={[{ required: true, min: 8, message: 'Password must be at least 8 characters.' }]}
           >
-            <Input.Password onChange={(e) => setPassword(e.target.value)} />
+            <Input.Password autoComplete="new-password" onChange={(e) => setPassword(e.target.value)} />
           </Form.Item>
           <Typography.Text type="secondary">Password strength: {strength} / 5</Typography.Text>
           <Form.Item
@@ -146,7 +301,7 @@ export function RegisterPage() {
             label="Confirm password"
             dependencies={['password']}
             rules={[
-              { required: step === 2, message: 'Please confirm your password.' },
+              { required: true, message: 'Please confirm your password.' },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('password') === value) return Promise.resolve();
@@ -155,44 +310,49 @@ export function RegisterPage() {
               }),
             ]}
           >
-            <Input.Password />
+            <Input.Password autoComplete="new-password" />
           </Form.Item>
+          <Button type="primary" block loading={busy} onClick={handleDetails}>
+            {orgInfo.exists ? 'Finish registration' : 'Next'}
+          </Button>
         </div>
 
-        <div style={{ display: step === 3 ? 'block' : 'none' }}>
-          <Form.Item name="cloudAccess" label="Which cloud providers do you use?">
+        {/* Step 3 — cloud / invoice selection (new orgs only) */}
+        <div style={{ display: step === STEP.cloud ? 'block' : 'none' }}>
+          <Typography.Paragraph>How will you track costs? Choose cloud providers, invoice upload, or both.</Typography.Paragraph>
+          <Form.Item name="cloudPreference" label="Live cloud connection">
             <Checkbox.Group options={CLOUD_OPTIONS} />
           </Form.Item>
-          <Form.Item name="invoiceOnly" valuePropName="checked">
-            <Checkbox>Invoice-only (no cloud account connections)</Checkbox>
+          <Form.Item name="invoiceOnly" valuePropName="checked" label="Manual invoice upload">
+            <Checkbox>Invoice upload (PDF / CSV)</Checkbox>
           </Form.Item>
-        </div>
-
-        <div style={{ display: step === 4 ? 'block' : 'none' }}>
-          <Typography.Paragraph>
-            Review your details, then create your account. You can change your plan any time from Subscription.
-          </Typography.Paragraph>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+            <Button onClick={() => setStep(STEP.details)}>Back</Button>
+            <Button type="primary" loading={busy} disabled={!canCreate} onClick={submitRegistration}>
+              {canCreate ? 'Create account' : 'Select at least one option'}
+            </Button>
+          </div>
         </div>
       </Form>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 24 }}>
-        <Button onClick={goBack} disabled={step === 0}>
-          Back
-        </Button>
-        {step < 4 ? (
-          <Button type="primary" onClick={goNext}>
-            Next
-          </Button>
-        ) : (
-          <Button type="primary" loading={submitting} onClick={handleSubmit}>
-            Create account
-          </Button>
-        )}
-      </div>
+      {step === STEP.done && (
+        <Result
+          status="success"
+          title="Signup successful"
+          subTitle="Your account has been created. We've also sent a welcome email to your inbox."
+          extra={
+            <Button type="primary" onClick={() => navigate('/login')}>
+              Proceed to sign in
+            </Button>
+          }
+        />
+      )}
 
-      <div style={{ marginTop: 16, textAlign: 'center' }}>
-        <Link to="/login">Already have an account? Sign in</Link>
-      </div>
+      {step !== STEP.done && (
+        <div style={{ marginTop: 16, textAlign: 'center' }}>
+          <Link to="/login">Already have an account? Sign in</Link>
+        </div>
+      )}
     </div>
   );
 }

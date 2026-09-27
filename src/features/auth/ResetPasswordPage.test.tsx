@@ -50,10 +50,23 @@ describe('ResetPasswordPage', () => {
       await user.type(screen.getByLabelText('Confirm new password'), 'NewSecret1!');
       await user.click(screen.getByRole('button', { name: 'Reset password' }));
 
-      expect(postMock).toHaveBeenCalledWith('/auth/reset-password', { token: 'abc123', password: 'NewSecret1!' });
+      expect(postMock).toHaveBeenCalledWith('/auth/reset-password', { token: 'abc123', newPassword: 'NewSecret1!' });
       expect(navigateMock).toHaveBeenCalledWith('/login');
     },
   );
+
+  it('shows the backend `error` text when the reset fails', { timeout: 15000 }, async () => {
+    postMock.mockRejectedValue({ response: { status: 400, data: { error: 'Token expired' } } });
+    const user = userEvent.setup();
+
+    renderAt('/reset-password?token=abc123');
+    await user.type(screen.getByLabelText('New password'), 'NewSecret1!');
+    await user.type(screen.getByLabelText('Confirm new password'), 'NewSecret1!');
+    await user.click(screen.getByRole('button', { name: 'Reset password' }));
+
+    expect(await screen.findByText('Token expired')).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
 
   it('shows a mismatch error before submitting', { timeout: 15000 }, async () => {
     const user = userEvent.setup();

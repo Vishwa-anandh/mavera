@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Button, Form, Input, Typography } from 'antd';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -14,18 +14,27 @@ interface UnlockFormValues {
   unlockToken: string;
 }
 
+// Backend error payload: text in `error`, lock state in `isLocked`
+// (reference context/AuthContext.jsx login()).
 interface LoginErrorResponse {
-  response?: { data?: { message?: string; locked?: boolean } };
+  response?: { data?: { error?: string; isLocked?: boolean } };
 }
 
 export function LoginPage() {
-  const { login, unlockAccount } = useAuth();
+  const { login, unlockAccount, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [accountLocked, setAccountLocked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [unlockMessage, setUnlockMessage] = useState<string | null>(null);
+  // The email the user typed when the lock was reported — the unlock call
+  // needs it alongside the token.
+  const [unlockEmail, setUnlockEmail] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated) navigate('/', { replace: true });
+  }, [isAuthenticated, navigate]);
 
   const sessionError = searchParams.get('error');
 
@@ -37,10 +46,11 @@ export function LoginPage() {
       navigate('/');
     } catch (err) {
       const data = (err as LoginErrorResponse).response?.data;
-      if (data?.locked) {
+      if (data?.isLocked) {
+        setUnlockEmail(values.email);
         setAccountLocked(true);
       } else {
-        setError(data?.message ?? 'Incorrect email or password.');
+        setError(data?.error ?? 'Incorrect email or password.');
       }
     } finally {
       setSubmitting(false);
@@ -50,11 +60,11 @@ export function LoginPage() {
   const handleUnlock = async (values: UnlockFormValues) => {
     setError(null);
     try {
-      await unlockAccount(values.unlockToken);
+      await unlockAccount(unlockEmail, values.unlockToken);
       setAccountLocked(false);
       setUnlockMessage('Your account has been unlocked. You can now log in.');
-    } catch {
-      setError('That unlock code is invalid or has expired.');
+    } catch (err) {
+      setError((err as LoginErrorResponse).response?.data?.error ?? 'That unlock code is invalid or has expired.');
     }
   };
 
@@ -96,6 +106,9 @@ export function LoginPage() {
               </Form.Item>
               <Button type="primary" htmlType="submit" block>
                 Unlock account
+              </Button>
+              <Button type="link" block onClick={() => setAccountLocked(false)} style={{ marginTop: 8 }}>
+                Back to sign in
               </Button>
             </Form>
           ) : (

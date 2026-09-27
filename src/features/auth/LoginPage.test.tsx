@@ -75,7 +75,7 @@ describe('LoginPage', () => {
   });
 
   it('shows an inline error message on invalid credentials', async () => {
-    const login = vi.fn().mockRejectedValue({ response: { data: { message: 'Incorrect email or password.' } } });
+    const login = vi.fn().mockRejectedValue({ response: { status: 401, data: { error: 'Invalid credentials' } } });
     useAuthMock.mockReturnValue(auth({ login }));
     const user = userEvent.setup();
 
@@ -84,12 +84,15 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Password'), 'wrong');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByText('Incorrect email or password.')).toBeInTheDocument();
+    // Shows the backend's `error` text, not a `message` field.
+    expect(await screen.findByText('Invalid credentials')).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
   it('switches to the unlock-account sub-flow when the login response says the account is locked', async () => {
-    const login = vi.fn().mockRejectedValue({ response: { data: { locked: true } } });
+    const login = vi.fn().mockRejectedValue({
+      response: { status: 403, data: { isLocked: true, error: 'Account locked' } },
+    });
     const unlockAccount = vi.fn().mockResolvedValue(undefined);
     useAuthMock.mockReturnValue(auth({ login, unlockAccount }));
     const user = userEvent.setup();
@@ -106,8 +109,27 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Unlock code'), 'ABC123');
     await user.click(screen.getByRole('button', { name: 'Unlock account' }));
 
-    expect(unlockAccount).toHaveBeenCalledWith('ABC123');
+    expect(unlockAccount).toHaveBeenCalledWith('person@maitsys.com', 'ABC123');
     expect(await screen.findByText('Your account has been unlocked. You can now log in.')).toBeInTheDocument();
+  });
+
+  it('falls back to a generic message when the error response has no `error` text', async () => {
+    const login = vi.fn().mockRejectedValue({ response: { status: 401, data: {} } });
+    useAuthMock.mockReturnValue(auth({ login }));
+    const user = userEvent.setup();
+
+    renderAt('/login');
+    await user.type(screen.getByLabelText('Email'), 'person@maitsys.com');
+    await user.type(screen.getByLabelText('Password'), 'wrong');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+
+    expect(await screen.findByText('Incorrect email or password.')).toBeInTheDocument();
+  });
+
+  it('redirects an already-authenticated user straight to /', () => {
+    useAuthMock.mockReturnValue(auth({ isAuthenticated: true, user: { id: '1', email: 'a@b.com', role: 'member' } }));
+    renderAt('/login');
+    expect(navigateMock).toHaveBeenCalledWith('/', { replace: true });
   });
 
   it('shows a session-expired notice when the query string says so', () => {

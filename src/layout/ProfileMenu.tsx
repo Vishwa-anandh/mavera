@@ -14,7 +14,7 @@ export function ProfileMenu() {
   const handleLogout = async () => {
     const ok = await confirm({ title: 'Log out of Mavera?', variant: 'logout', okText: 'Log out' });
     if (ok) {
-      logout();
+      await logout();
       navigate('/login');
     }
   };

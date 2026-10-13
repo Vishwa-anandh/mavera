@@ -1,0 +1,8 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../../../data-access';
+export function ForgotPasswordPage() {
+  const [submitting, setSubmitting] = useState(false); const [sent, setSent] = useState(false); const [error, setError] = useState<string | null>(null);
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); const email = String(new FormData(event.currentTarget).get('email') ?? ''); setError(null); setSubmitting(true); try { await api.post('/auth/forgot-password', { email }); setSent(true); } catch { setError('We could not process that request. Please try again.'); } finally { setSubmitting(false); } };
+  return <main className="mv-auth-page mv-auth-page--single"><section className="mv-auth-form-side"><div className="mv-auth-panel"><p className="mv-eyebrow">Account recovery</p><h1 className="mv-auth-title">Reset your password</h1><p className="mv-auth-copy">Enter your work email and we’ll send secure reset instructions.</p>{sent ? <div className="mv-auth-alert" role="status">If that email exists, we've sent password reset instructions.</div> : <form onSubmit={submit}>{error && <div className="mv-auth-alert" role="alert">{error}</div>}<label className="mv-field">Email<input name="email" type="email" required autoComplete="email" /></label><button className="mv-primary-button mv-auth-submit" disabled={submitting}>{submitting ? 'Sending…' : 'Send reset instructions'}</button></form>}<div className="mv-auth-links"><Link to="/login">Back to sign in</Link></div></div></section></main>;
+}

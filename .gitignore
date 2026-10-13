@@ -6,3 +6,10 @@ dist
 *.tsbuildinfo
 /vite.config.js
 /vite.config.d.ts
+.build-cache
+.env
+.env.*
+!.env.example
+
+# Local dev-server logs
+*.log

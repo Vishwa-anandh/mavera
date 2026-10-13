@@ -1,0 +1,140 @@
+import type { CloudProvider } from '../../../shared/types/auth';
+import type { Invoice, InvoiceService, ProviderFilter } from './invoicesTypes';
+
+/** One canonical rate map — the reference app kept two independent copies
+ * (a shared MSP_SAVINGS constant missing `gcp`, and a second hardcoded rate
+ * inline on this page) that had silently drifted apart. */
+export const CSP_RATES: Record<CloudProvider, number> = { azure: 0.07, aws: 0.035, btp: 0.02, gcp: 0.035 };
+
+export const PROVIDER_LABELS: Record<CloudProvider, string> = { azure: 'Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'Google Cloud' };
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+export function monthLabel(month: number, year: number): string {
+  return `${MONTH_NAMES[(month - 1 + 12) % 12]} ${year}`;
+}
+
+export function formatCurrency(value: number, currency = 'USD'): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
+}
+
+export function formatDate(value: string | undefined): string {
+  if (!value) return '—';
+  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+export function filterByProvider(invoices: Invoice[], filter: ProviderFilter): Invoice[] {
+  const filtered = filter === 'all' ? invoices : invoices.filter((inv) => inv.provider === filter);
+  return [...filtered].sort((a, b) => (b.year - a.year) || (b.month - a.month));
+}
+
+export function paginate<T>(items: T[], page: number, pageSize: number): T[] {
+  const start = (page - 1) * pageSize;
+  return items.slice(start, start + pageSize);
+}
+
+export interface InvoiceKpis {
+  totalCount: number;
+  countByProvider: Record<CloudProvider, number>;
+  totalSpend: number;
+  latestMonthLabel: string | null;
+}
+
+export function invoiceKpisOf(invoices: Invoice[]): InvoiceKpis {
+  const countByProvider: Record<CloudProvider, number> = { azure: 0, aws: 0, btp: 0, gcp: 0 };
+  let totalSpend = 0;
+  let latest: Invoice | null = null;
+  for (const inv of invoices) {
+    countByProvider[inv.provider] += 1;
+    totalSpend += inv.total_cost;
+    if (!latest || inv.year > latest.year || (inv.year === latest.year && inv.month > latest.month)) latest = inv;
+  }
+  return {
+    totalCount: invoices.length,
+    countByProvider,
+    totalSpend,
+    latestMonthLabel: latest ? monthLabel(latest.month, latest.year) : null,
+  };
+}
+
+export interface ServiceSavingsRow {
+  name: string;
+  cost: number;
+  sharePct: number;
+  savings: number;
+}
+
+/** Per-service CSP savings breakdown for the non-BTP detail panel: Azure
+ * services use their own real `savings` figure when set, everything else
+ * (and any Azure service without one) falls back to cost × the flat rate. */
+export function serviceSavingsRowsOf(services: InvoiceService[], provider: CloudProvider): ServiceSavingsRow[] {
+  const totalCost = services.reduce((sum, s) => sum + s.cost, 0);
+  const rate = CSP_RATES[provider];
+  return services
+    .map((s) => ({
+      name: s.name,
+      cost: s.cost,
+      sharePct: totalCost > 0 ? (s.cost / totalCost) * 100 : 0,
+      savings: s.savings && s.savings > 0 ? s.savings : s.cost * rate,
+    }))
+    .sort((a, b) => b.cost - a.cost);
+}
+
+export function totalSavingsOf(rows: ServiceSavingsRow[]): number {
+  return rows.reduce((sum, r) => sum + r.savings, 0);
+}
+
+const CANNED_SERVICE_TEMPLATES: Record<CloudProvider, string[]> = {
+  azure: ['Virtual Machines', 'Storage', 'SQL Database', 'App Service'],
+  aws: ['EC2', 'S3', 'RDS', 'Lambda'],
+  btp: ['HANA Cloud', 'Application Runtime', 'Integration Suite'],
+  gcp: ['Compute Engine', 'Cloud Storage', 'BigQuery'],
+};
+
+let fakeInvoiceCounter = 1000;
+
+/**
+ * Simulates the reference's server-side PDF/XLSX parse: there's no backend
+ * to actually extract line items from the uploaded file, so this produces a
+ * plausible canned invoice instead — same UX shell (a short "parsing" delay,
+ * then a materialized result), honest about what a no-backend build can do.
+ */
+export function buildFakeParsedInvoice(provider: CloudProvider, fileName: string, billingName: string | undefined, now: Date): Invoice {
+  fakeInvoiceCounter += 1;
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  const rate = CSP_RATES[provider];
+  const serviceNames = CANNED_SERVICE_TEMPLATES[provider];
+  const baseCosts = serviceNames.map((_, i) => 800 + i * 340);
+  const services: InvoiceService[] = serviceNames.map((name, i) => ({
+    name,
+    cost: baseCosts[i],
+    ...(provider === 'azure' ? { savings: Math.round(baseCosts[i] * (rate + 0.02) * 100) / 100 } : {}),
+  }));
+  const charges = services.reduce((sum, s) => sum + s.cost, 0);
+  const taxRate = 0.08;
+  const taxAmount = Math.round(charges * taxRate * 100) / 100;
+
+  return {
+    id: `inv-fake-${fakeInvoiceCounter}`,
+    provider,
+    month,
+    year,
+    total_cost: Math.round((charges + taxAmount) * 100) / 100,
+    currency: 'USD',
+    file_name: fileName,
+    services,
+    raw_summary: {
+      invoiceNumber: `${provider.toUpperCase()}-${year}${String(month).padStart(2, '0')}-${fakeInvoiceCounter}`,
+      billingProfile: billingName || `${PROVIDER_LABELS[provider]} Production`,
+      billingPeriodStart: new Date(year, month - 1, 1).toISOString(),
+      billingPeriodEnd: new Date(year, month, 0).toISOString(),
+      invoiceDate: now.toISOString(),
+      dueDate: new Date(now.getTime() + 14 * 86_400_000).toISOString(),
+      charges,
+      taxAmount,
+      taxRate,
+      sections: [{ name: 'Compute & Storage', total: charges, tax: taxAmount }],
+    },
+  };
+}

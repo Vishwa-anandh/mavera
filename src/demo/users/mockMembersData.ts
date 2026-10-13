@@ -1,0 +1,58 @@
+import type { OrgMember } from '../../features/users';
+
+export const MOCK_MEMBERS: OrgMember[] = [
+  {
+    userId: 'user-sarah-owner',
+    fullName: 'Sarah Johnson',
+    email: 'sarah.johnson@maitsys.com',
+    role: 'owner',
+    status: 'active',
+  },
+  {
+    userId: 'user-marcus',
+    fullName: 'Marcus Chen',
+    email: 'marcus.chen@maitsys.com',
+    role: 'member',
+    status: 'active',
+    canViewAzure: true,
+    canViewAws: true,
+    awsReadOnly: true,
+    canViewGcp: false,
+  },
+  {
+    userId: 'user-priya',
+    fullName: 'Priya Sharma',
+    email: 'priya.sharma@maitsys.com',
+    role: 'member',
+    status: 'active',
+    canViewAzure: false,
+    canViewAws: true,
+    canViewGcp: true,
+    gcpReadOnly: true,
+  },
+  {
+    userId: 'user-diego',
+    fullName: 'Diego Fernandez',
+    email: 'diego.fernandez@maitsys.com',
+    role: 'member',
+    status: 'inactive',
+    canViewAzure: true,
+    azureReadOnly: true,
+  },
+  {
+    userId: 'user-tom',
+    fullName: 'Tom Wu',
+    email: 'tom.wu@maitsys.com',
+    role: 'member',
+    status: 'active',
+    canViewBtp: false,
+    canViewGcp: true,
+  },
+  {
+    userId: 'user-elena',
+    fullName: 'Elena Petrova',
+    email: 'elena.petrova@maitsys.com',
+    role: 'member',
+    status: 'inactive',
+  },
+];

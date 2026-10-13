@@ -1,0 +1,1691 @@
+/* Mavera native interface foundation.  The layout uses a quiet neutral canvas
+   and one blue action colour so monitoring data remains the visual priority. */
+:root {
+  --mv-font-body: 'Google Sans Text', 'Segoe UI', Arial, sans-serif;
+  --mv-font-heading: 'Poppins', 'Segoe UI', Arial, sans-serif;
+  --mv-header-height: 64px;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body { margin: 0; background: var(--mv-canvas); color: var(--mv-text); }
+button, input { font: inherit; }
+button { cursor: pointer; }
+.mv-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+/* Custom scrollbar — thin, theme-aware, applied everywhere a scrollbar can
+   appear (page, dropdowns, dialogs, tables with overflow) rather than the
+   OS default. Firefox reads scrollbar-color/-width directly; everything
+   else (Chrome, Edge, Safari) uses the ::-webkit-scrollbar pseudo-elements.
+   The thumb "floats" inside the track via a transparent border clipped to
+   the padding box, rather than filling the full track width. */
+html { scrollbar-width: thin; scrollbar-color: var(--mv-border) transparent; scrollbar-gutter: stable; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: var(--mv-border);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 150ms ease;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--mv-text-muted); }
+::-webkit-scrollbar-thumb:active { background-color: var(--mv-primary); }
+::-webkit-scrollbar-corner { background: transparent; }
+
+.mv-page { min-height: 100vh; background: var(--mv-canvas); }
+.mv-shell { min-height: 100vh; }
+.mv-topbar {
+  position: sticky; top: 0; z-index: 100; height: var(--mv-header-height);
+  display: flex; align-items: center; gap: 20px; padding: 0 32px;
+  background: color-mix(in srgb, var(--mv-surface) 94%, transparent);
+  border-bottom: 1px solid var(--mv-divider); backdrop-filter: blur(14px);
+}
+.mv-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--mv-text); flex: none; }
+.mv-brand-logo { display: block; height: 36px; width: auto; }
+
+/* overflow-x alone here would compute overflow-y to auto too (CSS spec
+   quirk), clipping the absolutely-positioned dropdown below — so this stays
+   unclipped and instead relies on the ≤991px breakpoint's hamburger drawer
+   for the case where items don't fit. */
+.mv-nav { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.mv-nav-item { position: relative; }
+.mv-nav-trigger {
+  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 12px;
+  border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent;
+  color: var(--mv-text-secondary); font-weight: 500; font-size: 14px; text-decoration: none;
+  white-space: nowrap; transition: color 120ms ease, background 120ms ease;
+}
+.mv-nav-trigger:hover { color: var(--mv-text); background: var(--mv-surface-hover); }
+.mv-nav-trigger.is-active, a.mv-nav-trigger[aria-current='page'] { color: var(--mv-primary); border-bottom-color: var(--mv-primary); font-weight: 500; }
+.mv-nav-trigger svg { flex: none; }
+.mv-nav-badge { min-height: 18px; padding: 0 7px; display: inline-flex; align-items: center; border-radius: 999px; background: var(--mv-selected); color: var(--mv-primary); font-size: 10px; font-weight: 500; letter-spacing: .02em; text-transform: uppercase; }
+.mv-nav-dropdown {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 1000; width: 280px;
+  padding: 8px; border: 1px solid var(--mv-divider); border-radius: 8px;
+  background: var(--mv-elevated); box-shadow: var(--mv-shadow-light, 0 8px 24px rgba(16,24,40,.12));
+  max-height: min(560px, calc(100vh - 24px)); overflow-y: auto;
+}
+.mv-nav-dropdown-title { margin: 2px 8px 6px; color: var(--mv-text-muted); font-size: 12px; font-weight: 500; text-transform: none; }
+.mv-nav-dropdown-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 36px; padding: 0 8px; border-radius: 6px; color: var(--mv-text-secondary);
+  font-size: 14px; text-decoration: none;
+}
+.mv-nav-dropdown-item:hover { background: var(--mv-surface-hover); color: var(--mv-text); }
+.mv-nav-dropdown-item[aria-current='page'] { background: var(--mv-selected); color: var(--mv-primary); }
+.mv-nav-lock { display: inline-flex; align-items: center; gap: 4px; color: var(--mv-text-muted); font-size: 12px; }
+.mv-nav-lock svg { flex: none; }
+
+.mv-utility { display: flex; align-items: center; gap: 8px; margin-left: auto; flex: none; }
+.mv-icon-button { position: relative; width: 36px; height: 36px; display: grid; place-items: center; padding: 0; color: var(--mv-text-secondary); background: transparent; border: 0; border-radius: 8px; }
+.mv-icon-button:hover { background: var(--mv-surface-hover); color: var(--mv-text); }
+.mv-badge-dot { position: absolute; top: 5px; right: 5px; min-width: 15px; height: 15px; padding: 0 3px; display: grid; place-items: center; border-radius: 999px; background: var(--mv-danger); color: #fff; font-size: 10px; font-weight: 500; }
+.mv-profile-trigger { display: flex; align-items: center; gap: 9px; min-height: 40px; padding: 4px 8px 4px 4px; border: 0; border-radius: 9px; color: var(--mv-text); background: transparent; }
+.mv-profile-trigger:hover { background: var(--mv-surface-hover); }
+.mv-avatar { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--mv-primary); color: var(--mv-on-primary); font-weight: 500; }
+.mv-content { width: min(1600px, 100%); margin: 0 auto; padding: 28px 32px 38px; }
+.mv-footer { padding: 12px 32px 20px; color: var(--mv-text-muted); font-size: 12px; }
+.mv-mobile-menu-button { display: none; }
+
+.mv-page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.mv-eyebrow { margin: 0 0 4px; color: var(--mv-primary); font-size: 12px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+.mv-title { margin: 0; font: 600 26px/34px var(--mv-font-heading); letter-spacing: -.02em; }
+.mv-subtitle { margin: 6px 0 0; color: var(--mv-text-secondary); }
+.mv-primary-button, .mv-secondary-button, .mv-quiet-button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 15px; border: 1px solid transparent; border-radius: 8px; font-weight: 500; transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease; }
+.mv-primary-button { background: var(--mv-action); color: var(--mv-on-action); box-shadow: 0 6px 14px -8px var(--mv-action); }
+.mv-primary-button:hover { background: var(--mv-action-hover); transform: translateY(-1px); }
+.mv-primary-button:focus-visible, .mv-secondary-button:focus-visible, .mv-quiet-button:focus-visible, .mv-nav-trigger:focus-visible, .mv-nav-dropdown-item:focus-visible, .mv-icon-button:focus-visible { outline: 3px solid color-mix(in srgb, var(--mv-focus) 28%, transparent); outline-offset: 2px; }
+.mv-secondary-button { color: var(--mv-text); background: var(--mv-surface); border-color: var(--mv-border); }
+.mv-secondary-button:hover { background: var(--mv-surface-hover); }
+.mv-quiet-button { color: var(--mv-primary); background: transparent; }
+.mv-quiet-button:hover { background: var(--mv-selected); }
+.mv-muted { color: var(--mv-text-muted); font-size: 13px; }
+.mv-text-warning { color: var(--mv-warning); font-size: 13px; }
+.mv-status { display: inline-flex; align-items: center; min-height: 24px; padding: 0 8px; border: 1px solid var(--mv-border); border-radius: 999px; background: var(--mv-surface-subtle); font-size: 12px; font-weight: 500; }
+.mv-status--success { color: var(--mv-success); }.mv-status--warning { color: var(--mv-warning); }.mv-status--danger { color: var(--mv-danger); }.mv-status--info { color: var(--mv-info); }.mv-status--neutral { color: var(--mv-text-secondary); }
+.mv-context-bar { display: flex; align-items: center; gap: 8px; padding: 8px 0; }.mv-breadcrumb { display: flex; flex-wrap: wrap; gap: 8px; color: var(--mv-text-muted); font-size: 13px; }.mv-breadcrumb span { display: inline-flex; gap: 8px; }.mv-breadcrumb a { color: var(--mv-primary); text-decoration: none; }
+.mv-dialog-backdrop { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: 20px; background: var(--mv-scrim); backdrop-filter: blur(4px); animation: mv-fade-in 160ms ease; }.mv-dialog { width: min(100%, 520px); max-height: min(760px, calc(100vh - 40px)); overflow: auto; padding: 24px; border: 1px solid var(--mv-divider); border-radius: 14px; background: var(--mv-elevated); box-shadow: 0 20px 60px rgba(0,0,0,.22); }.mv-dialog--wide { width: min(100%, 760px); }.mv-dialog-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }.mv-notice { margin: 14px 0; padding: 12px 14px; border-left: 3px solid var(--mv-primary); border-radius: 6px; color: var(--mv-text-secondary); background: var(--mv-selected); }.mv-success { padding: 22px 0 4px; text-align: center; }.mv-success h2, .mv-success h3 { font-family: var(--mv-font-heading); }.mv-table-wrap { overflow-x: auto; }.mv-table { width: 100%; border-collapse: collapse; text-align: left; font-variant-numeric: tabular-nums; }.mv-table th { color: var(--mv-text-muted); font-size: 12px; font-weight: 500; }.mv-table th, .mv-table td { padding: 12px 14px; border-bottom: 1px solid var(--mv-divider); }.mv-table tbody tr:hover { background: var(--mv-surface-hover); }.mv-table th.mv-num, .mv-table td.mv-num { text-align: right; }
+.mv-toast-region { position: fixed; right: 24px; bottom: 24px; z-index: 1400; display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); }.mv-toast { padding: 12px 14px; border: 1px solid var(--mv-border); border-left: 3px solid var(--mv-primary); border-radius: 9px; color: var(--mv-text); background: var(--mv-elevated); box-shadow: 0 12px 28px rgba(16,24,40,.16); }.mv-toast--error { border-left-color: var(--mv-danger); }.mv-toast--warning { border-left-color: var(--mv-warning); }.mv-toast--success { border-left-color: var(--mv-success); }
+
+.mv-dashboard-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.mv-module-card { display: grid; align-content: start; gap: 12px; padding: 20px; border: 1px solid var(--mv-divider); border-radius: 8px; background: var(--mv-surface); }
+.mv-module-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mv-module-card-header h3 { margin: 0; display: flex; align-items: center; gap: 8px; font: 500 16px/24px var(--mv-font-heading); }
+.mv-module-card-header h3 svg { flex: none; color: var(--mv-text-secondary); }
+.mv-module-card-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 12px; }
+.mv-module-card-metric { display: grid; gap: 2px; }
+.mv-module-card-metric span { color: var(--mv-text-secondary); font-size: 12px; }
+.mv-module-card-metric strong { font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 500; color: var(--mv-text); }
+.mv-module-card-features { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; color: var(--mv-text-secondary); font-size: 13px; }
+.mv-module-card p.mv-muted { margin: 0; }
+
+/* Custom ratios come in through the --mv-cols custom property (see callers),
+   never a direct inline grid-template-columns — an inline style on the
+   property itself would out-rank the @media stacking rule below at every
+   width, silently defeating it on mobile. */
+.mv-columns-16-8 { grid-column: 1 / -1; display: grid; grid-template-columns: var(--mv-cols, 2fr 1fr); gap: 16px; align-items: start; }
+.mv-columns-16-8 > .mv-panel, .mv-columns-16-8 > .mv-column-stack { grid-column: auto; }
+
+/* A responsive card grid (e.g. connection/destination cards) — same
+   auto-fit approach as .mv-kpi-row-4, with the same .mv-panel grid-column
+   reset .mv-columns-16-8 needs. */
+.mv-card-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+.mv-card-grid > .mv-panel { grid-column: auto; }
+.mv-column-stack { display: grid; gap: 16px; }
+
+/* Any ad-hoc two-column list+detail or form+preview grid (custom ratios via
+   the --mv-cols custom property — see .mv-columns-16-8 above) — resets
+   .mv-panel's own default `grid-column: 1 / -1` (meant for the 12-col
+   dashboard grid) so a panel dropped straight into one of these tracks
+   doesn't silently span both columns. */
+.mv-split-panel { display: grid; grid-template-columns: var(--mv-cols, 1fr 1fr); gap: 16px; align-items: start; }
+.mv-split-panel > .mv-panel { grid-column: auto; }
+@media (max-width: 860px) { .mv-split-panel { grid-template-columns: 1fr; } }
+
+.mv-condition-counts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.mv-condition-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border: 1px solid var(--mv-border); border-radius: 999px; background: var(--mv-surface-subtle); font-size: 13px; font-weight: 500; color: var(--mv-text-secondary); }
+.mv-condition-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.mv-condition-pill--healthy { color: var(--mv-success); }
+.mv-condition-pill--warning { color: var(--mv-warning); }
+.mv-condition-pill--critical { color: var(--mv-danger); }
+.mv-condition-pill--unknown { color: var(--mv-text-muted); }
+
+.mv-donut-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.mv-donut-card { display: grid; gap: 16px; }
+.mv-donut-body { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.mv-donut-total { position: relative; }
+.mv-donut-total-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 1px; text-align: center; pointer-events: none; }
+.mv-donut-total-label strong { display: block; font-size: 22px; line-height: 26px; font-weight: 500; color: var(--mv-text); font-variant-numeric: tabular-nums; }
+.mv-donut-total-label span { display: block; margin-top: 3px; line-height: 14px; font-size: 11px; color: var(--mv-text-muted); }
+.mv-donut-legend { display: grid; gap: 10px; flex: 1; min-width: 160px; }
+.mv-donut-legend-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--mv-text-secondary); }
+.mv-donut-legend-row strong { margin-left: auto; font-weight: 500; color: var(--mv-text); font-variant-numeric: tabular-nums; }
+.mv-donut-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+
+.mv-alert-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.mv-alert-list-row { display: flex; align-items: flex-start; gap: 8px; padding: 9px 2px; border-bottom: 1px solid var(--mv-divider); }
+.mv-alert-list-row:last-child { border-bottom: 0; }
+.mv-alert-list-row .mv-status { flex: none; margin-top: 1px; }
+.mv-alert-list-body { display: grid; gap: 3px; min-width: 0; }
+.mv-alert-list-body p { margin: 0; color: var(--mv-text); font-size: 13px; line-height: 18px; }
+.mv-alert-list-body .mv-muted { font-size: 11px; }
+
+.mv-system-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.mv-system-list-row { display: grid; gap: 4px; padding: 12px 4px; border-bottom: 1px solid var(--mv-divider); }
+.mv-system-list-row:last-child { border-bottom: 0; }
+.mv-system-list-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+
+.mv-account-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.mv-account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--mv-divider); }
+.mv-account-row:last-child { border-bottom: 0; }
+.mv-account-row-body { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 4px; border: 0; background: transparent; border-radius: 8px; text-align: left; }
+.mv-account-row-body:hover { background: var(--mv-surface-hover); }
+.mv-account-row-meta { display: grid; gap: 2px; min-width: 0; }
+.mv-account-row-meta strong { font-weight: 500; }
+.mv-account-row-meta .mv-muted { font-size: 12px; }
+.mv-account-row-actions { display: flex; align-items: center; gap: 2px; flex: none; }
+.mv-account-rename-input { height: 32px; padding: 0 8px; border: 1px solid var(--mv-primary); border-radius: 6px; color: var(--mv-text); background: var(--mv-surface); font-size: 14px; }
+
+.mv-key-value { display: grid; gap: 14px; }
+.mv-key-value > div { display: grid; gap: 4px; }
+.mv-key-value .mv-muted { font-size: 12px; }
+
+.mv-service-tile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+/* Five-tile Financial Snapshot: auto-fit leaves the fifth tile alone on its own row at tablet width (4+1). */
+@media (max-width: 900px) and (min-width: 481px) { .mv-service-tile-grid--5 { grid-template-columns: repeat(3, 1fr); } }
+.mv-service-tile { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--mv-divider); border-radius: 8px; background: var(--mv-surface-subtle); }
+.mv-service-tile-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 7px; background: var(--mv-selected); color: var(--mv-primary); font-size: 11px; font-weight: 500; }
+.mv-service-tile-name { color: var(--mv-text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mv-service-tile strong { font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 500; }
+
+/* Dashboard toolbar + persistent sidebar — matches the reference layout's
+   structure; palette and background are Mavera's own. No hero banner. */
+.mv-dashboard-toolbar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 20px; }
+.mv-dashboard-search { flex: 1 1 320px; position: relative; display: flex; align-items: center; }
+.mv-dashboard-search svg { position: absolute; left: 14px; color: var(--mv-text-muted); pointer-events: none; }
+.mv-dashboard-search input { width: 100%; height: 44px; padding: 0 14px 0 40px; border: 1px solid var(--mv-border); border-radius: 8px; background: var(--mv-surface); color: var(--mv-text); }
+.mv-dashboard-search input:focus { outline: none; border-color: var(--mv-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mv-focus) 16%, transparent); }
+/* min-width: 0 overrides the flex-item default (min-width: auto), which
+   otherwise refuses to shrink below this row's natural content width and
+   pushes the page into horizontal overflow instead of wrapping. */
+.mv-dashboard-filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-width: 0; }
+.mv-dashboard-filters .mv-field { margin-bottom: 0; }
+.mv-dashboard-filters .mv-select { width: auto; height: 40px; padding: 0 12px; border: 1px solid var(--mv-border); border-radius: 8px; background: var(--mv-surface); color: var(--mv-text); font-size: 13px; }
+.mv-dashboard-filters .mv-primary-button { white-space: nowrap; display: inline-flex; align-items: center; }
+
+.mv-dashboard-layout { grid-column: 1 / -1; display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 16px; align-items: start; }
+.mv-dashboard-sidebar { display: grid; gap: 16px; align-content: start; position: sticky; top: calc(var(--mv-header-height) + 16px); }
+.mv-side-card { padding: 20px; border: 1px solid var(--mv-divider); border-radius: 12px; background: var(--mv-surface); }
+.mv-side-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font: 500 14px/20px var(--mv-font-heading); color: var(--mv-text); }
+.mv-side-plan-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mv-quick-access-list { display: grid; gap: 2px; }
+.mv-quick-access-list a { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 6px; border-radius: 8px; color: var(--mv-text-secondary); font-size: 13px; text-decoration: none; }
+.mv-quick-access-list a:hover { background: var(--mv-surface-hover); color: var(--mv-text); }
+.mv-quick-access-list svg { flex: none; color: var(--mv-text-muted); }
+.mv-side-help { display: flex; align-items: flex-start; gap: 12px; }
+.mv-side-help svg { flex: none; color: var(--mv-primary); margin-top: 2px; }
+.mv-side-help strong { display: block; margin-bottom: 4px; }
+.mv-side-help a { color: var(--mv-primary); font-size: 13px; text-decoration: none; font-weight: 500; }
+
+.mv-dashboard-main { min-width: 0; display: grid; gap: 16px; }
+/* align-items defaults to stretch (not "start"): cards in the same row
+   share equal height, so a taller neighbour (e.g. the systems list) doesn't
+   leave the shorter donut cards with a ragged bottom edge. auto-fit (not a
+   fixed repeat(3, …)) is deliberate: an org subscribed to fewer than all 3
+   platform modules renders fewer cards here, and the collapsed empty
+   tracks redistribute their width to the remaining ones instead of leaving
+   a blank slot — 2 modules fill the row exactly like 3 do. */
+/* minmax's lower bound is deliberately small: auto-fit alone (no forced
+   breakpoint) should keep the same 3-across layout through ordinary laptop
+   widths, only truly reflowing once a column can no longer fit at all. */
+.mv-row-3col { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: clamp(10px, 1.5vw, 16px); }
+.mv-row-3col > .mv-panel { grid-column: auto; height: 100%; }
+/* .mv-kpi's own grid-column:span 4 targets the old 12-col .mv-dashboard-grid
+   context — an unrelated grid, so it must be reset here too (not just for
+   .mv-panel above) whenever a KPI card sits directly inside this row. */
+.mv-row-3col > .mv-kpi { grid-column: auto; }
+
+@media (max-width: 560px) { .mv-row-3col { grid-template-columns: 1fr; } }
+
+/* Recent Alerts + the 3 health cards, all in one horizontal row — narrower
+   columns than .mv-row-3col since there's a 4th one, with each card's own
+   content (see .mv-alert-list-row etc.) tightened to match. Same approach:
+   let auto-fit hold the 4-across layout as long as it physically fits. */
+.mv-row-4col { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: clamp(10px, 1.5vw, 16px); align-items: stretch; }
+.mv-row-4col > .mv-panel { grid-column: auto; height: 100%; }
+@media (max-width: 560px) { .mv-row-4col { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) {
+  .mv-columns-16-8 { grid-template-columns: 1fr; }
+  .mv-dashboard-layout { grid-template-columns: 1fr; }
+  .mv-dashboard-sidebar { position: static; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); display: grid; }
+}
+.mv-plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }.mv-plan { display: grid; align-content: start; gap: 14px; min-height: 290px; padding: 20px; border: 1px solid var(--mv-divider); border-radius: 12px; background: var(--mv-surface); }.mv-plan.is-current { border-color: var(--mv-primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--mv-primary) 12%, transparent); }.mv-plan ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; color: var(--mv-text-secondary); font-size: 13px; }.mv-plan a { margin-top: auto; text-decoration: none; }
+.mv-kpi { grid-column: span 4; min-height: 136px; padding: 20px; border: 1px solid var(--mv-divider); border-radius: 12px; background: var(--mv-surface); box-shadow: 0 1px 2px rgba(16,24,40,.02); transition: transform 160ms ease, box-shadow 160ms ease; }
+/* auto-fit + a small minmax floor (not a fixed repeat(4/5, …)) so these
+   hold their full column count through ordinary laptop widths and only
+   reflow once a card genuinely can't fit — same reasoning as .mv-row-3col. */
+.mv-kpi-row-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: clamp(10px, 1.5vw, 16px); margin-bottom: 16px; }
+.mv-kpi-row-4 > .mv-kpi { grid-column: auto; }
+/* auto-fit at 4 columns leaves an orphaned 4th card alone in its own row
+   across a wide mid-size band — force a clean 2x2 instead of relying on
+   organic wrapping. */
+@media (max-width: 900px) and (min-width: 481px) { .mv-kpi-row-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .mv-kpi-row-4 { grid-template-columns: 1fr; } }
+
+.mv-kpi-row-5 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: clamp(10px, 1.5vw, 16px); margin-bottom: 16px; }
+.mv-kpi-row-5 > .mv-kpi { grid-column: auto; }
+/* Same orphaned-last-card problem as .mv-kpi-row-4 — auto-fit at 5 columns
+   leaves a lone 5th card in the 481-900px band. A 3-column grid (3+2) reads
+   far better than 4+1. */
+@media (max-width: 900px) and (min-width: 481px) { .mv-kpi-row-5 { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 480px) { .mv-kpi-row-5 { grid-template-columns: 1fr; } }
+
+/* AI insight cards — the header's AI Insights dropdown and the Executive
+   tab's AI Executive Summary both render AiInsight[] with these classes.
+   Colored left border + tint per type, layered on .mv-inline-error's base
+   box so a type-less caller still gets a readable (danger-tinted) card. */
+.mv-ai-insight { border-left-width: 3px; }
+/* Compound selectors (not just .mv-ai-insight--{type} alone) so these beat
+   .mv-inline-error's own background/color regardless of source order —
+   both rules sit at the same single-class specificity otherwise, and this
+   file defines .mv-inline-error later than this block. */
+.mv-ai-insight.mv-ai-insight--warning { color: var(--mv-warning); background: color-mix(in srgb, var(--mv-warning) 8%, transparent); border-color: color-mix(in srgb, var(--mv-warning) 30%, var(--mv-divider)); border-left-color: var(--mv-warning); }
+.mv-ai-insight.mv-ai-insight--success { color: var(--mv-success); background: color-mix(in srgb, var(--mv-success) 8%, transparent); border-color: color-mix(in srgb, var(--mv-success) 30%, var(--mv-divider)); border-left-color: var(--mv-success); }
+.mv-ai-insight.mv-ai-insight--info { color: var(--mv-info); background: color-mix(in srgb, var(--mv-info) 8%, transparent); border-color: color-mix(in srgb, var(--mv-info) 30%, var(--mv-divider)); border-left-color: var(--mv-info); }
+.mv-ai-insight strong { color: var(--mv-text); }
+.mv-ai-insight p { color: var(--mv-text-secondary); }
+
+.mv-code { font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; }
+.mv-kpi:hover { transform: translateY(-2px); box-shadow: var(--mv-shadow, 0 8px 24px rgba(16,24,40,.08)); }
+.mv-kpi-label { color: var(--mv-text-secondary); font-size: 13px; font-weight: 500; }
+/* Weight 500, not the doc's nominal 600: Google Sans Text only ships static
+   400/500 instances (see fonts.css) — requesting 600 here would silently
+   synthesize a fake bold, which §3.2 explicitly prohibits. */
+.mv-kpi-value { display: block; margin-top: 15px; color: var(--mv-text); font-size: 28px; line-height: 32px; font-weight: 500; font-variant-numeric: tabular-nums; }
+/* Panels span the full row only in the 12-column dashboard grid; inside any other grid
+   (auto-fit card rows, inline two-column wrappers) they take a single track, so related
+   panels sit side by side on wide screens instead of each stretching edge to edge. */
+.mv-dashboard-grid > .mv-panel { grid-column: 1 / -1; }
+.mv-panel { padding: 20px; border: 1px solid var(--mv-divider); border-radius: 12px; background: var(--mv-surface); }
+.mv-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.mv-panel-title { margin: 0; font: 600 16px/24px var(--mv-font-heading); }
+.mv-loading { height: 54px; border-radius: 8px; background: linear-gradient(90deg, var(--mv-surface-subtle) 25%, var(--mv-surface-hover) 38%, var(--mv-surface-subtle) 63%); background-size: 400% 100%; animation: mv-shimmer 1.3s ease infinite; }
+.mv-inline-error { padding: 12px 14px; color: var(--mv-danger); background: color-mix(in srgb, var(--mv-danger) 7%, transparent); border: 1px solid color-mix(in srgb, var(--mv-danger) 28%, var(--mv-divider)); border-radius: 8px; }
+.mv-empty { display: grid; justify-items: center; max-width: 520px; margin: 48px auto; padding: 40px; text-align: center; border: 1px dashed var(--mv-border); border-radius: 12px; background: var(--mv-surface); }
+.mv-empty-icon { font-size: 28px; }
+.mv-empty h2 { margin: 12px 0 8px; font: 600 18px/26px var(--mv-font-heading); }
+.mv-empty p { margin: 0 0 20px; color: var(--mv-text-secondary); }
+
+.mv-auth-page { min-height: 100vh; display: grid; grid-template-columns: minmax(420px, .96fr) minmax(540px, 1.04fr); background: var(--mv-surface); }
+.mv-auth-page--single { grid-template-columns: minmax(0, 1fr); background: radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--mv-primary) 9%, transparent), transparent 32%), var(--mv-canvas); }.mv-auth-page--single .mv-auth-form-side { background: transparent; }.mv-auth-panel--wide { width: min(100%, 500px); }
+.mv-auth-form-side { display: grid; place-items: center; padding: 40px; background: var(--mv-surface); }
+.mv-auth-panel { width: min(100%, 410px); }
+.mv-auth-logo { display: block; width: 238px; height: auto; margin: 0 0 36px; }
+.mv-auth-title { margin: 0; font: 600 27px/35px var(--mv-font-heading); letter-spacing: -.02em; }
+.mv-auth-copy { margin: 8px 0 28px; color: var(--mv-text-secondary); }
+.mv-auth-alert { margin-bottom: 16px; padding: 12px 13px; border-radius: 8px; color: var(--mv-danger); background: color-mix(in srgb, var(--mv-danger) 7%, var(--mv-surface)); border: 1px solid color-mix(in srgb, var(--mv-danger) 24%, var(--mv-divider)); }
+.mv-field { display: grid; gap: 7px; margin-bottom: 18px; color: var(--mv-text-secondary); font-size: 13px; font-weight: 500; }
+.mv-field input, .mv-field textarea { width: 100%; padding: 0 12px; border: 1px solid var(--mv-border); border-radius: 8px; color: var(--mv-text); background: var(--mv-surface); outline: none; transition: border 120ms ease, box-shadow 120ms ease; }
+.mv-field input { height: 44px; }
+.mv-field textarea { padding: 10px 12px; font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; resize: vertical; }
+.mv-field input:hover, .mv-field textarea:hover { border-color: var(--mv-border-control); }
+.mv-field input:focus, .mv-field textarea:focus { border-color: var(--mv-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mv-focus) 16%, transparent); }
+.mv-field-error { margin: -3px 0 0; color: var(--mv-danger); font-size: 12px; font-weight: 400; }
+.mv-field-help { margin: -3px 0 0; color: var(--mv-text-muted); font-size: 12px; font-weight: 400; }
+/* Lets a Select sit inline in a flex row (filter bars) instead of stacking. */
+.mv-field--flex { flex: 1; margin-bottom: 0; }
+.mv-auth-submit { width: 100%; min-height: 44px; }
+.mv-auth-links { display: flex; justify-content: space-between; gap: 16px; margin-top: 18px; font-size: 13px; }
+.mv-auth-links a { color: var(--mv-primary); text-decoration: none; font-weight: 500; }
+.mv-steps { display: flex; gap: 0; padding: 0; margin: 0 0 24px; overflow-x: auto; list-style: none; counter-reset: steps; }.mv-steps li { position: relative; flex: 1 0 88px; padding: 28px 6px 0; color: var(--mv-text-muted); font-size: 11px; text-align: center; }.mv-steps li::before { content: counter(steps); counter-increment: steps; position: absolute; top: 0; left: calc(50% - 10px); display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid var(--mv-border); border-radius: 50%; background: var(--mv-surface); }.mv-steps li:not(:last-child)::after { content: ''; position: absolute; top: 10px; left: calc(50% + 11px); width: calc(100% - 20px); height: 1px; background: var(--mv-divider); }.mv-steps li.is-active { color: var(--mv-primary); font-weight: 500; }.mv-steps li.is-active::before { color: var(--mv-on-primary); border-color: var(--mv-primary); background: var(--mv-primary); }.mv-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }.mv-choice { display: flex; align-items: center; gap: 9px; min-height: 42px; padding: 10px 12px; border: 1px solid var(--mv-border); border-radius: 8px; color: var(--mv-text-secondary); font-size: 13px; cursor: pointer; }.mv-choice:hover { border-color: var(--mv-primary); background: var(--mv-selected); }.mv-choice input { accent-color: var(--mv-primary); }
+@keyframes mv-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.mv-auth-visual { min-width: 0; padding: 24px; background: #07142a; }
+.mv-auth-carousel { position: sticky; top: 24px; min-height: calc(100vh - 48px); display: grid; align-content: center; gap: 24px; padding: clamp(28px, 5vw, 74px); overflow: hidden; border-radius: 16px; color: #fff; background: radial-gradient(circle at 20% 15%, rgba(37,117,234,.42), transparent 37%), linear-gradient(145deg, #07142a, #071b39); }
+.mv-auth-carousel::before { content: ''; position: absolute; width: 540px; height: 540px; border: 1px solid rgba(123,181,255,.14); border-radius: 50%; right: -220px; bottom: -280px; }
+.mv-auth-carousel img { position: relative; width: 100%; max-width: 700px; justify-self: center; border-radius: 10px; box-shadow: 0 28px 80px rgba(0,0,0,.36); }
+.mv-auth-carousel p { position: relative; max-width: 540px; margin: 0 auto; text-align: center; color: rgba(255,255,255,.82); font: 500 18px/28px var(--mv-font-heading); }
+@keyframes mv-shimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+.mv-mobile-nav-backdrop { position: fixed; inset: 0; z-index: 1100; background: var(--mv-scrim); animation: mv-fade-in 160ms ease; }
+.mv-mobile-nav-panel { position: fixed; inset: 0 auto 0 0; z-index: 1110; width: min(300px, 84vw); overflow-y: auto; padding: 16px; background: var(--mv-elevated); box-shadow: var(--mv-shadow-light, 0 8px 24px rgba(16,24,40,.12)); }
+.mv-mobile-nav-panel h2 { margin: 4px 8px 10px; font: 600 14px/20px var(--mv-font-heading); color: var(--mv-text-muted); }
+.mv-mobile-nav-panel a { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 8px; border-radius: 8px; color: var(--mv-text-secondary); text-decoration: none; }
+.mv-mobile-nav-panel a:hover, .mv-mobile-nav-panel a[aria-current='page'] { color: var(--mv-primary); background: var(--mv-selected); }
+.mv-mobile-nav-panel .mv-mobile-nav-group { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--mv-divider); }
+/* 1199px, not 991px: the full text-label nav (icons already hidden below
+   1499px) still needs more room than a 992-1198px laptop viewport gives it,
+   which was overlapping the bell/help/avatar icons before this switched to
+   the hamburger menu that much earlier. */
+@media (max-width: 1199px) {
+  .mv-nav { display: none; }
+  .mv-mobile-menu-button { display: grid; }
+  .mv-topbar { padding: 0 20px; gap: 12px; }
+  .mv-content { padding: 22px 20px 32px; }
+}
+@media (max-width: 980px) { .mv-auth-page { grid-template-columns: 1fr; } .mv-auth-visual { display: none; } .mv-auth-form-side { min-height: 100vh; } }
+@media (max-width: 680px) { .mv-topbar { height: 56px; padding: 0 16px; } .mv-crumb { display: none; } .mv-content { padding: 20px 16px 28px; } .mv-page-heading { align-items: stretch; flex-direction: column; } .mv-kpi { grid-column: 1 / -1; } .mv-auth-form-side { padding: 28px 20px; } .mv-auth-logo { width: 210px; } .mv-choice-grid { grid-template-columns: 1fr; } .mv-dialog { padding: 20px; } }
+@media (max-width: 900px) { .mv-plan-grid { grid-template-columns: 1fr; } }
+
+/* Workspace alignment pass — fluid canvas with one consistent edge inset. */
+.mv-topbar { padding-inline: 24px; }
+.mv-content { width: 100%; max-width: none; margin: 0; padding: 24px; }
+.mv-footer { padding-inline: 24px; }
+.mv-page-heading { margin-bottom: 20px; }
+.mv-dashboard-grid { gap: 14px; }
+.mv-module-card { min-width: 0; height: 100%; }
+.mv-columns-16-8 { gap: 14px; }
+.mv-column-stack { gap: 14px; }
+.mv-panel { min-width: 0; overflow: hidden; }
+/* No blanket min-width here: it forced every table to 640px even inside the
+   narrow secondary column (e.g. the dashboard's Recent Alerts widget),
+   which clipped the Severity/Status columns against the panel's own
+   overflow:hidden. Tables now size to their content; .mv-table-wrap's own
+   overflow-x:auto still covers genuinely narrow viewports. */
+
+/* Login experience — no card, no panel: the form sits directly on the
+   animated canvas, so every piece of its own copy and controls is styled
+   for that dark background rather than inheriting the app's light tokens
+   (that's what the .mv-login-content overrides below are for). */
+.mv-login-page { position: relative; min-height: 100vh; overflow: hidden; }
+.mv-login-toggle-floating {
+  position: absolute; top: 24px; right: 28px; z-index: 3;
+  min-height: 36px; padding: 0 14px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 999px;
+  color: rgba(255, 255, 255, .82); background: rgba(255, 255, 255, .06); backdrop-filter: blur(8px);
+  font-size: 12px; font-weight: 500;
+}
+.mv-login-toggle-floating:hover { color: #fff; background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .36); }
+.mv-login-stage { position: relative; z-index: 2; min-height: 100vh; display: grid; place-items: center; padding: 64px 24px 96px; }
+.mv-login-content { width: min(100%, 400px); }
+/* Design doc §2.2: on a dark surface, keep the artwork's own colours but
+   add a white backing plate so the mark stays legible — a plate just
+   around the logo, not a card around the whole form. */
+.mv-login-logo-plate { display: grid; place-items: center; width: fit-content; margin: 0 auto 26px; padding: 14px 20px; border-radius: 14px; background: #fff; box-shadow: 0 20px 40px -20px rgba(0, 0, 0, .5); }
+.mv-login-logo { display: block; width: 176px; height: auto; }
+.mv-login-content .mv-login-secure { margin-left: auto; margin-right: auto; color: rgba(255, 255, 255, .78); background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .18); }
+.mv-login-secure { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; margin-bottom: 18px; padding: 0 10px; border: 1px solid var(--mv-divider); border-radius: 999px; color: var(--mv-text-secondary); background: var(--mv-surface-subtle); font-size: 12px; font-weight: 500; }
+.mv-login-secure i { width: 7px; height: 7px; border-radius: 50%; background: var(--mv-success); box-shadow: 0 0 0 4px color-mix(in srgb, var(--mv-success) 14%, transparent); }
+.mv-login-content .mv-auth-title { text-align: center; font-size: clamp(24px, 2.2vw, 28px); line-height: 1.25; color: #fff; }
+.mv-login-content .mv-auth-copy { text-align: center; max-width: 360px; margin: 10px auto 28px; line-height: 1.55; color: rgba(255, 255, 255, .64); }
+.mv-login-content .mv-field { gap: 8px; margin-bottom: 17px; color: rgba(255, 255, 255, .82); font-weight: 500; }
+.mv-login-content .mv-field > input, .mv-login-content .mv-password-control > input {
+  height: 48px; padding-inline: 14px; border-radius: 9px;
+  color: #fff; background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .18);
+}
+.mv-login-content .mv-field input::placeholder { color: rgba(255, 255, 255, .34); }
+.mv-login-content .mv-field input:hover { border-color: rgba(255, 255, 255, .3); }
+.mv-login-content .mv-field input:focus { border-color: #84adff; box-shadow: 0 0 0 3px rgba(132, 173, 255, .22); }
+/* Base (light-panel) look — .mv-password-control > input still matches the
+   plain .mv-field input rule too (it's a descendant), this only adds the
+   icon-button gutter. .mv-login-content overrides both above for its dark
+   hero background. */
+.mv-password-control { position: relative; display: block; }
+.mv-password-control > input { padding-right: 44px; }
+.mv-password-control > button { position: absolute; top: 0; bottom: 0; right: 4px; display: grid; place-items: center; width: 34px; height: 34px; margin: auto 0; border: 0; border-radius: 7px; padding: 0; color: var(--mv-text-muted); background: transparent; }
+.mv-password-control > button:hover { color: var(--mv-text-secondary); background: var(--mv-surface-hover); }
+.mv-login-content .mv-password-control > input { padding-right: 44px; }
+.mv-login-content .mv-password-control > button { color: #9bc3ff; }
+.mv-login-content .mv-password-control > button:hover { background: rgba(255, 255, 255, .1); }
+.mv-login-options { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: -1px 0 20px; color: rgba(255, 255, 255, .64); font-size: 12px; }
+.mv-login-options label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+.mv-login-options input { accent-color: #4c8dff; }
+.mv-login-options a, .mv-login-create a { color: #9bc3ff; font-weight: 500; text-decoration: none; }
+.mv-login-content .mv-auth-submit { min-height: 48px; border-radius: 9px; }
+.mv-login-create { margin: 22px 0 0; color: rgba(255, 255, 255, .64); text-align: center; font-size: 13px; }
+.mv-login-preview { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 10px 12px; border: 1px dashed rgba(255, 255, 255, .22); border-radius: 9px; color: rgba(255, 255, 255, .56); background: rgba(255, 255, 255, .04); font-size: 12px; }
+.mv-login-preview button { border: 0; color: #9bc3ff; background: transparent; font-weight: 500; }
+.mv-login-trust { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; margin-top: 24px; color: rgba(255, 255, 255, .38); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.mv-login-trust i { width: 3px; height: 3px; border-radius: 50%; background: rgba(255, 255, 255, .3); }
+.mv-login-back { width: 100%; margin-top: 8px; }
+.mv-login-footer {
+  position: absolute; z-index: 2; inset: auto 0 0 0;
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  min-height: 56px; padding: 12px 24px; color: rgba(255, 255, 255, .5); font-size: 11px;
+}
+.mv-login-footer a { color: inherit; text-decoration: none; }
+.mv-login-footer a:hover { color: #fff; }
+.mv-login-footer-brand { display: inline-flex; align-items: center; gap: 6px; }
+.mv-maitsys-logo { display: block; height: 14px; width: auto; }
+.mv-login-content .mv-auth-alert--success { color: #9aebbb; border-color: rgba(117, 224, 167, .28); background: rgba(5, 107, 64, .16); }
+.mv-login-content .mv-auth-alert { color: #fda29b; border-color: rgba(253, 162, 155, .28); background: rgba(180, 35, 24, .14); }
+
+@media (max-width: 900px) {
+  .mv-content { padding: 20px; }
+}
+/* Smart Alerts filter bar (SmartAlertsPage) — the Status/Type filter
+   groups sit in one flex-wrap row separated by a thin vertical divider.
+   Below 900px the groups wrap onto their own lines and the divider (a
+   flex child with no line of its own to sit on) floats alone as an
+   orphaned blank row. Stack the groups and swap the divider for a
+   border between them instead. */
+@media (max-width: 900px) {
+  .mv-alert-filter-bar { flex-direction: column; align-items: stretch; }
+  .mv-filter-divider { display: none; }
+  .mv-alert-filter-bar .mv-filter-group:last-of-type {
+    border-top: 1px solid var(--mv-divider);
+    padding-top: 10px;
+  }
+}
+.mv-filter-divider { width: 1px; height: 20px; background: var(--mv-divider); flex-shrink: 0; }
+@media (max-width: 560px) {
+  .mv-content { padding: 16px; }
+  .mv-topbar { padding-inline: 16px; }
+  .mv-login-logo { width: 148px; }
+  .mv-login-logo-plate { padding: 12px 16px; }
+  .mv-login-toggle-floating { top: 16px; right: 16px; }
+  .mv-login-stage { padding: 88px 16px 80px; }
+  .mv-login-options { align-items: flex-start; }
+  .mv-login-trust { display: none; }
+}
+
+/* Custom Select (src/shared/ui/Select.tsx) — a trigger button styled like
+   the old native <select> so existing layouts don't shift; the popup itself
+   is portaled to <body> so it's never clipped by a panel/dialog/table cell. */
+.mv-select {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+  height: 36px; padding: 0 10px; border: 1px solid var(--mv-border); border-radius: 8px;
+  background: var(--mv-surface); color: var(--mv-text); font: inherit; font-size: 13px; text-align: left;
+  cursor: pointer; transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.mv-select:hover { border-color: var(--mv-border-control); }
+.mv-select:focus-visible, .mv-select[aria-expanded='true'] { outline: 0; border-color: var(--mv-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mv-focus) 16%, transparent); }
+.mv-select:disabled { opacity: .55; cursor: not-allowed; }
+.mv-select-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-select-chevron { flex: none; color: var(--mv-text-muted); transition: transform 120ms ease; }
+.mv-select[aria-expanded='true'] .mv-select-chevron { transform: rotate(180deg); }
+
+.mv-select-popup {
+  position: fixed; z-index: 1200; display: flex; flex-direction: column;
+  overflow: hidden; border: 1px solid var(--mv-border); border-radius: 8px;
+  background: var(--mv-elevated); box-shadow: var(--mv-shadow-light, 0 8px 24px rgba(16,24,40,.12));
+}
+.mv-select-search-wrap { flex: none; padding: 8px; border-bottom: 1px solid var(--mv-divider); }
+.mv-select-search { width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--mv-border); border-radius: 6px; background: var(--mv-surface); color: var(--mv-text); font-size: 13px; }
+.mv-select-search:focus { outline: 0; border-color: var(--mv-primary); }
+.mv-select-options { margin: 0; padding: 4px; list-style: none; overflow-y: auto; }
+.mv-select-option { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; padding: 0 10px; border-radius: 6px; color: var(--mv-text); font-size: 13px; cursor: pointer; }
+.mv-select-option.is-active { background: var(--mv-selected); }
+.mv-select-option[aria-selected='true'] { font-weight: 500; }
+.mv-select-option.is-disabled { color: var(--mv-text-disabled); cursor: not-allowed; }
+.mv-select-check { flex: none; color: var(--mv-primary); }
+.mv-select-status { padding: 10px 12px; color: var(--mv-text-muted); font-size: 13px; }
+.mv-select-status--error { color: var(--mv-danger); }
+
+/* Custom Tooltip (src/shared/ui/Tooltip.tsx) — MAVERA_DESIGN_SYSTEM.md
+   §10.1: neutral elevated surface, no arrow, 160ms fade + <=4px slide timed
+   with the motion-base token, respecting prefers-reduced-motion. */
+.mv-tooltip {
+  position: fixed; z-index: 1300; max-width: 280px; padding: 8px 12px;
+  border: 1px solid var(--mv-border); border-radius: 6px;
+  background: var(--mv-elevated); color: var(--mv-text);
+  font: 12px/18px var(--mv-font-body);
+  box-shadow: var(--mv-shadow-light, 0 8px 24px rgba(16,24,40,.12));
+  opacity: 0; transform: translateY(4px); pointer-events: none;
+  transition: opacity 160ms cubic-bezier(0.2, 0, 0, 1), transform 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+.mv-tooltip[data-placement='bottom'] { transform: translateY(-4px); }
+.mv-tooltip.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .mv-tooltip { transition: none; } }
+
+/* iOS-style toggle switch — first used by the Super Admin portal's
+   per-org AI-access and module switches. */
+.mv-toggle { position: relative; display: inline-flex; flex: none; width: 40px; height: 22px; padding: 0; border: 1px solid var(--mv-border); border-radius: 999px; background: var(--mv-surface-subtle); transition: background 140ms ease, border-color 140ms ease; }
+.mv-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform 140ms ease; }
+.mv-toggle[aria-checked='true'] { background: var(--mv-primary); border-color: var(--mv-primary); }
+.mv-toggle[aria-checked='true']::after { transform: translateX(18px); }
+.mv-toggle:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Super Admin portal — reuses the org-side .mv-topbar/.mv-nav chrome
+   (same dark header, same nav-trigger styling) so the two feel like one
+   product; only the content wrapper below stays admin-specific. */
+.mv-sa-content { max-width: 1320px; margin: 0 auto; padding: 24px 24px 48px; }
+.mv-sa-module-dots { display: flex; gap: 6px; }
+.mv-sa-module-dot { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 500; color: var(--mv-text-muted); background: var(--mv-surface-subtle); border: 1px solid var(--mv-border); }
+.mv-sa-module-dot--on { color: var(--mv-on-primary); background: var(--mv-primary); border-color: var(--mv-primary); }
+.mv-sa-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 640px) { .mv-sa-field-grid { grid-template-columns: 1fr; } }
+.mv-sa-modal-section { margin-top: 18px; }
+.mv-sa-modal-section > label.mv-panel-title, .mv-sa-modal-section > p.mv-panel-title { display: block; margin-bottom: 8px; }
+
+/* Azure Cost Page shell — sticky-feeling header row (back/account/switch
+   account/month/AI insights/sync) and the Executive/Operations/Technical
+   tab bar underneath it. */
+.mv-cost-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.mv-cost-header-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mv-cost-header-title h1 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-cost-header-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mv-cost-tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--mv-divider); }
+.mv-cost-tab { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 16px 12px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--mv-text-secondary); font-weight: 500; }
+.mv-cost-tab span:first-child { font-size: 14px; color: var(--mv-text); }
+.mv-cost-tab span:last-child { font-size: 11.5px; color: var(--mv-text-muted); font-weight: 400; }
+.mv-cost-tab:hover { color: var(--mv-primary); }
+.mv-cost-tab.is-active { border-bottom-color: var(--mv-primary); }
+.mv-cost-tab.is-active span:first-child { color: var(--mv-primary); }
+@media (max-width: 720px) { .mv-cost-header-controls { width: 100%; } }
+
+/* Segmented pill control — a lighter-weight tab switcher than
+   .mv-cost-tabs (no sub-labels), first used by the Budgets & Alerts page's
+   Budgets/Integrations toggle. */
+.mv-segmented { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: var(--mv-surface-subtle); width: fit-content; }
+.mv-segmented-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--mv-text-secondary); background: transparent; border: 0; }
+.mv-segmented-btn:hover { color: var(--mv-text); }
+.mv-segmented-btn.is-active { background: var(--mv-surface); color: var(--mv-text); box-shadow: 0 1px 2px rgba(16,24,40,.06); }
+
+/* Invoice "download PDF" is the browser's own print-to-PDF, scoped to just
+   the rendered invoice — see InvoiceBuilderPage/GenerateInvoicePage. */
+@media print {
+  body * { visibility: hidden; }
+  .mv-print-area, .mv-print-area * { visibility: visible; }
+  .mv-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
+/* Rackwise-inspired workspace language: compact, data-led and consistent on
+   every Mavera route. The underlying Mavera navigation and permissions stay
+   unchanged. */
+.mv-topbar {
+  height: 58px;
+  gap: 20px;
+  background: color-mix(in srgb, var(--mv-surface) 92%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--mv-divider) 80%, transparent), 0 8px 26px -28px rgba(15, 44, 82, .5);
+}
+.mv-brand { gap: 9px; }
+.mv-brand-logo { height: 34px; }
+.mv-content { padding-top: 22px; padding-bottom: 36px; }
+.mv-page-heading { min-height: 48px; align-items: center; padding-bottom: 16px; border-bottom: 1px solid var(--mv-divider); }
+.mv-page-heading > div:first-child { min-width: 0; }
+.mv-title { font-size: 24px; line-height: 30px; letter-spacing: -.025em; }
+.mv-subtitle { margin-top: 3px; font-size: 13px; line-height: 20px; }
+.mv-breadcrumb { margin-bottom: 6px; font-size: 12px; }
+.mv-panel { padding: 18px; border-radius: 10px; border-color: color-mix(in srgb, var(--mv-divider) 88%, var(--mv-primary)); box-shadow: 0 12px 26px -30px rgba(15, 44, 82, .58); }
+.mv-panel-header { min-height: 28px; margin-bottom: 14px; }
+.mv-panel-title { font-size: 15px; line-height: 22px; }
+.mv-quiet-button { min-height: 34px; padding-inline: 9px; border-radius: 7px; font-size: 12px; }
+.mv-secondary-button { min-height: 36px; border-radius: 7px; font-size: 12px; }
+.mv-status, .mv-condition-pill { min-height: 22px; padding-inline: 7px; font-size: 11px; }
+.mv-table-wrap { border: 1px solid var(--mv-divider); border-radius: 9px; background: var(--mv-surface); }
+.mv-table th { height: 38px; padding-block: 0; background: color-mix(in srgb, var(--mv-surface-subtle) 78%, var(--mv-surface)); font-size: 11px; letter-spacing: .01em; }
+.mv-table th, .mv-table td { padding-inline: 14px; }
+.mv-table td { height: 46px; padding-block: 0; font-size: 13px; }
+.mv-table tbody tr { transition: background 120ms ease, box-shadow 120ms ease; }
+.mv-table tbody tr:hover { background: color-mix(in srgb, var(--mv-selected) 52%, var(--mv-surface)); box-shadow: inset 3px 0 var(--mv-primary); }
+.mv-dashboard-toolbar { padding: 10px; border: 1px solid var(--mv-divider); border-radius: 10px; background: color-mix(in srgb, var(--mv-surface) 94%, transparent); box-shadow: 0 8px 20px -28px rgba(15, 44, 82, .48); }
+.mv-dashboard-search input { height: 40px; border-radius: 7px; background: var(--mv-surface-subtle); }
+.mv-dashboard-filters .mv-select { height: 36px; border-radius: 7px; font-size: 12px; }
+.mv-dashboard-filters .mv-primary-button { min-height: 36px; padding-inline: 12px; font-size: 12px; }
+.mv-dashboard-layout { gap: 14px; }
+.mv-dashboard-sidebar { gap: 10px; }
+.mv-side-card { padding: 14px; border-radius: 10px; box-shadow: 0 9px 20px -25px rgba(15, 44, 82, .55); }
+.mv-side-card-header { margin-bottom: 9px; font-size: 13px; }
+.mv-side-subscription { border-color: color-mix(in srgb, var(--mv-primary) 22%, var(--mv-divider)); background: linear-gradient(145deg, color-mix(in srgb, var(--mv-primary) 8%, var(--mv-surface)), var(--mv-surface) 64%); }
+.mv-quick-access-list { gap: 3px; }
+.mv-quick-access-list a { min-height: 34px; padding-inline: 8px; border-radius: 7px; font-size: 12px; }
+.mv-quick-access-list a:hover { color: var(--mv-primary); background: var(--mv-selected); }
+.mv-dashboard-main { gap: 14px; }
+.mv-row-3col, .mv-row-4col { gap: 14px; }
+.mv-module-card { min-height: 168px; padding: 18px; border-radius: 10px; }
+.mv-module-card-header h3 { font-size: 15px; }
+.mv-module-card-header h3 svg { width: 30px; height: 30px; padding: 7px; border-radius: 8px; }
+.mv-module-card-metrics { gap: 10px; }
+.mv-module-card-metric span { font-size: 11px; }
+.mv-module-card-metric strong { font-size: 19px; }
+.mv-kpi { min-height: 116px; padding: 16px; border-radius: 10px; }
+.mv-kpi-value { margin-top: 10px; font-size: 25px; line-height: 30px; }
+.mv-dialog { padding: 22px; border-radius: 12px; box-shadow: 0 24px 70px rgba(7, 24, 51, .28); }
+.mv-dialog-actions { margin-top: 18px; }
+.mv-empty { margin-block: 28px; padding: 30px; border-radius: 10px; }
+.mv-toast { border-radius: 9px; box-shadow: 0 16px 36px rgba(15, 44, 82, .16); }
+@media (max-width: 1100px) { .mv-topbar { gap: 12px; } .mv-dashboard-toolbar { padding: 8px; } }
+@media (max-width: 680px) { .mv-content { padding-top: 16px; } .mv-page-heading { padding-bottom: 12px; } .mv-panel { padding: 14px; } .mv-dashboard-toolbar { border-radius: 8px; } .mv-dashboard-search { flex-basis: 100%; } }
+
+/* Dashboard rail: informational cards stay intentionally quiet. The
+   subscription summary uses the same surface, border, and rhythm as every
+   other side card, without decorative circles, glow, or raised shadow. */
+.mv-side-card { border-color: var(--mv-divider); box-shadow: none; }
+.mv-side-subscription { overflow: visible; border-color: var(--mv-divider); background: var(--mv-surface); }
+.mv-side-subscription::after { content: none; }
+.mv-side-subscription > * { position: static; }
+
+/* Cross-page layout refinement. These shared rules cover the monitoring,
+   cloud, IDoc, billing, and administration views without changing product
+   data or actions. */
+.mv-page-heading { align-items: flex-end; gap: 16px; padding: 2px 0 18px; }
+.mv-page-heading > :last-child { flex: none; }
+.mv-panel { border-color: var(--mv-divider); background: var(--mv-surface); box-shadow: 0 1px 2px rgba(16, 24, 40, .025); }
+.mv-panel-header { gap: 16px; }
+.mv-panel-title { letter-spacing: -.012em; }
+.mv-table-wrap { border-color: var(--mv-divider); box-shadow: none; }
+.mv-table th { color: var(--mv-text-secondary); font-weight: 600; }
+.mv-table td { vertical-align: middle; }
+.mv-kpi { overflow: visible; border-color: var(--mv-divider); background: var(--mv-surface); box-shadow: none; }
+.mv-kpi::after, .mv-module-card::after { content: none; }
+.mv-kpi:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--mv-primary) 28%, var(--mv-divider)); box-shadow: 0 8px 18px -20px rgba(15, 44, 82, .5); }
+.mv-module-card { border-color: var(--mv-divider); box-shadow: none; }
+.mv-module-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -24px rgba(15, 44, 82, .55); }
+.mv-module-card-header h3 { gap: 10px; }
+.mv-module-card-metrics { padding-top: 2px; }
+.mv-quiet-button { text-underline-offset: 3px; }
+.mv-secondary-button { border-color: var(--mv-border); background: var(--mv-surface); }
+.mv-secondary-button:hover { border-color: color-mix(in srgb, var(--mv-primary) 34%, var(--mv-border)); background: var(--mv-selected); }
+.mv-empty { border-style: solid; border-color: var(--mv-divider); background: var(--mv-surface-subtle); }
+.mv-dialog { border-color: var(--mv-divider); }
+@media (max-width: 680px) {
+  .mv-page-heading { align-items: stretch; padding-bottom: 14px; }
+  .mv-page-heading > :last-child { width: 100%; }
+  .mv-page-heading > :last-child .mv-primary-button, .mv-page-heading > :last-child .mv-secondary-button { flex: 1; }
+  .mv-panel-header { align-items: flex-start; }
+}
+
+/* Consistent secondary patterns for provider views, billing, and admin. */
+.mv-cost-tabs { gap: 2px; margin-bottom: 18px; padding: 4px; border: 1px solid var(--mv-divider); border-radius: 10px; background: var(--mv-surface); overflow-x: auto; }
+.mv-cost-tab { min-height: 54px; padding: 8px 13px; border: 0; border-radius: 7px; flex: none; }
+.mv-cost-tab span:first-child, .mv-cost-tab span:last-child { white-space: nowrap; }
+.mv-cost-tab:hover { background: var(--mv-surface-hover); }
+.mv-cost-tab.is-active { background: var(--mv-selected); }
+.mv-cost-tab.is-active span:first-child { color: var(--mv-primary); }
+.mv-select, .mv-field input, .mv-field textarea { border-color: var(--mv-border); }
+.mv-select:focus { outline: 0; border-color: var(--mv-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mv-focus) 15%, transparent); }
+.mv-field { gap: 6px; margin-bottom: 16px; }
+.mv-account-row-body { border-radius: 7px; transition: background 120ms ease, box-shadow 120ms ease; }
+.mv-account-row-body:hover { background: var(--mv-selected); box-shadow: inset 2px 0 var(--mv-primary); }
+.mv-service-tile { border-color: var(--mv-divider); background: var(--mv-surface-subtle); transition: border-color 120ms ease, background 120ms ease; }
+.mv-service-tile:hover { border-color: color-mix(in srgb, var(--mv-primary) 26%, var(--mv-divider)); background: var(--mv-surface); }
+.mv-notice { border-left-width: 2px; border-color: var(--mv-primary); background: color-mix(in srgb, var(--mv-primary) 5%, var(--mv-surface)); }
+.mv-status { border-color: color-mix(in srgb, currentColor 16%, var(--mv-divider)); background: var(--mv-surface-subtle); }
+
+/* Persistent AI Assistant: a quiet black launcher, positioned clear of the
+   app canvas, with an expandable conversation surface above it. */
+.mv-ai-assistant { position: fixed; right: 28px; bottom: 28px; z-index: 1300; display: grid; justify-items: end; gap: 14px; }
+.mv-ai-assistant-launcher { display: grid; place-items: center; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 50%; color: #05070b; background: #05070b; box-shadow: 0 12px 26px rgba(5, 7, 11, .25), 0 2px 7px rgba(5, 7, 11, .2); transition: transform 160ms ease, box-shadow 160ms ease; }
+.mv-ai-assistant-launcher:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 16px 32px rgba(5, 7, 11, .3), 0 3px 9px rgba(5, 7, 11, .18); }
+.mv-ai-assistant-launcher:focus-visible, .mv-ai-assistant-close:focus-visible { outline: 3px solid color-mix(in srgb, var(--mv-focus) 72%, #fff); outline-offset: 3px; }
+.mv-ai-assistant-launcher-mark { display: grid; place-items: center; width: 34px; height: 30px; border-radius: 9px; background: #fff; box-shadow: inset 0 -1px 0 rgba(5, 7, 11, .08); }
+.mv-ai-assistant-launcher-mark::after { content: ''; position: absolute; width: 8px; height: 8px; margin: 29px 0 0 -14px; transform: rotate(45deg); border-radius: 0 0 0 2px; background: #fff; }
+.mv-ai-assistant-animation { position: relative; z-index: 1; width: 26px; height: 26px; }
+.mv-ai-assistant-panel { width: min(376px, calc(100vw - 32px)); max-height: min(580px, calc(100vh - 124px)); display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; border: 1px solid color-mix(in srgb, var(--mv-border) 86%, var(--mv-primary)); border-radius: 16px; background: var(--mv-elevated); box-shadow: 0 22px 54px rgba(16, 24, 40, .2); animation: mv-ai-assistant-enter 160ms ease both; }
+.mv-ai-assistant-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 66px; padding: 12px 14px 12px 16px; border-bottom: 1px solid var(--mv-divider); background: color-mix(in srgb, var(--mv-surface) 92%, var(--mv-selected)); }
+.mv-ai-assistant-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mv-ai-assistant-title-icon { display: grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 10px; color: var(--mv-on-primary); background: var(--mv-primary); }
+.mv-ai-assistant-title strong, .mv-ai-assistant-title small { display: block; }
+.mv-ai-assistant-title strong { color: var(--mv-text); font: 500 14px/19px var(--mv-font-heading); }
+.mv-ai-assistant-title small { margin-top: 1px; color: var(--mv-text-muted); font-size: 11px; }
+.mv-ai-assistant-close { display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; color: var(--mv-text-secondary); background: transparent; }
+.mv-ai-assistant-close:hover { color: var(--mv-text); background: var(--mv-surface-hover); }
+.mv-ai-assistant-panel .mv-assistant-conversation { min-height: 0; padding: 16px; }
+.mv-ai-assistant-panel .mv-assistant-messages { min-height: 132px; max-height: 310px; padding-right: 2px; }
+.mv-ai-assistant-panel .mv-muted { margin: 0; line-height: 20px; }
+.mv-ai-assistant-panel .mv-secondary-button { min-height: 30px; padding-inline: 10px; border-radius: 999px; font-size: 11px; }
+.mv-assistant-message { max-width: 92%; padding: 9px 11px; border-radius: 10px; background: var(--mv-surface-subtle); }
+.mv-assistant-message--user { justify-self: end; color: var(--mv-on-primary); background: var(--mv-primary); }
+.mv-assistant-message--user .mv-muted { color: color-mix(in srgb, var(--mv-on-primary) 78%, transparent); }
+.mv-assistant-message p { font-size: 13px; line-height: 19px; }
+/* The page's own proactive walkthrough offer — a flow guide, not a reply —
+   gets a left accent so it reads as the assistant speaking first. */
+.mv-assistant-flow-prompt { max-width: 100%; border-left: 2px solid var(--mv-primary); background: var(--mv-selected); }
+.mv-ai-assistant-panel .mv-assistant-composer { padding-top: 2px; border-top: 1px solid var(--mv-divider); }
+.mv-ai-assistant-panel .mv-assistant-composer input { height: 40px !important; border-radius: 9px !important; font-size: 12px; }
+.mv-ai-assistant-panel .mv-assistant-composer .mv-primary-button { min-width: 58px; min-height: 40px; padding-inline: 12px; border-radius: 9px; font-size: 12px; }
+@keyframes mv-ai-assistant-enter { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (max-width: 680px) { .mv-ai-assistant { right: 18px; bottom: 18px; gap: 12px; } .mv-ai-assistant-launcher { width: 58px; height: 58px; } .mv-ai-assistant-panel { max-height: min(540px, calc(100vh - 102px)); border-radius: 14px; } }
+
+/* The compact header keeps the product name and core actions visible without
+   forcing the page canvas wider than a phone viewport. Secondary utilities
+   stay available in the desktop header and profile menu. */
+@media (max-width: 680px) {
+  html, body { overflow-x: hidden; }
+  .mv-topbar { gap: 6px; padding-inline: 12px; }
+  .mv-brand { gap: 7px; min-width: 0; }
+  .mv-brand-logo { height: 28px; }
+  .mv-utility { gap: 0; }
+  .mv-utility > a[aria-label^='Help'] { display: none; }
+  .mv-profile-trigger { min-height: 36px; padding: 3px; }
+  .mv-profile-trigger > span:last-child { display: none; }
+  .mv-profile-trigger .mv-avatar { width: 30px; height: 30px; }
+}
+
+/* ==========================================================================
+   Mavera command desk — the authoritative visual layer (supersedes the
+   earlier alignment/Rackwise/refinement passes above wherever they overlap).
+   One deliberate bold move: a deep ink command band — the header, and on the
+   dashboard the operations pulse deck beneath it. Everything else is a calm,
+   flat worktable: borders and spacing for hierarchy, no decorative
+   gradients, no lift-on-hover, colour only where it means something.
+   Deviations from MAVERA_DESIGN_SYSTEM.md are listed in the change
+   description (ink header in the light theme; 30/32px titles).
+   ========================================================================== */
+:root {
+  --mv-ink: #0B1A33;
+  --mv-ink-raised: #13274A;
+  --mv-ink-hover: #183059;
+  --mv-ink-line: rgba(255, 255, 255, .10);
+  --mv-ink-text: #F2F5FA;
+  --mv-ink-muted: #9FB1CC;
+  --mv-ink-accent: #84ADFF;
+  --mv-pad: 24px;
+}
+[data-theme="dark"] {
+  --mv-ink: #0A0F1A;
+  --mv-ink-raised: #151C2A;
+  --mv-ink-hover: #1C2536;
+  --mv-ink-line: rgba(255, 255, 255, .08);
+}
+
+/* ---- Canvas & page rhythm ---- */
+.mv-page { background: var(--mv-canvas); }
+.mv-content { padding: var(--mv-pad); }
+@media (max-width: 900px) { :root { --mv-pad: 20px; } }
+@media (max-width: 560px) { :root { --mv-pad: 16px; } }
+
+/* ---- Ink command band: header ---- */
+.mv-topbar {
+  height: 60px; gap: 16px; padding-inline: var(--mv-pad);
+  color: var(--mv-ink-text); background: var(--mv-ink);
+  border-bottom: 1px solid var(--mv-ink-line); box-shadow: none; backdrop-filter: none;
+}
+.mv-brand { color: var(--mv-ink-text); gap: 10px; }
+.mv-sa-portal-badge { padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, .12); color: var(--mv-ink-text); font-size: 11px; font-weight: 600; letter-spacing: .04em; }
+.mv-sa-identity { color: var(--mv-ink-muted); font-size: 13px; }
+.mv-sa-identity strong { color: var(--mv-ink-text); }
+.mv-topbar .mv-secondary-button { color: var(--mv-ink-text); border-color: rgba(255, 255, 255, .24); background: transparent; }
+.mv-topbar .mv-secondary-button:hover { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .4); }
+.mv-topbar .mv-nav { gap: 0; }
+.mv-topbar .mv-nav-trigger {
+  height: 60px; padding: 0 11px; border-bottom: 2px solid transparent;
+  color: var(--mv-ink-muted); background: transparent; font-size: 13.5px;
+}
+.mv-topbar .mv-nav-trigger:hover { color: var(--mv-ink-text); background: rgba(255, 255, 255, .05); }
+.mv-topbar .mv-nav-trigger.is-active,
+.mv-topbar a.mv-nav-trigger[aria-current="page"] { color: #fff; border-bottom-color: var(--mv-ink-accent); background: transparent; }
+.mv-topbar .mv-nav-trigger:focus-visible { outline: 2px solid var(--mv-ink-accent); outline-offset: -4px; }
+.mv-topbar .mv-nav-icon { opacity: .85; }
+@media (max-width: 1499px) { .mv-topbar .mv-nav-icon { display: none; } }
+.mv-topbar .mv-icon-button { color: var(--mv-ink-muted); border-radius: 6px; }
+.mv-topbar .mv-icon-button:hover { color: #fff; background: rgba(255, 255, 255, .08); }
+.mv-topbar .mv-icon-button:focus-visible { outline: 2px solid var(--mv-ink-accent); outline-offset: 2px; }
+.mv-topbar .mv-badge-dot { top: 4px; right: 4px; box-shadow: 0 0 0 2px var(--mv-ink); }
+.mv-topbar .mv-profile-trigger { color: var(--mv-ink-text); border-radius: 6px; }
+.mv-topbar .mv-profile-trigger:hover { background: rgba(255, 255, 255, .08); }
+.mv-topbar .mv-avatar { color: #0B1A33; background: var(--mv-ink-accent); font-weight: 600; }
+
+/* ---- Ink command band: dashboard operations pulse deck ---- */
+.mv-pulse {
+  margin: calc(-1 * var(--mv-pad)) calc(-1 * var(--mv-pad)) 24px;
+  padding: 18px var(--mv-pad) 20px;
+  color: var(--mv-ink-text); background: var(--mv-ink);
+  color-scheme: dark;
+}
+.mv-pulse-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 32px; margin-bottom: 16px; }
+.mv-pulse-greeting { margin: 0 0 4px; color: var(--mv-ink-muted); font-size: 14px; line-height: 20px; }
+.mv-pulse-title { margin: 0; color: #fff; font: 600 24px/30px var(--mv-font-heading); letter-spacing: -.01em; }
+.mv-pulse .mv-dashboard-toolbar {
+  flex: 1 1 560px; max-width: 820px; margin: 0; padding: 0; justify-content: flex-end;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none;
+}
+.mv-pulse .mv-dashboard-search svg { color: var(--mv-ink-muted); }
+.mv-pulse .mv-dashboard-search input,
+.mv-pulse .mv-dashboard-filters .mv-select {
+  height: 38px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 6px;
+  color: var(--mv-ink-text); background: rgba(255, 255, 255, .06);
+}
+.mv-pulse .mv-dashboard-search input::placeholder { color: var(--mv-ink-muted); }
+.mv-pulse .mv-dashboard-search input:focus,
+.mv-pulse .mv-dashboard-filters .mv-select:focus-visible,
+.mv-pulse .mv-dashboard-filters .mv-select[aria-expanded='true'] { outline: 0; border-color: var(--mv-ink-accent); box-shadow: 0 0 0 3px rgba(132, 173, 255, .22); }
+.mv-pulse .mv-dashboard-filters .mv-primary-button { min-height: 38px; }
+
+/* Readout tiles share hairlines like an instrument cluster, rather than
+   floating as separate cards. */
+.mv-pulse-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1px;
+  overflow: hidden; border: 1px solid var(--mv-ink-line); border-radius: 8px; background: var(--mv-ink-line);
+}
+.mv-pulse .mv-module-card {
+  min-height: 0; height: auto; gap: 12px; padding: 14px 20px;
+  border: 0; border-radius: 0; background: var(--mv-ink-raised); box-shadow: none;
+  transform: none; transition: background 120ms ease;
+}
+.mv-pulse .mv-module-card:hover { background: var(--mv-ink-hover); transform: none; box-shadow: none; }
+.mv-pulse .mv-module-card-header h3 { color: #fff; font: 500 15px/22px var(--mv-font-heading); gap: 8px; }
+.mv-pulse .mv-module-card-header h3 svg { width: auto; height: auto; padding: 0; border-radius: 0; color: var(--mv-ink-muted); background: none; }
+.mv-pulse .mv-status { border-color: rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .05); }
+.mv-pulse .mv-status--success { color: #75E0A7; }
+.mv-pulse .mv-status--neutral { color: var(--mv-ink-muted); }
+.mv-pulse .mv-module-card-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 0; }
+.mv-pulse .mv-module-card-metric { gap: 4px; min-width: 0; }
+.mv-pulse .mv-module-card-metric span { color: var(--mv-ink-muted); font-size: 12px; line-height: 16px; }
+.mv-pulse .mv-module-card-metric strong {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: #fff; font: 500 26px/32px var(--mv-font-body); letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.mv-pulse .mv-module-card-features { color: var(--mv-ink-muted); }
+.mv-meter { display: grid; gap: 6px; }
+.mv-meter-track { display: flex; gap: 3px; height: 8px; }
+.mv-meter-seg { flex: 1; border-radius: 2px; background: rgba(255, 255, 255, .10); }
+.mv-meter-seg--ok { background: #3DBF83; }
+.mv-meter-seg--warn { background: #F2B544; }
+.mv-meter-seg--crit { background: #F46A5E; }
+.mv-meter-seg--fill { background: var(--mv-ink-accent); }
+.mv-meter-caption { margin: 0; color: var(--mv-ink-muted); font-size: 12px; line-height: 16px; }
+.mv-module-card-action { justify-self: start; color: var(--mv-primary); font-size: 13px; font-weight: 500; text-decoration: none; }
+.mv-pulse .mv-module-card-action { color: var(--mv-ink-accent); }
+.mv-module-card-action:hover { text-decoration: underline; text-underline-offset: 3px; }
+.mv-module-card-action:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 2px; border-radius: 2px; }
+.mv-pulse .mv-module-card-action:focus-visible { outline-color: var(--mv-ink-accent); }
+
+/* ---- Worktable typography ---- */
+.mv-page-heading { align-items: flex-end; margin-bottom: 24px; padding: 0; border-bottom: 0; }
+.mv-title { font: 600 30px/36px var(--mv-font-heading); letter-spacing: -.02em; }
+.mv-subtitle { margin-top: 4px; font-size: 14px; line-height: 22px; }
+.mv-eyebrow { margin: 0 0 4px; color: var(--mv-text-secondary); font-size: 13px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.mv-breadcrumb { margin-bottom: 8px; font-size: 13px; }
+.mv-panel-title { font: 600 16px/24px var(--mv-font-heading); letter-spacing: -.01em; }
+.mv-kpi-label { color: var(--mv-text-secondary); font-size: 13px; font-weight: 500; }
+.mv-kpi-value { margin-top: 8px; color: var(--mv-text); font-size: 30px; line-height: 36px; letter-spacing: -.01em; font-variant-numeric: tabular-nums lining-nums; }
+
+/* ---- Flat surfaces: borders + spacing, never lift or glow ---- */
+.mv-panel, .mv-kpi, .mv-module-card, .mv-side-card, .mv-empty, .mv-table-wrap {
+  border-color: var(--mv-divider); border-radius: 8px; box-shadow: none;
+}
+.mv-panel { padding: 20px; }
+.mv-kpi { min-height: 0; padding: 18px 20px; background: var(--mv-surface); }
+.mv-kpi:hover, .mv-module-card:hover { transform: none; box-shadow: none; }
+.mv-kpi:hover { border-color: var(--mv-border); }
+.mv-panel-header { margin-bottom: 16px; }
+.mv-dashboard-layout { gap: 16px; }
+.mv-dashboard-main, .mv-dashboard-sidebar, .mv-row-3col, .mv-row-4col { gap: 16px; }
+.mv-side-card { padding: 18px; background: var(--mv-surface); }
+.mv-dialog { border-radius: 8px; }
+.mv-empty { background: var(--mv-surface); }
+
+/* ---- Controls: flat, 6px radius, no movement on hover ---- */
+.mv-primary-button, .mv-secondary-button, .mv-quiet-button { border-radius: 6px; transform: none; }
+.mv-primary-button { min-height: 36px; padding-inline: 14px; background: var(--mv-action); box-shadow: none; font-size: 13px; }
+.mv-primary-button:hover { background: var(--mv-action-hover); transform: none; box-shadow: none; }
+.mv-primary-button:active { background: var(--mv-action-active); }
+.mv-secondary-button { min-height: 36px; font-size: 13px; }
+.mv-quiet-button { font-size: 13px; white-space: nowrap; }
+.mv-select, .mv-select-popup, .mv-field input, .mv-field textarea, .mv-dashboard-search input, .mv-dashboard-filters .mv-select { border-radius: 6px; }
+
+/* ---- Tags: 4px technical labels, not pills (design system 5.3) ---- */
+.mv-status, .mv-condition-pill { border-radius: 4px; }
+.mv-segmented { padding: 3px; border-radius: 8px; }
+.mv-segmented-btn { border-radius: 6px; }
+.mv-segmented-btn.is-active { box-shadow: 0 0 0 1px var(--mv-divider); }
+
+/* ---- Tables: quiet header, clear rows ---- */
+.mv-table th { color: var(--mv-text-secondary); font-size: 12px; font-weight: 500; letter-spacing: 0; background: var(--mv-surface-subtle); }
+.mv-table td { font-size: 13.5px; }
+.mv-table tbody tr:hover { background: var(--mv-surface-hover); box-shadow: none; }
+
+/* ---- Dashboard rail ---- */
+.mv-dashboard-sidebar { top: calc(60px + 16px); }
+.mv-side-card-header { font: 600 14px/20px var(--mv-font-heading); }
+
+@media (max-width: 991px) {
+  .mv-topbar { gap: 10px; }
+  .mv-pulse-title { font-size: 20px; line-height: 26px; }
+  .mv-pulse .mv-dashboard-toolbar { max-width: none; justify-content: flex-start; }
+}
+@media (max-width: 680px) {
+  .mv-topbar { height: 56px; }
+  .mv-title { font-size: 24px; line-height: 30px; }
+  .mv-pulse { padding-top: 20px; }
+  .mv-pulse-grid { grid-template-columns: 1fr; }
+  .mv-pulse .mv-module-card-metric strong { font-size: 22px; line-height: 28px; }
+}
+
+/* ---- Command desk: follow-up fixes from visual review ---- */
+.mv-panel-header { align-items: flex-start; }
+.mv-quiet-button { text-decoration: none; }
+.mv-quiet-button:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* Readout values size to their content so a currency never ellipsises. */
+.mv-pulse .mv-module-card-metrics { grid-template-columns: repeat(3, auto); justify-content: start; column-gap: 32px; }
+.mv-pulse .mv-module-card-metric strong { overflow: visible; text-overflow: clip; }
+/* An empty state inside a panel is part of that panel, not a card in a card. */
+.mv-panel .mv-empty, .mv-split-panel .mv-panel .mv-empty { max-width: none; margin: 0; padding: 40px 16px; border: 0; background: transparent; }
+.mv-table td.mv-nowrap, .mv-table th.mv-nowrap { white-space: nowrap; }
+
+/* .mv-kpi used to default to grid-column: span 4 (for the old 12-column
+   .mv-dashboard-grid), which silently stacked KPI tiles in every other grid.
+   Default to auto; only that one grid gets the span. */
+.mv-kpi { grid-column: auto; }
+.mv-dashboard-grid > .mv-kpi { grid-column: span 4; }
+@media (max-width: 680px) { .mv-dashboard-grid > .mv-kpi { grid-column: 1 / -1; } }
+/* Readouts wrap to a second line on narrow tiles instead of colliding. */
+.mv-pulse .mv-module-card-metrics { display: flex; flex-wrap: wrap; gap: 14px 32px; }
+
+/* ---- Form controls: selects inherit the app font (browsers default them
+   to the system UI font, unlike the input/button rule at the top) ---- */
+select { font: inherit; }
+
+/* ---- Dashboard toolbar: search and filters on one horizontal row ---- */
+.mv-pulse-head { align-items: flex-end; }
+.mv-pulse .mv-dashboard-toolbar { flex: 1 1 720px; max-width: 1040px; flex-wrap: nowrap; gap: 10px; }
+.mv-pulse .mv-dashboard-search { flex: 1 1 260px; min-width: 200px; }
+.mv-pulse .mv-dashboard-filters { flex: none; flex-wrap: nowrap; gap: 8px; }
+.mv-dashboard-filters .mv-select {
+  min-width: 0; padding: 0 10px 0 12px; font-size: 13px; font-weight: 500; line-height: 20px; letter-spacing: 0;
+}
+.mv-pulse .mv-dashboard-filters .mv-select { color: var(--mv-ink-text); }
+.mv-dashboard-search input { font-size: 14px; }
+.mv-dashboard-filters .mv-primary-button { font-size: 13px; font-weight: 500; }
+@media (max-width: 1199px) {
+  .mv-pulse .mv-dashboard-toolbar { flex-wrap: wrap; max-width: none; }
+  /* flex: none (flex-shrink: 0) further up stops this row shrinking to the
+     viewport at all below 1199px, which pushed it into horizontal overflow
+     instead of wrapping its own selects onto a second line. */
+  .mv-pulse .mv-dashboard-filters { flex: 1 1 100%; flex-wrap: wrap; min-width: 0; }
+}
+
+/* ==========================================================================
+   Sign-in: the same quiet dot-grid backdrop as Consultant Pulse (see
+   LoginBackdrop.tsx) over a diagonal page gradient, and a glass card. The
+   sign-in page is not a monitoring view, so the flat-surface rule for work
+   views (MAVERA_DESIGN_SYSTEM.md 2.1) deliberately doesn't apply here.
+   ========================================================================== */
+:root { --mv-login-gradient: linear-gradient(135deg, #fdfdfe 0%, #f2f4f8 45%, #e1e6ee 100%); }
+[data-theme="dark"] { --mv-login-gradient: linear-gradient(135deg, #1a2236 0%, #0e1424 45%, #060912 100%); }
+.mv-login-backdrop {
+  position: absolute; inset: 0; z-index: 1; overflow: hidden;
+  background: var(--mv-login-gradient);
+}
+/* html reserves a scrollbar gutter (scrollbar-gutter: stable), which would show the plain canvas
+   colour as a stripe beside the gradient. Painting the same gradient on the root, fixed to the
+   window, closes it — on the sign-in page only. */
+html:has(.mv-login-page) { background: var(--mv-login-gradient) fixed; }
+/* The dots fade out towards the edges so the gradient shows through cleanly. */
+.mv-login-dots {
+  position: fixed; inset: 0; pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 35%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, #000 35%, transparent 100%);
+}
+
+/* The card — a lightly translucent surface with a defined edge, so it reads
+   against the page gradient in both themes (same recipe as Consultant Pulse:
+   surface at 90%, hairline border, overlay shadow, soft blur). */
+.mv-signin-card {
+  position: relative; width: min(100%, 392px); padding: 32px 30px 28px; text-align: center;
+  color: var(--mv-text); border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--mv-border) 70%, transparent);
+  background: color-mix(in srgb, var(--mv-surface) 90%, transparent);
+  box-shadow: 0 18px 44px -8px rgba(22, 41, 74, .22), 0 4px 12px rgba(22, 41, 74, .08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+[data-theme="dark"] .mv-signin-card {
+  box-shadow: 0 18px 44px -8px rgba(0, 0, 0, .6), 0 4px 12px rgba(0, 0, 0, .3);
+}
+/* Locked-account state only — a plain status tile, not a brand mark. */
+.mv-signin-tile {
+  display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto 18px;
+  color: #1B1F29; border-radius: 14px; background: #fff; border: 1px solid rgba(15, 23, 42, .05);
+  box-shadow: 0 10px 20px -10px rgba(30, 70, 120, .45);
+}
+[data-theme="dark"] .mv-signin-tile { color: #fff; background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .12); box-shadow: 0 10px 20px -10px rgba(0, 0, 0, .6); }
+/* Full, uncropped brand lockup inside the card (MAVERA_DESIGN_SYSTEM.md
+   §2.2 "full brand placement": original logo, uncropped, on sign-in/about
+   pages) — sits directly on the card, no backing plate. 300px sits inside
+   the doc's 240–320px range; the current artwork is a wide horizontal
+   lockup (icon beside the wordmark) rather than a stacked one. */
+.mv-signin-logo { display: block; width: 300px; max-width: 100%; height: auto; margin: 0 auto 20px; }
+.mv-signin-title { margin: 0; font: 600 22px/30px var(--mv-font-heading); letter-spacing: -.01em; }
+.mv-signin-copy { max-width: 300px; margin: 6px auto 22px; color: var(--mv-text-secondary); font-size: 14px; line-height: 21px; }
+.mv-signin-card .mv-auth-alert { text-align: left; font-size: 13px; }
+.mv-signin-card form { text-align: left; }
+.mv-signin-card .mv-field { margin-bottom: 12px; }
+
+/* Icon-in-field inputs */
+.mv-input-with-icon { position: relative; display: block; }
+.mv-input-icon { position: absolute; top: 0; bottom: 0; left: 14px; display: grid; place-items: center; color: var(--mv-text-muted); pointer-events: none; }
+.mv-signin-card .mv-field input {
+  height: 44px; padding: 0 14px 0 40px; border: 1px solid transparent; border-radius: 10px;
+  color: var(--mv-text); background: #EEF2F6; font-size: 14px;
+}
+.mv-signin-card .mv-password-control > input { padding-right: 44px; }
+.mv-signin-card .mv-field input::placeholder { color: var(--mv-text-muted); }
+.mv-signin-card .mv-field input:hover { border-color: var(--mv-border); }
+.mv-signin-card .mv-field input:focus { border-color: var(--mv-primary); background: var(--mv-surface); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mv-focus) 16%, transparent); }
+[data-theme="dark"] .mv-signin-card .mv-field input { background: rgba(255, 255, 255, .06); }
+[data-theme="dark"] .mv-signin-card .mv-field input:hover { border-color: rgba(255, 255, 255, .16); }
+[data-theme="dark"] .mv-signin-card .mv-field input:focus { background: rgba(255, 255, 255, .09); }
+.mv-signin-card .mv-password-control > button { color: var(--mv-text-muted); }
+
+.mv-signin-options { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 2px 0 16px; font-size: 13px; color: var(--mv-text-secondary); }
+.mv-signin-options label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+.mv-signin-options input { accent-color: var(--mv-primary); }
+.mv-signin-options a { color: var(--mv-text); font-weight: 500; text-decoration: none; }
+.mv-signin-options a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Primary action: charcoal in light, inverted to near-white in dark so it
+   never disappears into the card. */
+.mv-signin-submit {
+  width: 100%; height: 44px; border-radius: 10px; border: 1px solid #0B0D12;
+  color: #fff; font: 600 14px/20px var(--mv-font-body);
+  background: linear-gradient(180deg, #3A3D46 0%, #16181E 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 10px 20px -12px rgba(10, 12, 18, .7);
+}
+.mv-signin-submit:hover { background: linear-gradient(180deg, #464A55 0%, #1D2028 100%); }
+.mv-signin-submit:disabled { opacity: .7; cursor: progress; }
+.mv-signin-submit:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 2px; }
+[data-theme="dark"] .mv-signin-submit { color: #0B1220; border-color: rgba(255, 255, 255, .7); background: linear-gradient(180deg, #FFFFFF 0%, #E3E8F0 100%); box-shadow: 0 10px 22px -12px rgba(0, 0, 0, .8); }
+[data-theme="dark"] .mv-signin-submit:hover { background: linear-gradient(180deg, #FFFFFF 0%, #F0F3F8 100%); }
+.mv-signin-link-button { display: block; width: 100%; margin-top: 10px; padding: 8px; border: 0; color: var(--mv-text-secondary); background: transparent; font-size: 13px; }
+.mv-signin-link-button:hover { color: var(--mv-text); }
+
+/* Footer sits on the page gradient: dark text in light, light text in dark */
+.mv-login-footer { color: #3E5A78; }
+.mv-login-footer a:hover { color: #0B1A33; }
+[data-theme="dark"] .mv-login-footer { color: rgba(255, 255, 255, .5); }
+[data-theme="dark"] .mv-login-footer a:hover { color: #fff; }
+
+@media (max-width: 560px) {
+  .mv-signin-logo { width: 160px; }
+  .mv-signin-card { padding: 26px 20px 22px; border-radius: 18px; }
+}
+
+/* ---- Sign-in refinements after visual review ---- */
+/* Google Sans Text ships 400/500 only — 600 would be a faux bold. */
+.mv-signin-submit { font-weight: 500; }
+
+/* ---- Two-step sign-in: the confirmed-email chip on the password step ---- */
+.mv-signin-identity {
+  display: flex; align-items: center; gap: 8px; width: fit-content; max-width: 100%; margin: -14px auto 20px;
+  padding: 5px 5px 5px 12px; border-radius: 999px; border: 1px solid var(--mv-divider);
+  color: var(--mv-text); background: #F1F4F8; font-size: 13px; font-weight: 500;
+}
+.mv-signin-identity svg { flex: none; color: var(--mv-text-muted); }
+.mv-signin-identity span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-signin-identity button {
+  flex: none; padding: 3px 10px; border: 0; border-radius: 999px;
+  color: var(--mv-primary); background: transparent; font-size: 12px; font-weight: 500;
+}
+.mv-signin-identity button:hover { background: var(--mv-selected); }
+.mv-signin-identity button:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 1px; }
+[data-theme="dark"] .mv-signin-identity { background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .12); }
+.mv-signin-card .mv-field-error { margin: 6px 0 0; font-size: 12px; }
+.mv-signin-card .mv-field input[aria-invalid="true"] { border-color: var(--mv-danger); }
+
+/* ---- Sign-in button follows the theme's action colour ---- */
+.mv-signin-submit,
+[data-theme="dark"] .mv-signin-submit {
+  color: var(--mv-on-action);
+  border: 1px solid var(--mv-action-active);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mv-action) 88%, #fff) 0%, var(--mv-action) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22), 0 10px 20px -12px color-mix(in srgb, var(--mv-action) 80%, transparent);
+}
+.mv-signin-submit:hover,
+[data-theme="dark"] .mv-signin-submit:hover {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--mv-action-hover) 88%, #fff) 0%, var(--mv-action-hover) 100%);
+}
+.mv-signin-submit:active,
+[data-theme="dark"] .mv-signin-submit:active { background: var(--mv-action-active); }
+/* Dark theme: a primary-coloured edge keeps the filled control's boundary
+   visible on the dark card (MAVERA_DESIGN_SYSTEM.md 4.1). */
+[data-theme="dark"] .mv-signin-submit { border-color: var(--mv-primary); }
+
+/* ==========================================================================
+   Fluid typography — the big display numbers/titles scale continuously with
+   viewport width instead of holding one fixed size and then jumping at a
+   single mobile breakpoint. The clamp() floor/ceiling pair is tuned so
+   ordinary laptop widths (>=1280px) stay at the same size as a large
+   desktop monitor — only real tablet/phone widths taper down — matching
+   the "smaller laptop should look the same" requirement, while still
+   shrinking gracefully once a screen is genuinely small. Placed last so it
+   wins the cascade over the fixed-px declarations and their old mobile
+   media-query overrides earlier in this file.
+   ========================================================================== */
+.mv-title { font-size: clamp(20px, 1vw + 16px, 30px); line-height: 1.2; }
+.mv-pulse-title { font-size: clamp(18px, 0.8vw + 14px, 24px); line-height: 1.25; }
+.mv-kpi-value { font-size: clamp(20px, 1vw + 14px, 30px); line-height: 1.2; }
+.mv-donut-total-label strong { font-size: clamp(17px, 0.6vw + 13px, 22px); line-height: 1.2; }
+.mv-pulse .mv-module-card-metric strong { font-size: clamp(18px, 0.8vw + 12px, 26px); line-height: 1.25; }
+.mv-module-card-metric strong { font-size: clamp(16px, 0.5vw + 13px, 20px); }
+
+/* ==========================================================================
+   Scroll-shadow affordance — placed last so it wins over the earlier plain
+   `background: var(--mv-surface)` declarations on these same selectors.
+   Fades the surface colour in from each edge and layers a subtle shadow
+   behind it, both driven by scroll position (background-attachment: local
+   scrolls with content, scroll stays fixed) — so a horizontally-scrollable
+   table or tab bar actually looks scrollable instead of just cut off.
+   ========================================================================== */
+.mv-table-wrap, .mv-cost-tabs {
+  background-repeat: no-repeat;
+  background-color: var(--mv-surface);
+  background-image:
+    linear-gradient(to right, var(--mv-surface) 30%, rgba(0, 0, 0, 0)),
+    linear-gradient(to left, var(--mv-surface) 30%, rgba(0, 0, 0, 0)),
+    linear-gradient(to right, rgba(0, 0, 0, .12), rgba(0, 0, 0, 0)),
+    linear-gradient(to left, rgba(0, 0, 0, .12), rgba(0, 0, 0, 0));
+  background-position: left, right, left, right;
+  background-size: 24px 100%, 24px 100%, 10px 100%, 10px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+
+/* ==========================================================================
+   Header navigation, utilities and overlays (navigation review, 2026-10).
+   Placed last so it wins over the earlier header passes.
+   ========================================================================== */
+.mv-skip-link { position: absolute; left: 12px; top: -48px; z-index: 2000; padding: 8px 14px; border-radius: 6px; background: var(--mv-elevated); color: var(--mv-primary); font-weight: 500; text-decoration: none; box-shadow: 0 6px 18px rgba(16, 24, 40, .18); }
+.mv-skip-link:focus { top: 10px; }
+.mv-content:focus { outline: none; }
+
+/* Module dropdowns: a module title, then short section headings. Large modules lay their
+   sections out in columns so the whole menu is visible without scrolling. */
+.mv-nav-chevron { transition: transform 140ms ease; }
+.mv-nav-trigger[aria-expanded="true"] .mv-nav-chevron,
+.mv-mobile-nav-toggle[aria-expanded="true"] .mv-nav-chevron { transform: rotate(180deg); }
+.mv-topbar .mv-nav-trigger[aria-expanded="true"] { color: var(--mv-ink-text); background: rgba(255, 255, 255, .06); }
+.mv-nav-dropdown {
+  top: calc(100% + 6px); width: 264px; padding: 8px;
+  max-height: min(600px, calc(100vh - 84px));
+  box-shadow: 0 18px 40px -12px rgba(16, 24, 40, .28), 0 2px 6px rgba(16, 24, 40, .08);
+  animation: mv-menu-in 120ms ease-out;
+}
+.mv-nav-dropdown[data-columns="2"] { width: 520px; }
+.mv-nav-dropdown[data-columns="3"] { width: 760px; }
+.mv-nav-dropdown[data-columns] { max-width: calc(100vw - 24px); }
+.mv-nav-dropdown-title { margin: 2px 8px 8px; padding-bottom: 8px; border-bottom: 1px solid var(--mv-divider); color: var(--mv-text); font: 600 14px/20px var(--mv-font-heading); }
+.mv-nav-sections { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.mv-nav-column + .mv-nav-column { margin-left: 8px; padding-left: 8px; border-left: 1px solid var(--mv-divider); }
+.mv-nav-section { padding-bottom: 8px; }
+.mv-nav-section-title { margin: 2px 8px 2px; color: var(--mv-text-muted); font-size: 12px; font-weight: 500; line-height: 18px; }
+.mv-nav-dropdown-item { min-height: 34px; padding: 0 8px; font-size: 13.5px; }
+.mv-nav-dropdown-item[aria-current="page"] { font-weight: 500; box-shadow: inset 2px 0 var(--mv-primary); }
+@keyframes mv-menu-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .mv-nav-dropdown, .mv-menu-panel, .mv-drawer { animation: none; } .mv-nav-chevron { transition: none; } }
+
+/* Notification count: a solid, readable pill tucked into the bell's corner so the bell stays
+   visible, ringed in the header colour to separate it from the glyph. Hidden at zero. */
+.mv-badge-count {
+  position: absolute; top: 0; right: -4px; min-width: 18px; height: 18px; padding: 0 5px;
+  display: inline-flex; align-items: center; justify-content: center; border-radius: 999px;
+  background: #D92D20; color: #fff; font: 600 11px/1 var(--mv-font-body); font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px var(--mv-ink); pointer-events: none;
+}
+.mv-topbar .mv-utility { gap: 6px; }
+
+/* Shared popup menu surface (apps launcher, profile). */
+.mv-profile { position: relative; }
+.mv-menu-panel {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 1000; width: 260px; padding: 6px;
+  border: 1px solid var(--mv-divider); border-radius: 8px; background: var(--mv-elevated);
+  box-shadow: 0 18px 40px -12px rgba(16, 24, 40, .28), 0 2px 6px rgba(16, 24, 40, .08);
+  animation: mv-menu-in 120ms ease-out;
+}
+.mv-menu-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  min-height: 36px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--mv-text); font: 400 13.5px/20px var(--mv-font-body); text-align: left; text-decoration: none; cursor: pointer;
+}
+.mv-menu-item:hover, .mv-menu-item:focus-visible { background: var(--mv-surface-hover); outline: none; }
+.mv-menu-item:focus-visible { box-shadow: inset 0 0 0 2px var(--mv-focus); }
+.mv-menu-item--danger { color: var(--mv-danger); }
+.mv-menu-item-hint { display: block; color: var(--mv-text-muted); font-size: 12px; line-height: 16px; }
+.mv-menu-divider { height: 1px; margin: 6px 4px; background: var(--mv-divider); }
+.mv-menu-footer { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--mv-divider); color: var(--mv-text-muted); font-size: 11px; }
+.mv-menu-footer img { height: 14px; width: auto; }
+.mv-profile-identity { display: flex; align-items: center; gap: 10px; padding: 8px 10px 4px; min-width: 0; }
+.mv-profile-identity > span:last-child { display: grid; min-width: 0; }
+.mv-profile-identity strong { color: var(--mv-text); font-size: 14px; font-weight: 600; }
+.mv-profile-identity .mv-muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.mv-profile-identity .mv-avatar { width: 34px; height: 34px; flex: none; color: var(--mv-on-primary); background: var(--mv-primary); }
+.mv-menu-item .mv-toggle { pointer-events: none; }
+.mv-toggle[data-on="true"] { background: var(--mv-primary); border-color: var(--mv-primary); }
+.mv-toggle[data-on="true"]::after { transform: translateX(18px); }
+
+/* Right-hand drawer (notifications): full height, flush to the edge, full width on phones. */
+.mv-drawer-backdrop { position: fixed; inset: 0; z-index: 1100; display: flex; justify-content: flex-end; background: var(--mv-scrim); animation: mv-fade-in 160ms ease; }
+.mv-drawer {
+  display: flex; flex-direction: column; width: min(100%, 400px); height: 100%;
+  border-left: 1px solid var(--mv-divider); background: var(--mv-elevated);
+  box-shadow: -18px 0 48px -24px rgba(7, 24, 51, .45); animation: mv-drawer-in 180ms ease-out;
+}
+@keyframes mv-drawer-in { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+.mv-drawer-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px 10px 20px; }
+.mv-drawer-header .mv-icon-button { color: var(--mv-text-secondary); }
+.mv-drawer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 20px 12px; border-bottom: 1px solid var(--mv-divider); }
+.mv-drawer-toolbar .mv-quiet-button:disabled { color: var(--mv-text-muted); background: transparent; cursor: default; }
+.mv-drawer-body { flex: 1; overflow-y: auto; padding: 8px 12px 20px; }
+.mv-count-chip { min-width: 18px; height: 18px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--mv-selected); color: var(--mv-primary); font-size: 11px; font-weight: 600; }
+.mv-notification-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.mv-notification { display: flex; align-items: flex-start; gap: 4px; border-radius: 8px; }
+.mv-notification:hover { background: var(--mv-surface-hover); }
+.mv-notification-open { flex: 1; min-width: 0; display: flex; gap: 10px; padding: 12px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--mv-text); text-align: left; cursor: pointer; }
+.mv-notification-open:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--mv-focus); }
+.mv-notification-dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: transparent; }
+.mv-notification.is-unread .mv-notification-dot { background: var(--mv-primary); }
+.mv-notification-text { display: grid; gap: 3px; min-width: 0; }
+.mv-notification-title { font-size: 13.5px; line-height: 20px; color: var(--mv-text-secondary); }
+.mv-notification.is-unread .mv-notification-title { color: var(--mv-text); font-weight: 600; }
+.mv-notification-mark { flex: none; margin: 8px 4px 0 0; min-height: 28px; font-size: 12px; }
+.mv-drawer-empty { padding: 48px 16px; text-align: center; }
+.mv-drawer-empty-title { margin: 0 0 4px; color: var(--mv-text); font-weight: 600; }
+
+/* Page search (command palette). */
+.mv-search-backdrop { align-items: start; padding-top: 12vh; }
+.mv-search-dialog { width: min(100%, 620px); padding: 0; overflow: hidden; display: flex; flex-direction: column; max-height: min(620px, 80vh); }
+.mv-search-field { display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid var(--mv-divider); color: var(--mv-text-muted); }
+.mv-search-field input { flex: 1; min-width: 0; height: 54px; border: 0; outline: none; background: transparent; color: var(--mv-text); font: 400 15px/22px var(--mv-font-body); }
+.mv-search-field input::placeholder { color: var(--mv-text-muted); }
+.mv-search-group-label { margin: 10px 18px 4px; color: var(--mv-text-muted); font-size: 12px; font-weight: 500; }
+.mv-search-results { flex: 1; overflow-y: auto; margin: 0; padding: 0 8px 8px; list-style: none; }
+.mv-search-result { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "label lock" "where lock"; align-items: center; column-gap: 12px; padding: 8px 10px; border-radius: 6px; cursor: pointer; }
+.mv-search-result[aria-selected="true"] { background: var(--mv-selected); box-shadow: inset 2px 0 var(--mv-primary); }
+.mv-search-result-label { grid-area: label; color: var(--mv-text); font-size: 14px; font-weight: 500; }
+.mv-search-result-where { grid-area: where; color: var(--mv-text-muted); font-size: 12px; }
+.mv-search-result .mv-nav-lock { grid-area: lock; }
+.mv-search-empty { padding: 24px 18px 28px; }
+.mv-search-empty p { margin: 0 0 4px; }
+.mv-search-hint { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 10px 18px; border-top: 1px solid var(--mv-divider); color: var(--mv-text-muted); font-size: 12px; }
+.mv-kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; margin-right: 3px; padding: 0 5px; border: 1px solid var(--mv-border); border-radius: 4px; background: var(--mv-surface-subtle); color: var(--mv-text-secondary); font: 500 11px/1 var(--mv-font-body); }
+@media (max-width: 680px) { .mv-search-backdrop { padding: 0; } .mv-search-dialog { width: 100%; max-height: 100vh; height: 100%; border-radius: 0; } .mv-search-hint { display: none; } }
+
+/* Phone/tablet menu: collapsible modules with their section headings. */
+.mv-mobile-nav-panel { display: flex; flex-direction: column; padding: 12px; }
+.mv-mobile-nav-header { align-items: center; margin: 0 0 8px 8px; }
+.mv-mobile-nav-panel .mv-mobile-nav-group { margin-top: 4px; padding-top: 4px; }
+.mv-mobile-nav-link, .mv-mobile-nav-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;
+  min-height: 44px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent;
+  color: var(--mv-text-secondary); font: 400 14px/20px var(--mv-font-body); text-align: left; text-decoration: none;
+}
+.mv-mobile-nav-link > span:first-child, .mv-mobile-nav-toggle > span { display: inline-flex; align-items: center; gap: 10px; }
+.mv-mobile-nav-toggle, .mv-mobile-nav-top { color: var(--mv-text); font-weight: 500; }
+.mv-mobile-nav-link:hover, .mv-mobile-nav-toggle:hover { background: var(--mv-surface-hover); }
+.mv-mobile-nav-link[aria-current="page"] { color: var(--mv-primary); background: var(--mv-selected); font-weight: 500; }
+.mv-mobile-nav-sections { padding: 0 0 6px 18px; }
+.mv-mobile-nav-section .mv-nav-section-title { margin: 8px 10px 2px; }
+.mv-mobile-nav-link:focus-visible, .mv-mobile-nav-toggle:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--mv-focus); }
+
+@media (max-width: 680px) { .mv-badge-count { right: -2px; } .mv-menu-panel { position: fixed; top: 60px; right: 8px; left: 8px; width: auto; } }
+
+/* ==========================================================================
+   Super Admin portal: full-width, responsive layout (2026-10).
+   One content area for every /admin page — no max-width, so wide screens
+   don't get empty side gutters, and the same --mv-pad gutter the org app uses
+   so the dashboard's ink band (negative --mv-pad margins) fills edge to edge.
+   ========================================================================== */
+.mv-sa-main { width: 100%; padding: var(--mv-pad); }
+.mv-sa-main:focus { outline: none; }
+.mv-sa-content { max-width: none; margin: 0; padding: 0; }
+.mv-sa-topbar .mv-sa-portal-badge { flex: none; }
+.mv-sa-utility { gap: 12px; }
+.mv-sa-identity { white-space: nowrap; }
+.mv-sa-drawer-footer { display: grid; gap: 10px; margin-top: auto; padding: 16px 8px 4px; border-top: 1px solid var(--mv-divider); }
+.mv-sa-drawer-footer p { margin: 0; }
+.mv-sa-drawer-footer strong { color: var(--mv-text); }
+.mv-sa-extend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 10px; }
+.mv-sa-extend .mv-choice { margin-right: 6px; }
+.mv-sa-extend .mv-secondary-button { min-height: 32px; padding-inline: 12px; }
+.mv-field input:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 991px) {
+  .mv-sa-utility { display: none; }
+  .mv-sa-topbar .mv-sa-portal-badge { margin-left: auto; }
+}
+@media (max-width: 680px) {
+  .mv-sa-main .mv-page-heading > div:last-child { flex-wrap: wrap; }
+  .mv-sa-main .mv-page-heading > div:last-child > * { flex: 1 1 auto; }
+  .mv-sa-main .mv-panel-header { flex-wrap: wrap; }
+}
+
+/* Tables that turn into one card per row on phones: each cell shows its column name
+   from data-label, so nothing scrolls sideways. */
+@media (max-width: 680px) {
+  .mv-table-wrap:has(.mv-table--stack) { border: 0; background: none; overflow: visible; }
+  .mv-table--stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .mv-table--stack, .mv-table--stack tbody, .mv-table--stack tr, .mv-table--stack td { display: block; width: 100%; }
+  .mv-table--stack tr { margin-bottom: 10px; padding: 6px 14px; border: 1px solid var(--mv-divider); border-radius: 8px; background: var(--mv-surface); }
+  .mv-table--stack tbody tr:hover { background: var(--mv-surface); box-shadow: none; }
+  .mv-table.mv-table--stack td { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: auto; min-height: 40px; padding: 8px 0; border-bottom: 1px solid var(--mv-divider); text-align: right; }
+  .mv-table.mv-table--stack td:last-child { border-bottom: 0; }
+  .mv-table--stack td[data-label]::before { content: attr(data-label); flex: none; color: var(--mv-text-muted); font-size: 12px; font-weight: 500; text-align: left; }
+  .mv-table.mv-table--stack td.mv-stack-title { display: block; text-align: left; }
+  .mv-table--stack td.mv-stack-title::before { content: none; }
+  .mv-table.mv-table--stack td.mv-stack-actions { justify-content: flex-end; }
+}
+
+/* ==========================================================================
+   Assistant launcher: a theme-blue button with a chat-bubble face whose eyes
+   follow the pointer (--eye-x/--eye-y set from AssistantLauncherFace) and blink
+   every few seconds. Opening the assistant swaps the face for a close icon.
+   ========================================================================== */
+.mv-ai-assistant-launcher {
+  position: relative; color: var(--mv-on-action);
+  background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--mv-action) 70%, #fff) 0%, var(--mv-action) 55%, var(--mv-action-hover) 100%);
+  box-shadow: 0 12px 26px -6px color-mix(in srgb, var(--mv-action) 60%, transparent), 0 2px 7px rgba(5, 7, 11, .18);
+}
+.mv-ai-assistant-launcher:hover { box-shadow: 0 16px 32px -6px color-mix(in srgb, var(--mv-action) 70%, transparent), 0 3px 9px rgba(5, 7, 11, .16); }
+.mv-bot-face {
+  --eye-x: 0px; --eye-y: 0px;
+  position: relative; display: grid; place-items: center; width: 34px; height: 28px;
+  border-radius: 10px; background: #fff; box-shadow: inset 0 -2px 0 rgba(11, 26, 51, .1);
+  transform: translate(calc(var(--eye-x) * .25), calc(var(--eye-y) * .25));
+  transition: transform 220ms cubic-bezier(.2, .8, .2, 1);
+}
+/* Speech-bubble tail, so it still reads as "chat". */
+.mv-bot-face::after { content: ''; position: absolute; left: 6px; bottom: -4px; width: 9px; height: 9px; transform: rotate(45deg); border-radius: 0 0 0 2px; background: #fff; }
+.mv-bot-eyes { display: flex; gap: 7px; transform: translate(var(--eye-x), var(--eye-y)); transition: transform 160ms cubic-bezier(.2, .8, .2, 1); }
+.mv-bot-eye { width: 6px; height: 9px; border-radius: 999px; background: var(--mv-ink, #0B1A33); transform-origin: center; animation: mv-bot-blink 5.2s infinite; }
+.mv-ai-assistant-launcher:hover .mv-bot-eye { height: 10px; }
+.mv-ai-assistant-launcher:active .mv-bot-eye { animation: none; transform: scaleY(.25); }
+@keyframes mv-bot-blink { 0%, 93%, 100% { transform: scaleY(1); } 95.5% { transform: scaleY(.12); } }
+@media (prefers-reduced-motion: reduce) {
+  .mv-bot-eye { animation: none; }
+  .mv-bot-face, .mv-bot-eyes { transition: none; }
+}
+@media (max-width: 680px) { .mv-bot-face { width: 31px; height: 26px; } }
+
+/* Super Admin › one organization's subscription page. Two columns of sections on wide screens,
+   one on narrow ones, with a sticky save bar so Save is always in reach. */
+.mv-sa-org-note { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; color: var(--mv-text-secondary); font-size: 13px; }
+.mv-sa-org-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.mv-sa-org-col { display: grid; gap: 16px; min-width: 0; }
+.mv-sa-org-section { margin: 0; }
+.mv-sa-org-section-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.mv-sa-org-section-head .mv-muted { margin: 2px 0 0; }
+.mv-sa-org-section-icon { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 8px; color: var(--mv-primary); background: var(--mv-selected); }
+.mv-sa-fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.mv-sa-switch-row { display: flex; align-items: center; gap: 10px; align-self: end; min-height: 40px; }
+.mv-sa-actionbar {
+  position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin: 20px calc(-1 * var(--mv-pad)) calc(-1 * var(--mv-pad)); padding: 12px var(--mv-pad);
+  border-top: 1px solid var(--mv-divider); background: color-mix(in srgb, var(--mv-surface) 94%, transparent); backdrop-filter: blur(8px);
+}
+.mv-sa-actionbar-buttons { display: flex; gap: 8px; }
+.mv-sa-actionbar .mv-primary-button:disabled { opacity: .55; cursor: default; }
+@media (max-width: 1100px) { .mv-sa-org-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 680px) {
+  .mv-sa-actionbar { flex-direction: column; align-items: stretch; }
+  .mv-sa-actionbar-buttons > * { flex: 1; }
+}
+
+/* ==========================================================================
+   No accent-stripe cards (product direction, 2026-10): notices, toasts, insight
+   cards and selected rows use a tinted surface only — never a thick coloured
+   left edge. Toast type is carried by a small leading dot instead.
+   ========================================================================== */
+.mv-notice { border: 0; border-radius: 8px; }
+.mv-ai-insight { border-left-width: 1px; }
+.mv-assistant-flow-prompt { border-left: 0; }
+.mv-toast { display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--mv-border); }
+.mv-toast::before { content: ''; flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--mv-primary); }
+.mv-toast--error::before { background: var(--mv-danger); }
+.mv-toast--warning::before { background: var(--mv-warning); }
+.mv-toast--success::before { background: var(--mv-success); }
+.mv-table tbody tr:hover, .mv-account-row-body:hover { box-shadow: none; }
+.mv-nav-dropdown-item[aria-current="page"], .mv-search-result[aria-selected="true"] { box-shadow: none; }
+
+/* Buttons built from links never underline. */
+a.mv-primary-button, a.mv-secondary-button, a.mv-quiet-button { text-decoration: none; }
+.mv-field textarea { font: inherit; }
+
+/* Phones: metric cards two to a row instead of one tall stack. */
+@media (max-width: 680px) {
+  .mv-kpi-row-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .mv-kpi-row-4 > .mv-kpi { grid-column: auto; min-height: 0; padding: 12px; }
+  .mv-dashboard-grid > .mv-kpi { grid-column: span 6; min-height: 0; padding: 12px; }
+  .mv-kpi-row-4 .mv-kpi-value { font-size: 20px; }
+}
+
+/* Two related panels side by side on wide screens, stacked below 1200px. */
+.mv-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; margin-bottom: 20px; }
+.mv-pair > .mv-panel { margin: 0 !important; min-width: 0; }
+@media (max-width: 1199px) { .mv-pair { grid-template-columns: minmax(0, 1fr); } }
+
+/* ==========================================================================
+   Assistant panel, matching the launcher: a theme-blue header band with the same
+   chat-bubble face (eyes follow the pointer), chat bubbles instead of labelled
+   boxes, filled suggestion chips and a rounded composer with a round send button.
+   ========================================================================== */
+.mv-ai-assistant-panel { border: 0; border-radius: 18px; box-shadow: 0 24px 60px -18px rgba(11, 26, 51, .45), 0 4px 14px rgba(11, 26, 51, .12); }
+.mv-ai-assistant-header {
+  min-height: 72px; padding: 14px 14px 14px 16px; border-bottom: 0; color: var(--mv-on-action);
+  background: radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--mv-action) 65%, #fff) 0%, var(--mv-action) 45%, var(--mv-action-hover) 100%);
+}
+.mv-ai-assistant-avatar { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 50%; background: rgba(255, 255, 255, .16); }
+.mv-bot-face--sm { width: 26px; height: 21px; border-radius: 8px; }
+.mv-bot-face--sm::after { left: 4px; bottom: -3px; width: 7px; height: 7px; }
+.mv-bot-face--sm .mv-bot-eyes { gap: 5px; }
+.mv-bot-face--sm .mv-bot-eye { width: 4px; height: 7px; }
+.mv-ai-assistant-title strong { color: #fff; font-weight: 600; font-size: 15px; }
+.mv-ai-assistant-title small { color: rgba(255, 255, 255, .78); font-size: 12px; }
+.mv-ai-assistant-close { color: rgba(255, 255, 255, .85); }
+.mv-ai-assistant-close:hover { color: #fff; background: rgba(255, 255, 255, .14); }
+
+.mv-assistant-message { max-width: 86%; padding: 10px 13px; border-radius: 16px 16px 16px 4px; background: var(--mv-surface-subtle); }
+.mv-assistant-message--user { border-radius: 16px 16px 4px 16px; color: var(--mv-on-action); background: var(--mv-action); }
+.mv-assistant-flow-prompt { max-width: 100%; background: var(--mv-selected); }
+.mv-assistant-message p { font-size: 13.5px; line-height: 20px; }
+.mv-assistant-try { margin: 4px 0 8px !important; font-size: 12px; }
+.mv-chip {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px;
+  color: var(--mv-text); background: var(--mv-surface-subtle); font: 500 12.5px/1 var(--mv-font-body); cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.mv-chip:hover { color: var(--mv-primary); background: var(--mv-selected); }
+.mv-chip:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 2px; }
+.mv-chip--primary { color: var(--mv-on-action); background: var(--mv-action); }
+.mv-chip--primary:hover { color: var(--mv-on-action); background: var(--mv-action-hover); }
+
+.mv-assistant-composer { display: flex; align-items: center; gap: 6px; padding: 5px 5px 5px 16px; border: 1px solid var(--mv-border); border-radius: 999px; background: var(--mv-surface); }
+.mv-assistant-composer:focus-within { border-color: var(--mv-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mv-primary) 18%, transparent); }
+.mv-assistant-composer input { flex: 1; min-width: 0; height: 36px; padding: 0; border: 0; outline: none; color: var(--mv-text); background: transparent; font: 400 13.5px/20px var(--mv-font-body); }
+.mv-ai-assistant-panel .mv-assistant-composer { margin: 0 16px 16px; padding-top: 5px; border-top: 1px solid var(--mv-border); }
+.mv-ai-assistant-panel .mv-assistant-conversation { padding: 16px 0 0; }
+.mv-ai-assistant-panel .mv-assistant-messages { padding: 0 16px; }
+.mv-assistant-send { display: grid; place-items: center; flex: none; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; color: var(--mv-on-action); background: var(--mv-action); cursor: pointer; transition: background 120ms ease, opacity 120ms ease; }
+.mv-assistant-send:hover:not(:disabled) { background: var(--mv-action-hover); }
+.mv-assistant-send:disabled { opacity: .4; cursor: default; }
+.mv-assistant-send:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 2px; }
+.mv-ai-assistant-panel .mv-assistant-composer input { height: 36px !important; border-radius: 0 !important; font-size: 13.5px; }
+
+/* Phones: tables keep a readable minimum width and scroll sideways inside their wrapper
+   (the scroll-shadow cue signals more columns) instead of wrapping every cell. Tables
+   marked .mv-table--stack turn into cards instead. */
+@media (max-width: 680px) {
+  .mv-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .mv-table-wrap > .mv-table:not(.mv-table--stack) { min-width: 600px; }
+  .mv-table-wrap > .mv-table:not(.mv-table--stack) th { white-space: nowrap; }
+}
+
+@media (max-width: 680px) {
+  .mv-kpi-row-3, .mv-kpi-row-5, .mv-kpi-row-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .mv-kpi-row-3 > .mv-kpi, .mv-kpi-row-5 > .mv-kpi, .mv-kpi-row-6 > .mv-kpi { grid-column: auto; min-height: 0; padding: 12px; }
+  /* Wide tables (7+ columns) get more room before they scroll. */
+  .mv-table-wrap > .mv-table:not(.mv-table--stack):has(th:nth-child(7)) { min-width: 840px; }
+}
+
+/* Header identity: the user's name with their organization beneath it (tenant context beside
+   the user, MAVERA_DESIGN_SYSTEM.md §6.2). Long organization names truncate. */
+.mv-profile-trigger-text { display: grid; min-width: 0; text-align: left; line-height: 1.2; }
+.mv-profile-trigger-name { font-size: 13px; font-weight: 500; white-space: nowrap; }
+.mv-profile-trigger-org { max-width: 170px; overflow: hidden; color: var(--mv-ink-muted); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.mv-profile-org { margin-top: 2px; color: var(--mv-text-secondary); font-size: 12px; font-weight: 500; }
+
+/* SAP Performance › Server Topology: one card per application server, tiling across the
+   column on wide screens, with the metrics large enough to read at a glance. */
+.mv-server-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.mv-server { padding: 14px 16px; border-radius: 10px; background: var(--mv-surface-subtle); }
+.mv-server-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.mv-server-name { display: grid; gap: 2px; min-width: 0; }
+.mv-server-name strong { font-size: 14px; }
+.mv-server-name .mv-muted { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.mv-server-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.mv-server-metrics dt { overflow: hidden; color: var(--mv-text-muted); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.mv-server-metrics dd { margin: 2px 0 0; color: var(--mv-text); font: 600 18px/24px var(--mv-font-heading); font-variant-numeric: tabular-nums; }
+.mv-server-metrics dd small { color: var(--mv-text-muted); font: 500 12px var(--mv-font-body); }
+@media (max-width: 420px) { .mv-server-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.mv-kpi-value--missing { color: var(--mv-text-muted); }
+
+/* Compact header for 1024–1199px laptops (and zoomed-in browsers): the full module menu stays
+   visible with tighter spacing, a smaller logo and an avatar-only profile button; Help moves
+   to the profile menu. Below 1024px the menu button and drawer take over. */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .mv-topbar .mv-nav { display: flex; }
+  .mv-topbar .mv-mobile-menu-button { display: none; }
+  .mv-topbar { gap: 10px; padding-inline: 16px; }
+  .mv-topbar .mv-brand-logo { height: 28px; }
+  .mv-topbar .mv-nav-trigger { gap: 3px; padding: 0 7px; font-size: 13px; }
+  .mv-topbar:not(.mv-sa-topbar) .mv-utility { gap: 2px; }
+  .mv-topbar .mv-utility > a[aria-label^='Help'] { display: none; }
+  .mv-topbar .mv-profile-trigger { padding: 3px; }
+  .mv-topbar .mv-profile-trigger-text { display: none; }
+}
+@media (max-width: 1023px) {
+  .mv-topbar .mv-nav { display: none; }
+  .mv-topbar .mv-mobile-menu-button { display: grid; }
+}
+
+/* ==========================================================================
+   Shared worklist patterns for the Cloud Cost and IDoc detail pages (2026-10).
+   ========================================================================== */
+.mv-mono { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 12.5px; letter-spacing: .01em; }
+.mv-break { overflow-wrap: anywhere; }
+.mv-link-button { padding: 0; border: 0; background: none; color: var(--mv-primary); font: inherit; font-weight: 500; text-align: left; cursor: pointer; }
+.mv-link-button:hover { text-decoration: underline; }
+.mv-link-button:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 2px; border-radius: 3px; }
+.mv-link-button[aria-pressed="true"] { text-decoration: underline; }
+.mv-table tbody tr.is-selected { background: var(--mv-selected); }
+.mv-col-check { width: 36px; }
+.mv-col-check input { width: 16px; height: 16px; accent-color: var(--mv-primary); }
+
+/* Filter bar: search plus compact selects, wrapping on small screens. */
+.mv-filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+.mv-filter-bar .mv-select { min-width: 150px; }
+.mv-filter-search { display: flex; align-items: center; gap: 8px; flex: 1 1 240px; min-width: 200px; height: 38px; padding: 0 12px; border: 1px solid var(--mv-border); border-radius: 6px; background: var(--mv-surface); color: var(--mv-text-muted); }
+.mv-filter-search:focus-within { border-color: var(--mv-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--mv-primary) 18%, transparent); }
+.mv-filter-search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; color: var(--mv-text); font: inherit; font-size: 13.5px; }
+.mv-saved-views { display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
+
+.mv-panel-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mv-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; }
+.mv-plain-list { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.mv-empty-inline { padding: 28px 12px; text-align: center; color: var(--mv-text-secondary); }
+.mv-empty-inline p { margin: 0 0 6px; }
+.mv-kpi-link { margin-top: 4px; color: var(--mv-primary); font-size: 12.5px; font-weight: 500; text-decoration: none; }
+.mv-kpi-link:hover { text-decoration: underline; }
+.mv-kpi-value--multi { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.mv-form-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.mv-form-row .mv-field, .mv-form-row > div { min-width: 200px; }
+.mv-form-stack { display: grid; gap: 12px; margin: 16px 0; }
+
+/* Scope chip in page headings: which system/period the numbers cover. */
+.mv-scope-chip { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; margin: 0; padding: 7px 12px; border-radius: 8px; background: var(--mv-surface-subtle); color: var(--mv-text-secondary); font-size: 12.5px; }
+.mv-scope-chip strong { color: var(--mv-text); font-weight: 600; }
+
+.mv-direction-tabs { margin-bottom: 14px; }
+
+/* Sorted horizontal bars. */
+.mv-bar-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.mv-bar-list-item { display: grid; gap: 5px; width: 100%; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--mv-text); font: inherit; text-align: left; }
+button.mv-bar-list-item { cursor: pointer; }
+button.mv-bar-list-item:hover { background: var(--mv-surface-hover); }
+button.mv-bar-list-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--mv-focus); }
+.mv-bar-list-item.is-selected { background: var(--mv-selected); }
+.mv-bar-list-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.mv-bar-list-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-bar-list-value { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mv-bar-list-track { height: 6px; border-radius: 999px; background: var(--mv-surface-subtle); overflow: hidden; }
+.mv-bar-list-fill { display: block; height: 100%; border-radius: 999px; background: var(--mv-primary); }
+.mv-bar-list-fill--danger { background: var(--mv-danger); }
+.mv-bar-list-fill--warning { background: var(--mv-warning); }
+.mv-bar-list-fill--success { background: var(--mv-success); }
+.mv-bar-list-meta { color: var(--mv-text-muted); font-size: 12px; }
+
+/* Selected breakdown row summary. */
+.mv-selection-card { display: grid; gap: 4px; margin-top: 12px; padding: 12px 14px; border-radius: 8px; background: var(--mv-selected); }
+.mv-selection-links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 4px 0 0; }
+.mv-selection-links a { color: var(--mv-primary); font-weight: 500; text-decoration: none; }
+.mv-selection-links a:hover { text-decoration: underline; }
+
+/* Detail drawer (records, resources, opportunities). */
+.mv-detail-drawer { width: min(100%, 460px); }
+.mv-detail-drawer-title { display: grid; gap: 4px; min-width: 0; }
+.mv-detail-drawer-title .mv-panel-title { overflow-wrap: anywhere; }
+.mv-detail-drawer-body { padding: 4px 20px 24px; }
+.mv-detail-drawer-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--mv-divider); background: var(--mv-elevated); }
+.mv-detail-lead { margin: 4px 0 12px; color: var(--mv-text); font-size: 14px; line-height: 21px; }
+.mv-detail-heading { margin: 20px 0 8px; color: var(--mv-text); font: 600 13px/18px var(--mv-font-heading); }
+.mv-detail-list { display: grid; gap: 0; margin: 0; }
+.mv-detail-list > div { display: grid; grid-template-columns: minmax(110px, 38%) 1fr; gap: 12px; padding: 7px 0; border-bottom: 1px solid var(--mv-divider); font-size: 13px; }
+.mv-detail-list dt { color: var(--mv-text-muted); }
+.mv-detail-list dd { margin: 0; color: var(--mv-text); overflow-wrap: anywhere; }
+.mv-timeline { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.mv-timeline li { display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: start; }
+.mv-timeline li > span:last-child { display: grid; gap: 2px; font-size: 13px; }
+.mv-timeline-code { display: grid; place-items: center; height: 26px; border-radius: 6px; background: var(--mv-surface-subtle); font: 600 12px/1 var(--mv-font-body); font-variant-numeric: tabular-nums; }
+.mv-retry-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.mv-retry-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+.mv-tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.mv-tag-list li { padding: 3px 9px; border-radius: 6px; background: var(--mv-surface-subtle); font-size: 12.5px; }
+.mv-copy-button { gap: 4px; }
+
+/* IDoc status cell. */
+.mv-idoc-status { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.mv-idoc-status-text { color: var(--mv-text-secondary); font-size: 12.5px; }
+.mv-idoc-table td { vertical-align: top; padding-top: 10px; padding-bottom: 10px; }
+.mv-reprocess-list { display: grid; gap: 6px; max-height: 260px; overflow: auto; margin: 12px 0 0; padding: 0; list-style: none; }
+.mv-reprocess-list li { display: grid; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--mv-surface-subtle); }
+
+/* Processing Status lifecycle strip. */
+.mv-lifecycle-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.mv-lifecycle-cell { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--mv-divider); border-radius: 10px; background: var(--mv-surface); }
+.mv-lifecycle-cell strong { font: 600 22px/1 var(--mv-font-heading); font-variant-numeric: tabular-nums; }
+.mv-lifecycle-cell .mv-status { justify-self: start; }
+
+/* Overview peak cards (tinted, no stripe). */
+.mv-peak { padding: 14px 16px; border-radius: 10px; }
+.mv-peak p { margin: 4px 0 0; }
+.mv-peak--danger { background: color-mix(in srgb, var(--mv-danger) 8%, var(--mv-surface)); }
+.mv-peak--danger > strong { color: var(--mv-danger); }
+.mv-peak--success { background: color-mix(in srgb, var(--mv-success) 8%, var(--mv-surface)); }
+.mv-peak--success > strong { color: var(--mv-success); }
+
+/* Alert rules list. */
+.mv-rule-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.mv-rule-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--mv-divider); }
+.mv-rule-list li:last-child { border-bottom: 0; }
+.mv-rule-list li > span { display: grid; gap: 2px; }
+
+/* Commitment recommendations. */
+.mv-rec-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--mv-divider); }
+.mv-rec-list li:last-child { border-bottom: 0; }
+.mv-rec-list li > span:first-child { display: grid; gap: 3px; }
+.mv-rec-saving { display: grid; justify-items: end; flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Account page: 960px reading width. */
+.mv-reading-width { max-width: 960px; }
+.mv-account-section { margin-bottom: 16px; }
+.mv-account-section > .mv-panel-title { margin-bottom: 14px; }
+.mv-account-identity { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 12px; }
+.mv-account-identity .mv-detail-list { flex: 1; min-width: 0; }
+.mv-avatar--lg { flex: none; width: 56px; height: 56px; font-size: 22px; }
+.mv-pref-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.mv-pref-row > span { display: grid; gap: 2px; }
+.mv-account-form { display: grid; gap: 12px; max-width: 420px; }
+.mv-account-form .mv-muted { margin: -6px 0 0; }
+
+@media (max-width: 680px) {
+  .mv-filter-bar .mv-select { min-width: 0; flex: 1 1 140px; }
+  .mv-detail-list > div { grid-template-columns: 1fr; gap: 2px; }
+  .mv-account-identity { flex-direction: column; }
+  .mv-scope-chip { font-size: 12px; }
+}
+
+.mv-kpi-link { display: block; width: fit-content; }
+.mv-stack-16 { display: grid; gap: 16px; }
+@media (max-width: 680px) {
+  .mv-table--stack th.mv-hide-phone, .mv-table.mv-table--stack td.mv-hide-phone { display: none; }
+  .mv-table.mv-table--stack td.mv-col-check { justify-content: flex-start; gap: 10px; }
+  .mv-table.mv-table--stack td.mv-col-check::before { order: 2; }
+  .mv-table.mv-table--stack td.mv-idoc-status-cell { display: grid; justify-items: end; gap: 4px; }
+  .mv-table.mv-table--stack td.mv-idoc-status-cell::before { justify-self: start; }
+  .mv-idoc-status { justify-content: flex-end; text-align: right; }
+}
+
+@media (max-width: 680px) {
+  .mv-table.mv-table--stack.mv-idoc-table td { justify-content: flex-start; gap: 6px; }
+  .mv-table--stack.mv-idoc-table td[data-label]::before { margin-right: auto; }
+}

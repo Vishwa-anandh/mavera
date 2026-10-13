@@ -1,0 +1,124 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { ModuleNavigation } from './ModuleNavigation';
+import type { AuthContextValue } from '../../features/auth';
+import type { User } from '../../shared/types/auth';
+
+const useAuthMock = vi.fn<() => AuthContextValue>();
+
+vi.mock('../../features/auth/model/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../features/auth/model/AuthContext')>();
+  return { ...actual, useAuth: () => useAuthMock() };
+});
+
+function mockAuth(user: User, overrides: Partial<AuthContextValue> = {}): AuthContextValue {
+  return {
+    user,
+    loading: false,
+    isAuthenticated: true,
+    invoiceOnly: false,
+    cloudAccess: [],
+    features: {
+      budgets: true,
+      smartAlerts: true,
+      syncLogs: true,
+      recommendations: true,
+      cloudManagement: true,
+      invoices: true,
+    },
+    accountLimits: { azure: 3, aws: 3, btp: 3 },
+    modules: { cloudCost: true, idocMonitoring: true, sapMonitoring: true },
+    maxUsers: undefined,
+    planType: 'enterprise',
+    subscriptionStartsAt: undefined,
+    subscriptionExpiresAt: undefined,
+    subscriptionActive: true,
+    subscriptionNotes: undefined,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    refreshUser: vi.fn(),
+    unlockAccount: vi.fn(),
+    sendOtp: vi.fn(),
+    verifyOtp: vi.fn(),
+    changePassword: vi.fn(),
+    ...overrides,
+  };
+}
+
+function renderNav() {
+  return render(
+    <MemoryRouter>
+      <ModuleNavigation />
+    </MemoryRouter>,
+  );
+}
+
+describe('ModuleNavigation', () => {
+  it('renders every top-level destination, in the required order, for a plain member', () => {
+    useAuthMock.mockReturnValue(mockAuth({ id: '1', email: 'a@b.com', role: 'member' }));
+    renderNav();
+
+    const triggers = screen.getAllByRole('button').map((el) => el.textContent?.trim());
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(triggers.some((t) => t?.startsWith('SAP Monitoring'))).toBe(true);
+    expect(triggers.some((t) => t?.startsWith('Cloud Cost'))).toBe(true);
+    expect(triggers.some((t) => t?.startsWith('IDoc Monitoring'))).toBe(true);
+    // Reports and Billing live inside the Cloud Cost dropdown, not at the top level.
+    expect(screen.queryByText('Reports')).not.toBeInTheDocument();
+    expect(screen.queryByText('Billing')).not.toBeInTheDocument();
+    expect(screen.queryByText('AI Assistant')).not.toBeInTheDocument();
+    expect(screen.queryByText('Administration')).not.toBeInTheDocument();
+  });
+
+  it('renders Administration for an admin', () => {
+    useAuthMock.mockReturnValue(mockAuth({ id: '1', email: 'a@b.com', role: 'admin' }));
+    renderNav();
+    expect(screen.getByText('Administration')).toBeInTheDocument();
+  });
+
+  it('does not throw for a user missing every optional permission field', () => {
+    useAuthMock.mockReturnValue(mockAuth({ id: '1', email: 'a@b.com', role: 'member' }));
+    expect(() => renderNav()).not.toThrow();
+  });
+
+  it('opens a module dropdown on click, showing its destinations and title, and closes on Escape', async () => {
+    useAuthMock.mockReturnValue(mockAuth({ id: '1', email: 'a@b.com', role: 'admin' }, { cloudAccess: ['azure'] }));
+    const user = userEvent.setup();
+    renderNav();
+
+    const trigger = screen.getByText('Cloud Cost').closest('button')!;
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('menu', { name: 'Cloud Cost Monitoring' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /Azure Subscriptions/ })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('lists Billing and Reports in the Cloud Cost dropdown', async () => {
+    useAuthMock.mockReturnValue(mockAuth({ id: '1', email: 'a@b.com', role: 'member' }, { cloudAccess: ['azure'] }));
+    const user = userEvent.setup();
+    renderNav();
+
+    await user.click(screen.getByText('Cloud Cost').closest('button')!);
+    expect(screen.getByRole('menuitem', { name: /^Billing/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^Reports/ })).toBeInTheDocument();
+  });
+
+  it('marks a locked destination with an upgrade label instead of hiding or disabling it', async () => {
+    useAuthMock.mockReturnValue(mockAuth({ id: '1', email: 'a@b.com', role: 'member' }, { cloudAccess: [] }));
+    const user = userEvent.setup();
+    renderNav();
+
+    await user.click(screen.getByText('Cloud Cost').closest('button')!);
+    const azureItem = screen.getByRole('menuitem', { name: /Azure Subscriptions/ });
+    expect(azureItem).toHaveTextContent('Upgrade');
+    expect(azureItem.tagName).toBe('A');
+  });
+});

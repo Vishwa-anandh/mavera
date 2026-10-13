@@ -3,13 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mavera — Cloud Cost Monitoring</title>
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>Mavera — AI Cloud Intelligence Platform</title>
     <!--
       Pre-paint theme tokens. The script below sets data-theme before React
       mounts; these rules make that attribute actually paint the right
       canvas/surface/text colours until ThemeProvider writes the full --mv-*
-      set. Values must match src/theme/tokens.ts (guarded by
-      src/theme/prepaint.test.ts).
+      set. Values must match src/shared/theme/tokens.ts (guarded by
+      src/shared/theme/prepaint.test.ts).
     -->
     <style>
       :root,
@@ -45,18 +46,16 @@
       (function () {
         try {
           var mode = localStorage.getItem('mavera.theme');
-          var density = localStorage.getItem('mavera.density');
-          document.documentElement.setAttribute(
-            'data-theme',
-            mode === 'dark' ? 'dark' : 'light',
-          );
-          document.documentElement.setAttribute(
-            'data-density',
-            density === 'compact' ? 'compact' : 'comfortable',
-          );
+          var resolvedMode = mode;
+          if (mode !== 'dark' && mode !== 'light') {
+            // No explicit choice stored yet — follow the OS/browser preference
+            // (src/shared/theme/resolveInitialTheme.ts mirrors this once React mounts).
+            var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            resolvedMode = systemDark ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', resolvedMode);
         } catch (e) {
           document.documentElement.setAttribute('data-theme', 'light');
-          document.documentElement.setAttribute('data-density', 'comfortable');
         }
       })();
     </script>

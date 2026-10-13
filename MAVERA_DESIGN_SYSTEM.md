@@ -51,6 +51,8 @@ Suggested repository instruction:
 
 > For all Mavera UI work, follow MAVERA_DESIGN_SYSTEM.md. Use its shared tokens, component states, page specifications, accessibility rules and subscription behaviour. Record deliberate deviations in the change description.
 
+**Code structure and styling engine.** Repository structure, import boundaries and enforcement follow the Maitsys architecture standard (`rule.md`, `docs/architecture.md`). Components are styled with the shared `--mv-*` tokens in one global stylesheet; Mavera deliberately does not adopt the Tailwind-only styling used by Consultant Pulse (`docs/adr/0003-class-based-styling-retained.md`).
+
 Keep this document versioned with the application. A token or shared component change MUST include its impact on both themes and affected states. Existing projects MUST keep their installed Ant Design version until compatibility has been reviewed; adoption of this file alone is not a library upgrade instruction.
 
 ## 2. Brand and visual direction
@@ -68,11 +70,11 @@ Mavera is a calm operational workspace. The interface MUST emphasise readable da
 
 ### 2.2 Logo and attribution
 
-The supplied `mavera.png` is the artwork source. The red Mavera mark in the UI reference is not the product logo for this system.
+The supplied `assets/brand/mavera-logo.png` (full lockup: emblem + "mavera" wordmark + tagline) and `assets/brand/mavera-emblem.png` (emblem only, transparent background) are the artwork sources. The red Mavera mark in the UI reference is not the product logo for this system.
 
 | Placement | Specification |
 | --- | --- |
-| Desktop header | Existing warrior emblem within a 36 × 36px contain box; MAVERA wordmark beside it; 8px gap; brand area approximately 176px wide |
+| Desktop header | Emblem-only asset within a 36 × 36px contain box; MAVERA wordmark beside it; 8px gap; brand area approximately 176px wide |
 | Header wordmark | Prefer the original extracted wordmark artwork; if an asset is unavailable, use live text “MAVERA”, Poppins 600, 18/24px, 0.04em letter spacing |
 | Mobile header | Emblem 32 × 32px; wordmark 16/24px when space permits; accessible name remains “Mavera home” |
 | Full brand placement | Original full logo, uncropped, on sign-in/about pages; width 240–320px; intrinsic aspect ratio |
@@ -80,7 +82,7 @@ The supplied `mavera.png` is the artwork source. The red Mavera mark in the UI r
 | Dark background | Keep artwork colours intact; use a white backing plate with 4px padding and 4px radius around blue artwork if needed for legibility; live wordmark follows theme text colour |
 | Attribution | Exact visible text “Powered by Maitsys”, Google Sans Text 12/18px, secondary text colour |
 
-The emblem-only asset MUST be derived from the supplied emblem without redraw, recolouring, stretching or accidental clipping. This rulebook specifies that asset; it does not supply a newly edited logo. Until a clean emblem asset exists, retain the original artwork in larger placements and use the live wordmark in the compact header.
+The emblem-only asset MUST be derived from the supplied emblem without redraw, recolouring, stretching or accidental clipping — `assets/brand/mavera-emblem.png` is that derived asset, supplied directly rather than cropped from the full lockup.
 
 “Powered by Maitsys” MUST remain visible in the shared header: beneath the desktop wordmark at 12/18px; as a compact attribution strip beneath the 56px mobile header where space is insufficient. Use the same text in the page footer and sign-in/about surfaces. A footer is in normal document flow and MUST NOT cover data. If an official Maitsys logo is used, preserve it unchanged. Do not recreate its mark with text or decorative icons.
 
@@ -2345,7 +2347,7 @@ Reviewed for this specification on 26 September 2026. External pages guide imple
 
 ### 18.2 Reference interpretation
 
-- The supplied blue warrior Mavera logo is the brand authority for artwork.
+- The supplied blue Mavera logo (full lockup and emblem-only assets) is the brand authority for artwork.
 - The supplied dashboard image establishes unified top navigation and module dropdowns. Its red palette, promotional hero, colourful badges and left quick-access rail are not Mavera design requirements.
 - The supplied [MatrixVault URL](https://maitsys.maitsys.com/dashboard) redirected to sign-in during inspection. Its authenticated dashboard/menu behaviour was not verified. This document uses the user-described structure and supplied screenshot rather than claiming a live internal UI audit.
 - All application page layouts, route suggestions, token values and component compositions here are specifications for Mavera. No sample metrics are represented as live operational data.

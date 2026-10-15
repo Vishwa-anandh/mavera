@@ -45,7 +45,9 @@ describe('App', () => {
     expect(await screen.findByRole('img', { name: 'Mavera' })).toBeInTheDocument();
     // The dashboard's one h1 is the hero headline, not the literal word
     // "Dashboard" (that still appears in the nav link).
-    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    // Pages load on demand: a skeleton stands in until the dashboard's code arrives.
+    expect(await screen.findByRole('heading', { level: 1 }, { timeout: 8000 })).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Loading page' })).not.toBeInTheDocument();
     expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
   });
 

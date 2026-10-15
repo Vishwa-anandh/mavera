@@ -1,43 +1,66 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Suspense, lazy, type ComponentType, type ReactNode } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '../layouts/AppShell';
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, SubscriptionExpiredPage } from '../../features/auth';
-import { HomePage } from '../../features/dashboard';
-import { CostAnalyticsPage, CostOverviewPage, OptimizationAdvisorPage, ReservationsPage, ResourceInventoryPage } from '../../features/cloud';
-import {
-  BtpSecurityPage,
-  HanaMonitoringPage,
-  SapAlertsPage,
-  SapJobsPage,
-  SapOverviewPage,
-  SapPerformancePage,
-  SecurityNotesPage,
-  SystemConfigurationPage,
-  TransportManagementPage,
-} from '../../features/sap';
-import { AccountPage } from '../../features/account';
-import { AlertsPage } from '../../features/alerts';
-import { AiAssistantPage } from '../../features/assistant';
 import { NotFoundPage } from '../../features/system';
-import { AzureCostPage, AzureRoot } from '../../features/azure';
-import { AwsRoot } from '../../features/aws';
-import { GcpRoot } from '../../features/gcp';
-import { BtpRoot } from '../../features/btp';
-import { BudgetsPage } from '../../features/budgets';
-import { SmartAlertsPage } from '../../features/smartAlerts';
-import { SubscriptionPage } from '../../features/subscription';
-import { UserManagementPage } from '../../features/users';
-import { SyncLogsPage } from '../../features/syncLogs';
-import { InvoicesPage } from '../../features/invoices';
-import { BillingPage, CustomersPage, GenerateInvoicePage, PublicInvoicePage } from '../../features/billing';
-import {
-  SuperAdminBillingPage,
-  SuperAdminGuard,
-  SuperAdminOrganizationPage,
-  SuperAdminOrganizationsPage,
-  SuperAdminOverviewPage,
-  SuperAdminShell,
-} from '../../features/superAdmin';
+import { PublicInvoicePage } from '../../features/billing';
+import { SuperAdminGuard, SuperAdminShell } from '../../features/superAdmin';
+import { PageSkeleton, type PageSkeletonVariant } from '../../shared/ui/PageSkeleton';
 import { appPaths } from './route-manifest';
+
+/**
+ * Signed-in pages load on demand, so the first screen ships less code and every page shows its skeleton while
+ * its code arrives. `lazyPage` picks one named export from a feature's public index.
+ */
+function lazyPage<M extends Record<string, unknown>>(load: () => Promise<M>, name: keyof M & string) {
+  return lazy(async () => ({ default: (await load())[name] as ComponentType }));
+}
+
+const HomePage = lazyPage(() => import('../../features/dashboard'), 'HomePage');
+const CostAnalyticsPage = lazyPage(() => import('../../features/cloud'), 'CostAnalyticsPage');
+const CostOverviewPage = lazyPage(() => import('../../features/cloud'), 'CostOverviewPage');
+const OptimizationAdvisorPage = lazyPage(() => import('../../features/cloud'), 'OptimizationAdvisorPage');
+const ReservationsPage = lazyPage(() => import('../../features/cloud'), 'ReservationsPage');
+const ResourceInventoryPage = lazyPage(() => import('../../features/cloud'), 'ResourceInventoryPage');
+const BtpSecurityPage = lazyPage(() => import('../../features/sap'), 'BtpSecurityPage');
+const HanaMonitoringPage = lazyPage(() => import('../../features/sap'), 'HanaMonitoringPage');
+const SapAlertsPage = lazyPage(() => import('../../features/sap'), 'SapAlertsPage');
+const SapJobsPage = lazyPage(() => import('../../features/sap'), 'SapJobsPage');
+const SapOverviewPage = lazyPage(() => import('../../features/sap'), 'SapOverviewPage');
+const SapPerformancePage = lazyPage(() => import('../../features/sap'), 'SapPerformancePage');
+const SecurityNotesPage = lazyPage(() => import('../../features/sap'), 'SecurityNotesPage');
+const SystemConfigurationPage = lazyPage(() => import('../../features/sap'), 'SystemConfigurationPage');
+const TransportManagementPage = lazyPage(() => import('../../features/sap'), 'TransportManagementPage');
+const AccountPage = lazyPage(() => import('../../features/account'), 'AccountPage');
+const AlertsPage = lazyPage(() => import('../../features/alerts'), 'AlertsPage');
+const AiAssistantPage = lazyPage(() => import('../../features/assistant'), 'AiAssistantPage');
+const AzureCostPage = lazyPage(() => import('../../features/azure'), 'AzureCostPage');
+const AzureRoot = lazyPage(() => import('../../features/azure'), 'AzureRoot');
+const AwsRoot = lazyPage(() => import('../../features/aws'), 'AwsRoot');
+const GcpRoot = lazyPage(() => import('../../features/gcp'), 'GcpRoot');
+const BtpRoot = lazyPage(() => import('../../features/btp'), 'BtpRoot');
+const BudgetsPage = lazyPage(() => import('../../features/budgets'), 'BudgetsPage');
+const SmartAlertsPage = lazyPage(() => import('../../features/smartAlerts'), 'SmartAlertsPage');
+const SubscriptionPage = lazyPage(() => import('../../features/subscription'), 'SubscriptionPage');
+const UserManagementPage = lazyPage(() => import('../../features/users'), 'UserManagementPage');
+const SyncLogsPage = lazyPage(() => import('../../features/syncLogs'), 'SyncLogsPage');
+const InvoicesPage = lazyPage(() => import('../../features/invoices'), 'InvoicesPage');
+const BillingPage = lazyPage(() => import('../../features/billing'), 'BillingPage');
+const CustomersPage = lazyPage(() => import('../../features/billing'), 'CustomersPage');
+const GenerateInvoicePage = lazyPage(() => import('../../features/billing'), 'GenerateInvoicePage');
+const SuperAdminBillingPage = lazyPage(() => import('../../features/superAdmin'), 'SuperAdminBillingPage');
+const SuperAdminOrganizationPage = lazyPage(() => import('../../features/superAdmin'), 'SuperAdminOrganizationPage');
+const SuperAdminOrganizationsPage = lazyPage(() => import('../../features/superAdmin'), 'SuperAdminOrganizationsPage');
+const SuperAdminOverviewPage = lazyPage(() => import('../../features/superAdmin'), 'SuperAdminOverviewPage');
+
+/**
+ * Shows the page-shaped skeleton until the page's code has loaded. Keyed by path: React Router navigates inside
+ * a transition, which would otherwise keep the previous page on screen (and no skeleton) until the next is ready.
+ */
+function Page({ children, variant = 'default' }: { children: ReactNode; variant?: PageSkeletonVariant }) {
+  const { pathname } = useLocation();
+  return <Suspense key={pathname} fallback={<PageSkeleton variant={variant} />}>{children}</Suspense>;
+}
 
 /** Every path comes from route-manifest.ts; nothing here spells out a URL. */
 export function AppRoutes() {
@@ -63,52 +86,52 @@ export function AppRoutes() {
       <Route path={appPaths.invoiceBuilder} element={<Navigate to={appPaths.adminBillingGenerate} replace />} />
       <Route element={<SuperAdminGuard />}>
         <Route element={<SuperAdminShell />}>
-          <Route path={appPaths.adminDashboard} element={<SuperAdminOverviewPage />} />
-          <Route path={appPaths.adminOrganizations} element={<SuperAdminOrganizationsPage />} />
-          <Route path={appPaths.adminOrganizationNew} element={<SuperAdminOrganizationPage />} />
-          <Route path={appPaths.adminOrganization} element={<SuperAdminOrganizationPage />} />
-          <Route path={appPaths.adminBilling} element={<SuperAdminBillingPage />} />
-          <Route path={appPaths.adminBillingGenerate} element={<GenerateInvoicePage />} />
-          <Route path={appPaths.adminBillingCustomers} element={<CustomersPage />} />
+          <Route path={appPaths.adminDashboard} element={<Page variant="dashboard"><SuperAdminOverviewPage /></Page>} />
+          <Route path={appPaths.adminOrganizations} element={<Page variant="table"><SuperAdminOrganizationsPage /></Page>} />
+          <Route path={appPaths.adminOrganizationNew} element={<Page><SuperAdminOrganizationPage /></Page>} />
+          <Route path={appPaths.adminOrganization} element={<Page><SuperAdminOrganizationPage /></Page>} />
+          <Route path={appPaths.adminBilling} element={<Page><SuperAdminBillingPage /></Page>} />
+          <Route path={appPaths.adminBillingGenerate} element={<Page><GenerateInvoicePage /></Page>} />
+          <Route path={appPaths.adminBillingCustomers} element={<Page variant="table"><CustomersPage /></Page>} />
         </Route>
       </Route>
 
       <Route element={<AppShell />}>
-        <Route path={appPaths.root} element={<HomePage />} />
-        <Route path={appPaths.costOverview} element={<CostOverviewPage />} />
-        <Route path={appPaths.azure} element={<AzureRoot />} />
-        <Route path={appPaths.azureAccount} element={<AzureCostPage />} />
-        <Route path={appPaths.aws} element={<AwsRoot />} />
-        <Route path={appPaths.gcp} element={<GcpRoot />} />
-        <Route path={appPaths.btp} element={<BtpRoot />} />
-        <Route path={appPaths.budgets} element={<BudgetsPage />} />
+        <Route path={appPaths.root} element={<Page variant="dashboard"><HomePage /></Page>} />
+        <Route path={appPaths.costOverview} element={<Page><CostOverviewPage /></Page>} />
+        <Route path={appPaths.azure} element={<Page><AzureRoot /></Page>} />
+        <Route path={appPaths.azureAccount} element={<Page><AzureCostPage /></Page>} />
+        <Route path={appPaths.aws} element={<Page><AwsRoot /></Page>} />
+        <Route path={appPaths.gcp} element={<Page><GcpRoot /></Page>} />
+        <Route path={appPaths.btp} element={<Page><BtpRoot /></Page>} />
+        <Route path={appPaths.budgets} element={<Page><BudgetsPage /></Page>} />
         <Route path={appPaths.recommendations} element={<Navigate to={appPaths.cloudOptimization} replace />} />
-        <Route path={appPaths.smartAlerts} element={<SmartAlertsPage />} />
-        <Route path={appPaths.sapSystems} element={<SapOverviewPage />} />
-        <Route path={appPaths.sapDatabases} element={<HanaMonitoringPage />} />
+        <Route path={appPaths.smartAlerts} element={<Page variant="table"><SmartAlertsPage /></Page>} />
+        <Route path={appPaths.sapSystems} element={<Page variant="dashboard"><SapOverviewPage /></Page>} />
+        <Route path={appPaths.sapDatabases} element={<Page><HanaMonitoringPage /></Page>} />
         {/* Merged pages: the former URLs land on the page that now holds their content. */}
         <Route path={appPaths.sapHealth} element={<Navigate to={appPaths.sapSystems} replace />} />
-        <Route path={appPaths.sapJobs} element={<SapJobsPage />} />
+        <Route path={appPaths.sapJobs} element={<Page variant="table"><SapJobsPage /></Page>} />
         <Route path={appPaths.sapDumps} element={<Navigate to={`${appPaths.sapJobs}#dumps`} replace />} />
-        <Route path={appPaths.sapPerformance} element={<SapPerformancePage />} />
-        <Route path={appPaths.sapAlerts} element={<SapAlertsPage />} />
-        <Route path={appPaths.sapTransport} element={<TransportManagementPage />} />
-        <Route path={appPaths.sapSecurityNotes} element={<SecurityNotesPage />} />
-        <Route path={appPaths.sapBtpSecurity} element={<BtpSecurityPage />} />
-        <Route path={appPaths.sapConfiguration} element={<SystemConfigurationPage />} />
-        <Route path={appPaths.alerts} element={<AlertsPage />} />
+        <Route path={appPaths.sapPerformance} element={<Page><SapPerformancePage /></Page>} />
+        <Route path={appPaths.sapAlerts} element={<Page variant="table"><SapAlertsPage /></Page>} />
+        <Route path={appPaths.sapTransport} element={<Page><TransportManagementPage /></Page>} />
+        <Route path={appPaths.sapSecurityNotes} element={<Page><SecurityNotesPage /></Page>} />
+        <Route path={appPaths.sapBtpSecurity} element={<Page><BtpSecurityPage /></Page>} />
+        <Route path={appPaths.sapConfiguration} element={<Page><SystemConfigurationPage /></Page>} />
+        <Route path={appPaths.alerts} element={<Page variant="table"><AlertsPage /></Page>} />
         <Route path={appPaths.reports} element={<Navigate to={appPaths.cloudAnalytics} replace />} />
-        <Route path={appPaths.aiAssistant} element={<AiAssistantPage />} />
-        <Route path={appPaths.account} element={<AccountPage />} />
-        <Route path={appPaths.subscription} element={<SubscriptionPage />} />
-        <Route path={appPaths.users} element={<UserManagementPage />} />
-        <Route path={appPaths.syncLogs} element={<SyncLogsPage />} />
-        <Route path={appPaths.invoices} element={<InvoicesPage />} />
-        <Route path={appPaths.billing} element={<BillingPage />} />
-        <Route path={appPaths.cloudAnalytics} element={<CostAnalyticsPage />} />
-        <Route path={appPaths.cloudOptimization} element={<OptimizationAdvisorPage />} />
-        <Route path={appPaths.cloudReservations} element={<ReservationsPage />} />
-        <Route path={appPaths.cloudResources} element={<ResourceInventoryPage />} />
+        <Route path={appPaths.aiAssistant} element={<Page><AiAssistantPage /></Page>} />
+        <Route path={appPaths.account} element={<Page><AccountPage /></Page>} />
+        <Route path={appPaths.subscription} element={<Page><SubscriptionPage /></Page>} />
+        <Route path={appPaths.users} element={<Page variant="table"><UserManagementPage /></Page>} />
+        <Route path={appPaths.syncLogs} element={<Page variant="table"><SyncLogsPage /></Page>} />
+        <Route path={appPaths.invoices} element={<Page variant="table"><InvoicesPage /></Page>} />
+        <Route path={appPaths.billing} element={<Page><BillingPage /></Page>} />
+        <Route path={appPaths.cloudAnalytics} element={<Page><CostAnalyticsPage /></Page>} />
+        <Route path={appPaths.cloudOptimization} element={<Page><OptimizationAdvisorPage /></Page>} />
+        <Route path={appPaths.cloudReservations} element={<Page><ReservationsPage /></Page>} />
+        <Route path={appPaths.cloudResources} element={<Page><ResourceInventoryPage /></Page>} />
       </Route>
 
       <Route path={appPaths.catchAll} element={<NotFoundPage />} />

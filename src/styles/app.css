@@ -539,9 +539,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--mv-border) transparent; scr
    (same dark header, same nav-trigger styling) so the two feel like one
    product; only the content wrapper below stays admin-specific. */
 .mv-sa-content { max-width: 1320px; margin: 0 auto; padding: 24px 24px 48px; }
-.mv-sa-module-dots { display: flex; gap: 6px; }
-.mv-sa-module-dot { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; font-size: 10px; font-weight: 500; color: var(--mv-text-muted); background: var(--mv-surface-subtle); border: 1px solid var(--mv-border); }
-.mv-sa-module-dot--on { color: var(--mv-on-primary); background: var(--mv-primary); border-color: var(--mv-primary); }
 .mv-sa-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 640px) { .mv-sa-field-grid { grid-template-columns: 1fr; } }
 .mv-sa-modal-section { margin-top: 18px; }
@@ -2234,3 +2231,8 @@ a.mv-insight-row:focus-visible { outline: 2px solid var(--mv-focus); outline-off
 .mv-content .mv-glance-strip .mv-kpi-value { font-size: 22px; line-height: 28px; white-space: nowrap; overflow-wrap: normal; }
 .mv-content .mv-glance-strip .mv-kpi-label { font-size: 12.5px; }
 .mv-content .mv-glance-strip .mv-muted { font-size: 12px; }
+
+/* Super Admin organizations: subscribed modules as readable chips instead of two-letter dots. */
+.mv-sa-module-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.mv-sa-module-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--mv-primary) 10%, var(--mv-surface)); color: var(--mv-primary); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
+

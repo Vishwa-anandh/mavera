@@ -1,4 +1,4 @@
-import { Tooltip } from '../../../shared/ui/Tooltip';
+import { CloudIcon, ServerIcon } from '../../../shared/ui/icons';
 import { daysLeft } from '../model/orgDates';
 import { MODULE_DEFS, type OrgModules } from '../model/superAdminTypes';
 
@@ -11,16 +11,23 @@ export function ExpiryBadge({ expiresAt }: { expiresAt: string | null }) {
   return <span className="mv-status mv-status--success">{days}d left</span>;
 }
 
-export function ModuleDots({ modules }: { modules: OrgModules }) {
+const MODULE_ICON = { cloudCost: CloudIcon, sapMonitoring: ServerIcon } as const;
+
+/** The modules an organization is subscribed to, as labelled chips; "None" when it has no module. */
+export function ModuleChips({ modules }: { modules: OrgModules }) {
+  const active = MODULE_DEFS.filter((m) => modules[m.key]);
+  if (active.length === 0) return <span className="mv-muted">None</span>;
   return (
-    <div className="mv-sa-module-dots">
-      {MODULE_DEFS.map((m) => (
-        <Tooltip key={m.key} content={m.label}>
-          <span className={`mv-sa-module-dot${modules[m.key] ? ' mv-sa-module-dot--on' : ''}`} aria-label={m.label}>
-            {m.label.split(' ')[0].slice(0, 2).toUpperCase()}
-          </span>
-        </Tooltip>
-      ))}
-    </div>
+    <ul className="mv-sa-module-chips" aria-label="Subscribed modules">
+      {active.map((m) => {
+        const Icon = MODULE_ICON[m.key];
+        return (
+          <li key={m.key} className="mv-sa-module-chip">
+            <Icon size={13} />
+            {m.label}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

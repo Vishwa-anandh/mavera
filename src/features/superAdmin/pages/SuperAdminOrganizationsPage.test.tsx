@@ -57,7 +57,7 @@ describe('Super Admin organizations', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(screen.getByRole('heading', { level: 1, name: 'Organizations' })).toBeInTheDocument();
-    expect(within(rowFor('Northwind Logistics')).getByLabelText('SAP Monitoring')).toHaveClass('mv-sa-module-dot--on');
+    expect(within(rowFor('Northwind Logistics')).getByText('SAP Monitoring')).toBeInTheDocument();
   });
 
   it("changes an org's seat limit from its page", async () => {
@@ -111,7 +111,7 @@ describe('Super Admin organizations', () => {
     const newRow = rowFor('Stark Industries');
     expect(within(newRow).getByText('0 members')).toBeInTheDocument();
     expect(within(newRow).getByText('25 seats')).toBeInTheDocument();
-    expect(within(newRow).getByLabelText('Cloud Cost')).toHaveClass('mv-sa-module-dot--on');
+    expect(within(newRow).getByText('Cloud Cost')).toBeInTheDocument();
   });
 
   it('shows a clear not-found state for an unknown organization', () => {

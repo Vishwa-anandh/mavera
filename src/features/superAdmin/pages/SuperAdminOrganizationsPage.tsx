@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BuildingIcon, PlusIcon } from '../../../shared/ui/icons';
-import { ExpiryBadge, ModuleDots } from '../components/OrgStatus';
+import { ExpiryBadge, ModuleChips } from '../components/OrgStatus';
 import { daysLeft } from '../model/orgDates';
 import { useOrganizations } from '../model/organizationsStore';
 import { PageHeader } from '../../../shared/ui/PageHeader';
@@ -51,7 +51,7 @@ export function SuperAdminOrganizationsPage() {
               {orgs.map((org) => (
                 <tr key={org.id}>
                   <td data-label="Organization" className="mv-stack-title"><strong>{org.name}</strong><div className="mv-muted">{org.memberCount} members</div></td>
-                  <td data-label="Modules"><ModuleDots modules={org.modules} /></td>
+                  <td data-label="Modules"><ModuleChips modules={org.modules} /></td>
                   <td data-label="Users">{org.maxUsers === 0 ? 'Unlimited' : `${org.maxUsers} seats`}</td>
                   <td data-label="Cloud access">{org.invoiceOnly ? 'Invoice only' : org.cloudAccess.length ? org.cloudAccess.map((c) => c.toUpperCase()).join(', ') : '—'}</td>
                   <td data-label="Expiry"><ExpiryBadge expiresAt={org.expiresAt} /></td>

@@ -48,7 +48,6 @@ interface AccountLimits {
  * itself. See User.modules in src/shared/types/auth.ts. */
 interface Modules {
   cloudCost: boolean;
-  idocMonitoring: boolean;
   sapMonitoring: boolean;
 }
 
@@ -62,7 +61,7 @@ const DEFAULT_FEATURES: Features = {
 };
 
 const DEFAULT_ACCOUNT_LIMITS: AccountLimits = { azure: 3, aws: 3, btp: 3 };
-const DEFAULT_MODULES: Modules = { cloudCost: true, idocMonitoring: true, sapMonitoring: true };
+const DEFAULT_MODULES: Modules = { cloudCost: true, sapMonitoring: true };
 
 /**
  * PROTOTYPE ONLY: there is no org-level backend for this prototype to call

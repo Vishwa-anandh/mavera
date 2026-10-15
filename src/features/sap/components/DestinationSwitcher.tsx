@@ -10,7 +10,7 @@ const DESTINATIONS = ['GRC', 'MSQ', 'GRQ', 'EMP'] as const;
  * "presentational only" treatment as other static prototype bits. The choice
  * is remembered for the session and shared by every SAP Monitoring page, so
  * moving between SAP pages keeps the same system selected; it never carries
- * into Cloud Cost or IDoc Monitoring (MAVERA_DESIGN_SYSTEM.md §6.2).
+ * into Cloud Cost (MAVERA_DESIGN_SYSTEM.md §6.2).
  */
 export function DestinationSwitcher() {
   const [value, setValue] = useRememberedState<(typeof DESTINATIONS)[number]>('sap', 'destination', 'GRC', oneOf(DESTINATIONS));

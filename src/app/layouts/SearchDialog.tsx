@@ -5,12 +5,12 @@ import { useResolvedNav } from '../router/useResolvedNav';
 import { buildPageIndex, searchPages, type PageResult } from './pageSearch';
 import { useModalOverlay } from '../../shared/ui/useOverlay';
 
-const SUGGESTED_KEYS = ['dashboard', 'alerts', 'sap-systems', 'cloud-overview', 'idoc-failed', 'reports'];
+const SUGGESTED_KEYS = ['dashboard', 'alerts', 'sap-systems', 'cloud-overview', 'cloud-analytics'];
 
 /**
  * MAVERA_DESIGN_SYSTEM.md §11.4: shared search dialog, opened from the header or with
  * Ctrl/⌘+K. It finds pages (and only the pages the user's menus offer); searching systems,
- * IDocs and alerts needs the search API and is not wired yet.
+ * resources and alerts needs the search API and is not wired yet.
  */
 export function SearchDialog({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('');
@@ -45,7 +45,7 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
             aria-activedescendant={results[active] ? `mv-search-${results[active].key}` : undefined}
             aria-autocomplete="list"
             aria-label="Search pages"
-            placeholder="Find a page — try “failed IDocs”, “budgets” or “ST22”"
+            placeholder="Find a page — try “budgets”, “invoices” or “ST22”"
             value={query}
             onChange={(event) => { setQuery(event.target.value); setActiveIndex(0); }}
             onKeyDown={(event) => {
@@ -78,7 +78,7 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
         ) : (
           <div className="mv-search-empty">
             <p>No pages match “{query.trim()}”.</p>
-            <p className="mv-muted">Check the spelling, or browse the SAP Monitoring, Cloud Cost and IDoc Monitoring menus.</p>
+            <p className="mv-muted">Check the spelling, or browse the SAP Monitoring and Cloud Cost menus.</p>
           </div>
         )}
         <p className="mv-search-hint" aria-hidden="true">

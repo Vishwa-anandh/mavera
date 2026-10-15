@@ -1,4 +1,30 @@
-import { MOCK_SAP_SYSTEMS, sapConditionCounts, type SapCondition } from '../../../demo/sap/mockSapData';
+import { Link } from 'react-router-dom';
+import { sapRepository, type SapCondition, type SapSystem } from '../../../data-access';
+
+export function sapConditionCounts(systems: SapSystem[]): Record<SapCondition, number> {
+  return systems.reduce(
+    (acc, system) => {
+      acc[system.condition] += 1;
+      return acc;
+    },
+    { healthy: 0, warning: 0, critical: 0 } as Record<SapCondition, number>,
+  );
+}
+
+/** Landscape health at a glance: HANA memory, ABAP response, work processes and unread alerts. */
+export function SapHealthSummary() {
+  const HANA_SYSTEM = sapRepository.getHana().system;
+  const SAP_PERFORMANCE = sapRepository.getPerformance();
+  const unreadAlerts = sapRepository.listAlerts().filter((a) => !a.read).length;
+  return (
+    <div className="mv-kpi-row-4" style={{ marginBottom: 16 }}>
+      <article className="mv-kpi"><span className="mv-kpi-label">HANA Memory</span><strong className="mv-kpi-value">{HANA_SYSTEM.memory.percent}%</strong><span className="mv-status mv-status--success">Healthy</span></article>
+      <article className="mv-kpi"><span className="mv-kpi-label">ABAP Response Time</span><strong className="mv-kpi-value">{SAP_PERFORMANCE.responseTimeMs}ms</strong><span className="mv-status mv-status--success">{SAP_PERFORMANCE.status}</span></article>
+      <article className="mv-kpi"><span className="mv-kpi-label">Work Processes</span><strong className="mv-kpi-value">{SAP_PERFORMANCE.workProcessesUsed}/{SAP_PERFORMANCE.workProcessesTotal}</strong></article>
+      <article className="mv-kpi"><span className="mv-kpi-label">Unread Alerts</span><strong className="mv-kpi-value">{unreadAlerts}</strong>{unreadAlerts > 0 && <Link className="mv-quiet-button" to="/sap/alerts">View all</Link>}</article>
+    </div>
+  );
+}
 
 const CONDITION_LABEL: Record<SapCondition, string> = { healthy: 'Healthy', warning: 'Warning', critical: 'Critical' };
 
@@ -20,8 +46,9 @@ interface SapSystemsPanelProps {
 }
 
 export function SapSystemsPanel({ limit, showCounts = true, compact = false }: SapSystemsPanelProps) {
-  const counts = sapConditionCounts(MOCK_SAP_SYSTEMS);
-  const sorted = [...MOCK_SAP_SYSTEMS].sort((a, b) => {
+  const systems = sapRepository.listSystems();
+  const counts = sapConditionCounts(systems);
+  const sorted = [...systems].sort((a, b) => {
     const priority: Record<SapCondition, number> = { critical: 0, warning: 1, healthy: 2 };
     return priority[a.condition] - priority[b.condition] || a.id.localeCompare(b.id);
   });

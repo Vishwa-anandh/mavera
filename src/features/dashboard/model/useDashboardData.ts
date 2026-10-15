@@ -281,6 +281,66 @@ export function monthlyTrendOf(summary: DashboardSummary | null): SpendTrendPoin
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+export interface MonthlyProviderRow {
+  /** "YYYY-MM" */
+  key: string;
+  /** Short label for an axis, e.g. "Sep". */
+  name: string;
+  azure: number;
+  aws: number;
+  btp: number;
+  gcp: number;
+}
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** `monthly` rows as per-provider stacked-bar data for the last `months` months, ascending. */
+export function monthlyByProviderOf(summary: DashboardSummary | null, months = 6): MonthlyProviderRow[] {
+  const monthly = isObject(summary) && Array.isArray(summary.monthly) ? summary.monthly : [];
+  return monthly
+    .filter((row) => isObject(row) && typeof row.key === 'string' && /^\d{4}-\d{2}$/.test(row.key))
+    .map((row) => ({
+      key: row.key,
+      name: MONTH_NAMES[Number(row.key.slice(5, 7)) - 1] ?? row.key,
+      azure: num(row.azure),
+      aws: num(row.aws),
+      btp: num(row.btp),
+      gcp: num(row.gcp),
+    }))
+    .sort((a, b) => a.key.localeCompare(b.key))
+    .slice(-months);
+}
+
+export interface ProviderMover {
+  provider: ProviderKey;
+  current: number;
+  previous: number;
+  /** Month-over-month change in percent, one decimal; null when there is no previous spend to compare. */
+  changePct: number | null;
+  delta: number;
+}
+
+/** Month-over-month change per provider (latest vs previous month), biggest absolute move first. */
+export function providerMoversOf(summary: DashboardSummary | null): ProviderMover[] {
+  const rows = monthlyByProviderOf(summary, 2);
+  if (rows.length < 2) return [];
+  const [previous, latest] = rows;
+  return (['azure', 'aws', 'btp', 'gcp'] as ProviderKey[])
+    .map((provider) => {
+      const current = latest[provider];
+      const before = previous[provider];
+      return {
+        provider,
+        current,
+        previous: before,
+        delta: current - before,
+        changePct: before > 0 ? Math.round(((current - before) / before) * 1000) / 10 : null,
+      };
+    })
+    .filter((m) => m.current > 0 || m.previous > 0)
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+}
+
 /**
  * Reference: `recsSummary?.totalRecommendations ?? recs.length`, where
  * `recs = r?.data?.data ?? r?.data` (a bare array is tolerated too).

@@ -46,7 +46,7 @@ function auth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
       invoices: true,
     },
     accountLimits: { azure: 3, aws: 3, btp: 3 },
-    modules: { cloudCost: true, idocMonitoring: true, sapMonitoring: true },
+    modules: { cloudCost: true, sapMonitoring: true },
     maxUsers: undefined,
     planType: 'enterprise',
     subscriptionStartsAt: undefined,

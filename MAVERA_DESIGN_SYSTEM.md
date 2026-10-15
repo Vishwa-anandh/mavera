@@ -172,9 +172,9 @@ Values below are Mavera design decisions. They are not represented as Ant Design
 
 | CSS token suffix (`--mv-`) | Light | Dark | Meaning |
 | --- | --- | --- | --- |
-| canvas | #F6F7F9 | #111318 | Application background |
-| surface | #FFFFFF | #191D24 | Cards, controls, header |
-| surface-subtle | #F1F3F5 | #222832 | Table headers, neutral tags, grouped fields |
+| canvas | #F4F7FC | #121826 | Application background |
+| surface | #FBFCFF | #1A2334 | Cards, controls, header |
+| surface-subtle | #F0F5FF | #253147 | Table headers, neutral tags, grouped fields |
 | surface-hover | #E9EDF2 | #2B3340 | Neutral hover |
 | surface-pressed | #DFE5EC | #354052 | Neutral pressed state |
 | elevated | #FFFFFF | #242B36 | Dropdowns, dialogs, tooltip surface |
@@ -193,7 +193,7 @@ Values below are Mavera design decisions. They are not represented as Ant Design
 | action-active | #194185 | #194185 | Filled primary button pressed |
 | on-action | #FFFFFF | #FFFFFF | Text on filled primary actions |
 | on-primary | #FFFFFF | #111318 | Checkmark/indicator on a `primary` selection fill |
-| selected | #EAF2FF | #223B60 | Selected row/menu/control surface |
+| selected | #E5EFFF | #293E66 | Selected row/menu/control surface |
 | focus | #175CD3 | #84ADFF | Keyboard focus ring |
 | success | #056B40 | #75E0A7 | Healthy/completed status text |
 | warning | #8A4B08 | #FEC84B | Warning/delayed status text |
@@ -1831,9 +1831,9 @@ Load this CSS once at application startup, alongside the font declarations in se
 ```css
 :root, :root[data-mavera-theme="light"] {
   color-scheme: light;
-  --mv-canvas: #F6F7F9;
-  --mv-surface: #FFFFFF;
-  --mv-surface-subtle: #F1F3F5;
+  --mv-canvas: #F4F7FC;
+  --mv-surface: #FBFCFF;
+  --mv-surface-subtle: #F0F5FF;
   --mv-surface-hover: #E9EDF2;
   --mv-surface-pressed: #DFE5EC;
   --mv-elevated: #FFFFFF;
@@ -1852,7 +1852,7 @@ Load this CSS once at application startup, alongside the font declarations in se
   --mv-action-active: #194185;
   --mv-on-action: #FFFFFF;
   --mv-on-primary: #FFFFFF;
-  --mv-selected: #EAF2FF;
+  --mv-selected: #E5EFFF;
   --mv-focus: #175CD3;
   --mv-success: #056B40;
   --mv-warning: #8A4B08;
@@ -1868,9 +1868,9 @@ Load this CSS once at application startup, alongside the font declarations in se
 }
 :root[data-mavera-theme="dark"] {
   color-scheme: dark;
-  --mv-canvas: #111318;
-  --mv-surface: #191D24;
-  --mv-surface-subtle: #222832;
+  --mv-canvas: #121826;
+  --mv-surface: #1A2334;
+  --mv-surface-subtle: #253147;
   --mv-surface-hover: #2B3340;
   --mv-surface-pressed: #354052;
   --mv-elevated: #242B36;

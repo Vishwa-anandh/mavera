@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useAuth } from '../../auth';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { CloudIcon, ChevronDownIcon, ChevronRightIcon, TrashIcon, PencilIcon, CheckIcon, CloseIcon, PlusIcon, LockIcon } from '../../../shared/ui/icons';
@@ -117,7 +116,6 @@ export function BtpAccountManager() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'SAP BTP', path: '/btp' }, { label: 'Account Manager' }]} />
       <div className="mv-page-heading">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="mv-avatar" style={{ background: '#0070f2', borderRadius: 10 }}><CloudIcon size={18} /></span>
@@ -139,6 +137,7 @@ export function BtpAccountManager() {
               return (
                 <li key={account.id} className="mv-account-row" style={{ flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                    {!account.hasCis && <span aria-hidden style={{ width: 36, flex: 'none' }} />}
                     {account.hasCis && (
                       <button className="mv-icon-button" aria-label={expanded ? 'Collapse subaccounts' : 'Expand subaccounts'} onClick={() => setExpandedId(expanded ? null : account.id)}>
                         {expanded ? <ChevronDownIcon size={16} /> : <ChevronRightIcon size={16} />}

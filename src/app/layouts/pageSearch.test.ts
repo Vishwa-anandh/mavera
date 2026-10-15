@@ -10,20 +10,26 @@ const labels = (query: string) => searchPages(index, query).map((page) => page.l
 
 describe('page search', () => {
   it('finds pages by name, ranking name matches first', () => {
-    expect(labels('failed')[0]).toBe('Failed IDocs');
+    expect(labels('budget')[0]).toBe('Budgets & Alerts');
     expect(labels('budget')).toContain('Budgets & Alerts');
   });
 
   it('matches SAP transaction codes and plain-language keywords', () => {
-    expect(labels('st22')).toEqual(['Dumps']);
-    expect(labels('sm37')).toEqual(['Jobs']);
+    expect(labels('st22')).toEqual(['Jobs & Dumps']);
+    expect(labels('sm37')).toEqual(['Jobs & Dumps']);
     expect(labels('invoice')).toEqual(expect.arrayContaining(['Billing']));
   });
 
+  it('finds merged pages by the names of the pages they replaced', () => {
+    expect(labels('system health')).toEqual(['SAP Overview']);
+    expect(labels('recommendations')).toEqual(['Savings & Optimization']);
+    expect(labels('reports')).toContain('Cost Analytics');
+  });
+
   it('requires every word and says where the page lives', () => {
-    const [result] = searchPages(index, 'idoc partner');
-    expect(result.label).toBe('Partner/Message Monitoring');
-    expect(result.where).toBe('IDoc Monitoring › Partners & alerts');
+    const [result] = searchPages(index, 'sap transports');
+    expect(result.label).toBe('Transport Management');
+    expect(result.where).toBe('SAP Monitoring › Operations');
     expect(labels('nothing-matches-this')).toEqual([]);
   });
 

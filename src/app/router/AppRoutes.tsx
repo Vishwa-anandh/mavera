@@ -7,20 +7,15 @@ import {
   BtpSecurityPage,
   HanaMonitoringPage,
   SapAlertsPage,
-  SapDumpsPage,
-  SapHealthPage,
   SapJobsPage,
   SapOverviewPage,
   SapPerformancePage,
-  SapTeamManagementPage,
   SecurityNotesPage,
   SystemConfigurationPage,
   TransportManagementPage,
 } from '../../features/sap';
-import { FailedIdocsPage, IdocAlertsReportsPage, IdocAnalyticsPage, IdocOverviewPage, IdocTrafficPage, PartnerMonitoringPage, ProcessingStatusPage } from '../../features/idoc';
 import { AccountPage } from '../../features/account';
 import { AlertsPage } from '../../features/alerts';
-import { ReportsPage } from '../../features/reports';
 import { AiAssistantPage } from '../../features/assistant';
 import { NotFoundPage } from '../../features/system';
 import { AzureCostPage, AzureRoot } from '../../features/azure';
@@ -28,7 +23,6 @@ import { AwsRoot } from '../../features/aws';
 import { GcpRoot } from '../../features/gcp';
 import { BtpRoot } from '../../features/btp';
 import { BudgetsPage } from '../../features/budgets';
-import { RecommendationsPage } from '../../features/recommendations';
 import { SmartAlertsPage } from '../../features/smartAlerts';
 import { SubscriptionPage } from '../../features/subscription';
 import { UserManagementPage } from '../../features/users';
@@ -88,23 +82,22 @@ export function AppRoutes() {
         <Route path={appPaths.gcp} element={<GcpRoot />} />
         <Route path={appPaths.btp} element={<BtpRoot />} />
         <Route path={appPaths.budgets} element={<BudgetsPage />} />
-        <Route path={appPaths.recommendations} element={<RecommendationsPage />} />
+        <Route path={appPaths.recommendations} element={<Navigate to={appPaths.cloudOptimization} replace />} />
         <Route path={appPaths.smartAlerts} element={<SmartAlertsPage />} />
         <Route path={appPaths.sapSystems} element={<SapOverviewPage />} />
         <Route path={appPaths.sapDatabases} element={<HanaMonitoringPage />} />
-        <Route path={appPaths.sapHealth} element={<SapHealthPage />} />
+        {/* Merged pages: the former URLs land on the page that now holds their content. */}
+        <Route path={appPaths.sapHealth} element={<Navigate to={appPaths.sapSystems} replace />} />
         <Route path={appPaths.sapJobs} element={<SapJobsPage />} />
-        <Route path={appPaths.sapDumps} element={<SapDumpsPage />} />
+        <Route path={appPaths.sapDumps} element={<Navigate to={`${appPaths.sapJobs}#dumps`} replace />} />
         <Route path={appPaths.sapPerformance} element={<SapPerformancePage />} />
         <Route path={appPaths.sapAlerts} element={<SapAlertsPage />} />
         <Route path={appPaths.sapTransport} element={<TransportManagementPage />} />
         <Route path={appPaths.sapSecurityNotes} element={<SecurityNotesPage />} />
         <Route path={appPaths.sapBtpSecurity} element={<BtpSecurityPage />} />
-        <Route path={appPaths.sapTeam} element={<SapTeamManagementPage />} />
         <Route path={appPaths.sapConfiguration} element={<SystemConfigurationPage />} />
-        <Route path={appPaths.idocOverview} element={<IdocOverviewPage />} />
         <Route path={appPaths.alerts} element={<AlertsPage />} />
-        <Route path={appPaths.reports} element={<ReportsPage />} />
+        <Route path={appPaths.reports} element={<Navigate to={appPaths.cloudAnalytics} replace />} />
         <Route path={appPaths.aiAssistant} element={<AiAssistantPage />} />
         <Route path={appPaths.account} element={<AccountPage />} />
         <Route path={appPaths.subscription} element={<SubscriptionPage />} />
@@ -116,12 +109,6 @@ export function AppRoutes() {
         <Route path={appPaths.cloudOptimization} element={<OptimizationAdvisorPage />} />
         <Route path={appPaths.cloudReservations} element={<ReservationsPage />} />
         <Route path={appPaths.cloudResources} element={<ResourceInventoryPage />} />
-        <Route path={appPaths.idocTraffic} element={<IdocTrafficPage />} />
-        <Route path={appPaths.idocFailed} element={<FailedIdocsPage />} />
-        <Route path={appPaths.idocStatus} element={<ProcessingStatusPage />} />
-        <Route path={appPaths.idocAnalytics} element={<IdocAnalyticsPage />} />
-        <Route path={appPaths.idocPartners} element={<PartnerMonitoringPage />} />
-        <Route path={appPaths.idocAlertsReports} element={<IdocAlertsReportsPage />} />
       </Route>
 
       <Route path={appPaths.catchAll} element={<NotFoundPage />} />

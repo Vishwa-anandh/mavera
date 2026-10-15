@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { cloudInsightsRepository, type CloudResource } from '../../../data-access';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { CopyButton } from '../../../shared/ui/CopyButton';
 import { DetailDrawer, DetailList } from '../../../shared/ui/DetailDrawer';
 import { Select } from '../../../shared/ui/Select';
@@ -10,6 +9,7 @@ import { SearchIcon } from '../../../shared/ui/icons';
 import { downloadCsv } from '../../../shared/lib/csv';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { PROVIDERS, PROVIDER_LABEL, formatMoney } from '../model/cloudFormat';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const ALL = 'All';
 const TAG_FILTERS = ['All', 'Tagged', 'Untagged'] as const;
@@ -52,14 +52,9 @@ export function ResourceInventoryPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Resource Inventory' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">Resource Inventory</h1>
-          <p className="mv-subtitle">Find any resource across your clouds, with its cost, owner and tags.</p>
-        </div>
+      <PageHeader title="Resource Inventory" subtitle="Find any resource across your clouds, with its cost, owner and tags.">
         <button type="button" className="mv-secondary-button" onClick={exportRows} disabled={visible.length === 0}>Export CSV</button>
-      </div>
+      </PageHeader>
 
       <div className="mv-kpi-row-4">
         <article className="mv-kpi"><span className="mv-kpi-label">Resources</span><strong className="mv-kpi-value">{visible.length}</strong><span className="mv-muted">{filtersActive ? `of ${all.length}` : 'across all providers'}</span></article>

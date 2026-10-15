@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { AzureOverallDashboard } from './AzureOverallDashboard';
 import { AzureAccountManager } from './AzureAccountManager';
 import { MOCK_AZURE_ACCOUNTS } from '../../../demo/azure/mockAzureData';
@@ -23,7 +22,6 @@ export function AzureRoot() {
   if (view === 'accounts') {
     return (
       <div>
-        <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Azure' }, { label: 'Account Manager' }]} />
         <AzureAccountManager
           onBack={() => setView('dashboard')}
           onSelectAccount={(account: AzureAccount) => navigate(`/azure/${account.id}`)}
@@ -34,7 +32,6 @@ export function AzureRoot() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Azure' }]} />
       <AzureOverallDashboard
         onManageAccounts={() => setView('accounts')}
         onSelectAccount={(accountId) => {

@@ -56,7 +56,7 @@ const seedInvoice2 = buildInvoice({
   columns: [{ id: 'col-env', label: 'Environment' }],
   lines: [
     line(1, 'SAP BTP Monitoring — Enterprise Tier', 1, 4800, 10, { 'col-env': 'Production' }),
-    line(2, 'IDoc Monitoring Add-on', 1, 1200, 10, { 'col-env': 'Production' }),
+    line(2, 'Premium Support Add-on', 1, 1200, 10, { 'col-env': 'Production' }),
     line(3, 'Onboarding & Migration', 1, 2000, 0, { 'col-env': 'One-time' }),
   ],
   overallAdjustmentPct: -2,

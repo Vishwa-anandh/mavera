@@ -1,5 +1,4 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { ChevronLeftIcon, RefreshIcon } from '../../../shared/ui/icons';
 import { useBtpAccounts } from '../model/BtpAccountContext';
 import { MOCK_BTP_SERVICE_INSTANCES, MOCK_BTP_SM_CONFIGS, MOCK_BTP_SUBACCOUNTS } from '../../../demo/btp/mockBtpData';
@@ -23,7 +22,6 @@ export function BtpServiceInstancesPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'SAP BTP', path: '/btp' }, { label: account?.name ?? 'Account', path: `/btp/account/${accountId}` }, { label: 'Service Instances' }]} />
       <div className="mv-page-heading">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button className="mv-icon-button" aria-label="Back" onClick={() => navigate(-1)}><ChevronLeftIcon size={20} /></button>

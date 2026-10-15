@@ -15,7 +15,7 @@ vi.mock('../../auth/model/AuthContext', async (importOriginal) => {
 function setup(changePassword = vi.fn().mockResolvedValue(undefined)) {
   useAuthMock.mockReturnValue({
     user: { id: '1', email: 'priya@acme.com', name: 'Priya Shah', orgName: 'Acme', role: 'admin' },
-    modules: { cloudCost: true, idocMonitoring: false, sapMonitoring: true },
+    modules: { cloudCost: true, sapMonitoring: true },
     planType: 'premium',
     changePassword,
   });

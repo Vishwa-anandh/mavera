@@ -29,13 +29,13 @@ export interface User {
   accountLimits?: Partial<{ azure: number; aws: number; btp: number; gcp: number }>;
   aiEnabled?: boolean;
   /**
-   * Which of the platform's 3 modules (Cloud Cost, IDoc Monitoring, SAP
+   * Which of the platform's 2 modules (Cloud Cost, SAP
    * Monitoring) the super admin has subscribed this org to — set from the
    * separate super-admin portal, not by the org itself. Undefined fields
    * default to enabled so existing accounts (and every test fixture) keep
    * seeing every module until a real backend starts sending this.
    */
-  modules?: Partial<{ cloudCost: boolean; idocMonitoring: boolean; sapMonitoring: boolean }>;
+  modules?: Partial<{ cloudCost: boolean; sapMonitoring: boolean }>;
   /** Seat limit the super admin granted this org, alongside its modules. */
   maxUsers?: number;
   /** Org-wide plan tier, set by the super admin — matches the reference's

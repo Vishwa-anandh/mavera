@@ -2,13 +2,13 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { cloudInsightsRepository, type Reservation } from '../../../data-access';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { Select } from '../../../shared/ui/Select';
 import { StatusTag } from '../../../shared/ui/StatusTag';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { PROVIDER_LABEL, formatMoney } from '../model/cloudFormat';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const UNDERUSED = 80;
 const EXPIRY_WINDOW_DAYS = 90;
@@ -44,14 +44,9 @@ export function ReservationsPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Reserved Instances' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">Reserved Instances</h1>
-          <p className="mv-subtitle">How well your reservations and savings plans are used, and which expire soon.</p>
-        </div>
+      <PageHeader title="Reserved Instances" subtitle="How well your reservations and savings plans are used, and which expire soon.">
         <Select label="Provider" hideLabel value={provider} onChange={setProvider} options={[{ value: ALL, label: 'All providers' }, { value: 'azure', label: 'Azure' }, { value: 'aws', label: 'AWS' }]} />
-      </div>
+      </PageHeader>
 
       <div className="mv-kpi-row-4">
         <article className="mv-kpi"><span className="mv-kpi-label">Commitments</span><strong className="mv-kpi-value">{visible.length}</strong><span className="mv-muted">reservations and savings plans</span></article>

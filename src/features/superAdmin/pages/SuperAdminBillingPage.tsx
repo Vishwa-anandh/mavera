@@ -4,6 +4,7 @@ import { useBilling } from '../../billing';
 import { InvoicesTab } from '../../billing';
 import { PaymentTermsTab } from '../../billing';
 import { PlusIcon, UsersIcon } from '../../../shared/ui/icons';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 /**
  * Maitsys-staff-only invoicing console — creating invoices, payment terms
@@ -18,11 +19,7 @@ export function SuperAdminBillingPage() {
 
   return (
     <div className="mv-sa-content">
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">Billing</h1>
-          <p className="mv-subtitle">Invoice organizations and manage payment terms — sent invoices appear in that organization's own Billing page.</p>
-        </div>
+      <PageHeader title="Billing" subtitle="Invoice organizations and manage payment terms — sent invoices appear in that organization's own Billing page.">
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="mv-secondary-button" onClick={() => navigate('/admin/billing/customers')}>
             <UsersIcon size={16} style={{ marginRight: 6 }} />Manage Customers
@@ -31,7 +28,7 @@ export function SuperAdminBillingPage() {
             <PlusIcon size={16} style={{ marginRight: 6 }} />New Invoice
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       <div className="mv-segmented" style={{ marginBottom: 20 }}>
         <button className={`mv-segmented-btn${tab === 'invoices' ? ' is-active' : ''}`} onClick={() => setTab('invoices')}>Invoices</button>

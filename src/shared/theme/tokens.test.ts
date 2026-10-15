@@ -7,7 +7,7 @@ describe('design tokens', () => {
   });
 
   it('matches key color values from MAVERA_DESIGN_SYSTEM.md §4.1', () => {
-    expect(lightColors.canvas).toBe('#F6F7F9');
+    expect(lightColors.canvas).toBe('#F4F7FC');
     expect(lightColors.primary).toBe('#175CD3');
     expect(darkColors.primary).toBe('#84ADFF');
     expect(darkColors.action).toBe('#175CD3');

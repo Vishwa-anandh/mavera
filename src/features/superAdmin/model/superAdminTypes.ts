@@ -5,7 +5,6 @@ import type { CloudProvider } from '../../../shared/types/auth';
  * from its own session once a real backend sends it. */
 export interface OrgModules {
   cloudCost: boolean;
-  idocMonitoring: boolean;
   sapMonitoring: boolean;
 }
 
@@ -52,6 +51,5 @@ export const CLOUD_PROVIDER_OPTIONS: CloudProvider[] = ['azure', 'aws', 'btp', '
 
 export const MODULE_DEFS: Array<{ key: keyof OrgModules; label: string }> = [
   { key: 'cloudCost', label: 'Cloud Cost' },
-  { key: 'idocMonitoring', label: 'IDoc Monitoring' },
   { key: 'sapMonitoring', label: 'SAP Monitoring' },
 ];

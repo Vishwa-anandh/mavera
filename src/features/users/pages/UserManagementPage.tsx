@@ -1,11 +1,16 @@
 import { Fragment, useMemo, useState } from 'react';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useAuth } from '../../auth';
-import { SearchIcon, ShieldIcon, UsersIcon, CheckIcon, PersonXIcon } from '../../../shared/ui/icons';
+import { SearchIcon, ShieldIcon, UsersIcon, CheckIcon, PersonXIcon, PlusIcon } from '../../../shared/ui/icons';
 import { Tooltip } from '../../../shared/ui/Tooltip';
+import { EmptyState } from '../../../shared/ui/EmptyState';
+import { Pagination } from '../../../shared/ui/Pagination';
+import { usePagination } from '../../../shared/ui/usePagination';
 import { MOCK_MEMBERS } from '../../../demo/users/mockMembersData';
-import { isMemberPrivileged, sortMembers, type OrgMember } from '../model/userManagementTypes';
+import { isMemberPrivileged, seatSummary, sortMembers, type OrgMember } from '../model/userManagementTypes';
+import { AddUserDialog } from '../components/AddUserDialog';
+import { fireToast } from '../../../shared/lib/toastEvents';
 import type { CloudProvider, User } from '../../../shared/types/auth';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const PROVIDER_GROUPS: Array<{ id: CloudProvider; label: string; dot: string }> = [
   { id: 'azure', label: 'Azure', dot: '#0078D4' },
@@ -85,12 +90,21 @@ function buildInitialMembers(user: User | null): OrgMember[] {
  * org without GCP, for instance, simply don't get a GCP column at all.
  */
 export function UserManagementPage() {
-  const { user, cloudAccess, invoiceOnly } = useAuth();
+  const { user, cloudAccess, invoiceOnly, maxUsers } = useAuth();
   const [members, setMembers] = useState<OrgMember[]>(() => buildInitialMembers(user));
   const [searchTerm, setSearchTerm] = useState('');
+  const [adding, setAdding] = useState(false);
 
   const visibleProviders = PROVIDER_GROUPS.filter((p) => cloudAccess.includes(p.id));
   const showInvoiceColumn = invoiceOnly;
+
+  const seats = seatSummary(members, maxUsers);
+
+  const addMember = (member: OrgMember) => {
+    setMembers((current) => [...current, member]);
+    setAdding(false);
+    fireToast({ type: 'success', message: `${member.fullName} was added to your organisation.` });
+  };
 
   const updateMember = (userId: string, updates: Partial<OrgMember>) =>
     setMembers((current) => current.map((m) => (m.userId === userId ? { ...m, ...updates } : m)));
@@ -104,40 +118,49 @@ export function UserManagementPage() {
     return sortMembers(base, user?.id);
   }, [members, searchTerm, user?.id]);
 
+  const paging = usePagination(filtered, 10, searchTerm);
+
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Administration' }, { label: 'User Management' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">User Management</h1>
-          <p className="mv-subtitle">Manage your organisation's members and their cloud access.</p>
+      <PageHeader title="User Management" subtitle="Manage your organisation's members and their cloud access.">
+        <div className="mv-heading-actions">
+          <label className="mv-filter-search mv-heading-search">
+            <SearchIcon size={16} />
+            <input
+              type="search"
+              aria-label="Search members"
+              placeholder="Search members…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </label>
+          <button type="button" className="mv-primary-button" disabled={seats.full} onClick={() => setAdding(true)}>
+            <PlusIcon size={16} style={{ marginRight: 6 }} />
+            Add user
+          </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px solid var(--mv-border)', borderRadius: 8, padding: '0 10px', height: 36, background: 'var(--mv-surface)' }}>
-          <SearchIcon size={16} style={{ color: 'var(--mv-text-muted)' }} />
-          <input
-            type="search"
-            aria-label="Search members"
-            placeholder="Search members…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ border: 0, outline: 'none', background: 'transparent', width: 200, fontSize: 13, color: 'var(--mv-text)' }}
-          />
-        </div>
-      </div>
+      </PageHeader>
 
-      {(visibleProviders.length > 0 || showInvoiceColumn) && (
-        <p className="mv-muted" style={{ marginBottom: 12 }}>
-          Showing: {[...visibleProviders.map((p) => p.label), showInvoiceColumn && 'Invoice'].filter(Boolean).join(' · ')}
-        </p>
-      )}
+      <p className="mv-muted mv-scope-note">
+        {seats.limit === null
+          ? `${seats.used} active member${seats.used === 1 ? '' : 's'} · no seat limit`
+          : seats.full
+            ? `All ${seats.limit} seats are in use — deactivate a member, or ask Maitsys to add seats, to add another user.`
+            : `${seats.used} of ${seats.limit} seats used · ${seats.available} available`}
+        {(visibleProviders.length > 0 || showInvoiceColumn) && (
+          <> · Showing: {[...visibleProviders.map((p) => p.label), showInvoiceColumn && 'Invoice'].filter(Boolean).join(' · ')}</>
+        )}
+      </p>
 
-      <section className="mv-panel">
+      <section className="mv-panel mv-panel--table">
         {filtered.length === 0 ? (
-          <div className="mv-empty" style={{ margin: 0 }}>
-            <div className="mv-empty-icon" aria-hidden><UsersIcon size={28} /></div>
-            <h2>No members found</h2>
-            <p>No members match your search.</p>
-          </div>
+          <EmptyState
+            icon={<UsersIcon size={28} />}
+            heading="No members found"
+            explanation={searchTerm ? `Nobody matches “${searchTerm}”. Check the spelling or search by email.` : 'Add your first member to share access.'}
+            actionLabel={searchTerm ? 'Clear search' : 'Add user'}
+            onAction={searchTerm ? () => setSearchTerm('') : () => setAdding(true)}
+          />
         ) : (
           <div className="mv-table-wrap">
             <table className="mv-table">
@@ -172,7 +195,7 @@ export function UserManagementPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((member) => {
+                {paging.pageItems.map((member) => {
                   const privileged = isMemberPrivileged(member);
                   const isSelf = member.userId === user?.id;
                   return (
@@ -228,7 +251,7 @@ export function UserManagementPage() {
                               <button
                                 type="button"
                                 className="mv-icon-button"
-                                disabled={isSelf}
+                                disabled={isSelf || (member.status === 'inactive' && seats.full)}
                                 onClick={() => toggleStatus(member.userId, member.status)}
                                 style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, width: 'auto', padding: '0 8px', color: member.status === 'active' ? 'var(--mv-danger)' : 'var(--mv-success)' }}
                               >
@@ -257,9 +280,18 @@ export function UserManagementPage() {
             </table>
           </div>
         )}
+        <Pagination {...paging} noun={`member${filtered.length !== 1 ? 's' : ''}`} />
       </section>
 
-      <p className="mv-muted" style={{ textAlign: 'right', marginTop: 12 }}>Showing {filtered.length} of {members.length} member{members.length !== 1 ? 's' : ''}</p>
+      {adding && (
+        <AddUserDialog
+          members={members}
+          seats={seats}
+          providers={visibleProviders}
+          onCancel={() => setAdding(false)}
+          onAdd={addMember}
+        />
+      )}
     </div>
   );
 }

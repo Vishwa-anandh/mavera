@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import { CostOverviewPage } from './CostOverviewPage';
 import type { AuthContextValue } from '../../auth';
 import type { DashboardData } from '../../dashboard';
@@ -19,6 +21,11 @@ vi.mock('../../dashboard/model/useDashboardData', async (importOriginal) => {
   return { ...actual, useDashboardData: () => useDashboardDataMock() };
 });
 
+// Recharts measures its container, which jsdom doesn't lay out; give it a fixed size.
+vi.mock('recharts', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('recharts')>();
+  return { ...actual, ResponsiveContainer: ({ children }: { children: ReactNode }) => <div style={{ width: 300, height: 180 }}>{children}</div> };
+});
 vi.mock('../../../shared/ui/SpendTrendChart', () => ({ SpendTrendChart: () => <div>Spend trend chart stub</div> }));
 vi.mock('../components/ConnectCloudAccountWizard', () => ({
   ConnectCloudAccountWizard: ({ onClose }: { onClose: () => void }) => (
@@ -45,7 +52,7 @@ function auth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
       invoices: true,
     },
     accountLimits: { azure: 3, aws: 3, btp: 3 },
-    modules: { cloudCost: true, idocMonitoring: true, sapMonitoring: true },
+    modules: { cloudCost: true, sapMonitoring: true },
     maxUsers: undefined,
     planType: 'enterprise',
     subscriptionStartsAt: undefined,
@@ -99,9 +106,11 @@ function dashboardData(overrides: Partial<DashboardData> = {}): DashboardData & 
 
 function renderPage() {
   return render(
-    <MemoryRouter>
-      <CostOverviewPage />
-    </MemoryRouter>,
+    <ThemeProvider>
+      <MemoryRouter>
+        <CostOverviewPage />
+      </MemoryRouter>
+    </ThemeProvider>,
   );
 }
 

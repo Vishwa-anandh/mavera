@@ -1,15 +1,13 @@
 import { useMemo, useState, type ChangeEvent } from 'react';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import { cssVars } from '../../../shared/lib/cssVars';
 import { DonutChart } from '../../../shared/ui/DonutChart';
 import { Select } from '../../../shared/ui/Select';
+import { Pagination } from '../../../shared/ui/Pagination';
 import {
   CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   CloseIcon,
   FileTextIcon,
   RefreshIcon,
@@ -33,6 +31,7 @@ import {
 } from '../model/invoicesDerivations';
 import type { Invoice, ProviderFilter } from '../model/invoicesTypes';
 import type { CloudProvider } from '../../../shared/types/auth';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const PROVIDER_FILTERS: ProviderFilter[] = ['all', 'azure', 'aws', 'btp', 'gcp'];
 const PAGE_SIZE = 6;
@@ -296,7 +295,6 @@ export function InvoicesPage() {
 
   const kpis = invoiceKpisOf(invoices);
   const filtered = filterByProvider(invoices, providerFilter);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = paginate(filtered, page, PAGE_SIZE);
   const selected = useMemo(() => invoices.find((inv) => inv.id === selectedId) ?? null, [invoices, selectedId]);
 
@@ -316,17 +314,12 @@ export function InvoicesPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Invoices' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">Cloud Invoices</h1>
-          <p className="mv-subtitle">Upload Azure, AWS, SAP BTP & GCP invoices · instant visual breakdown.</p>
-        </div>
+      <PageHeader title="Cloud Invoices" subtitle={<>Upload Azure, AWS, SAP BTP & GCP invoices · instant visual breakdown.</>}>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="mv-secondary-button" disabled={refreshing} onClick={handleRefresh}><RefreshIcon size={16} style={{ marginRight: 6 }} />{refreshing ? 'Refreshing…' : 'Refresh'}</button>
           <button className="mv-primary-button" onClick={() => setUploadOpen(true)}><UploadIcon size={16} style={{ marginRight: 6 }} />Upload Invoice</button>
         </div>
-      </div>
+      </PageHeader>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 20 }}>
         <article className="mv-kpi" style={{ minHeight: 'auto', padding: 14 }}><span className="mv-kpi-label">Total Invoices</span><strong className="mv-kpi-value" style={{ fontSize: 22, marginTop: 8 }}>{kpis.totalCount}</strong><p className="mv-muted" style={{ margin: '4px 0 0', fontSize: 11 }}>all providers</p></article>
@@ -387,15 +380,7 @@ export function InvoicesPage() {
             )}
           </section>
 
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p className="mv-muted" style={{ fontSize: 12 }}>Page {page} of {totalPages} · {filtered.length} records</p>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button className="mv-icon-button" aria-label="Previous page" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeftIcon size={16} /></button>
-                <button className="mv-icon-button" aria-label="Next page" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}><ChevronRightIcon size={16} /></button>
-              </div>
-            </div>
-          )}
+          <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} noun="invoices" />
         </div>
 
         {selected ? (

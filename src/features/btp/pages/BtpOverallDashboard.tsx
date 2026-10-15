@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { CloudIcon, RefreshIcon, PlusIcon, ChevronRightIcon } from '../../../shared/ui/icons';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
 import { DonutChart } from '../../../shared/ui/DonutChart';
@@ -42,7 +41,6 @@ export function BtpOverallDashboard() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'SAP BTP' }]} />
       <div className="mv-page-heading">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="mv-avatar" style={{ background: '#0070f2', borderRadius: 10 }}><CloudIcon size={18} /></span>

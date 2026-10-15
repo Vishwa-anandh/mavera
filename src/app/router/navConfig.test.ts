@@ -12,7 +12,7 @@ const ALL_ON: NavContext['features'] = {
   invoices: true,
 };
 
-const ALL_MODULES_ON: NavContext['modules'] = { cloudCost: true, idocMonitoring: true, sapMonitoring: true };
+const ALL_MODULES_ON: NavContext['modules'] = { cloudCost: true, sapMonitoring: true };
 
 function ctx(
   overrides: Partial<NavContext['features']> = {},
@@ -46,36 +46,40 @@ describe('resolveNav', () => {
     expect(entries.find((e) => e.key === 'administration')).toBeDefined();
   });
 
-  it('shows SAP Monitoring, Cloud Cost and IDoc Monitoring by default (org subscribed to all 3 modules)', () => {
+  it('shows SAP Monitoring and Cloud Cost by default (org subscribed to both modules)', () => {
     const member: User = { id: '1', email: 'a@b.com', role: 'member' };
     const entries = resolveNav(derivePermissions(member, [], false));
     expect(entries.find((e) => e.key === 'sap')).toBeDefined();
     expect(entries.find((e) => e.key === 'cloud-cost')).toBeDefined();
-    expect(entries.find((e) => e.key === 'idoc')).toBeDefined();
   });
 
-  it('places Reports and Billing inside Cloud Cost rather than at the top level', () => {
+  it('places Billing inside Cloud Cost; Reports is no longer a page of its own', () => {
     const member: User = { id: '1', email: 'a@b.com', role: 'member' };
     const entries = resolveNav(derivePermissions(member, [], false));
-    expect(entries.find((e) => e.key === 'reports')).toBeUndefined();
     expect(entries.find((e) => e.key === 'billing')).toBeUndefined();
     const cloud = entries.find((e) => e.key === 'cloud-cost');
     expect(cloud?.type).toBe('group');
     const children = cloud?.type === 'group' ? cloud.children : [];
-    expect(children.find((c) => c.key === 'reports')).toMatchObject({ path: '/reports', locked: false });
     expect(children.find((c) => c.key === 'billing')).toMatchObject({ path: '/billing', locked: false });
-    // The old Cloud Cost placeholder that duplicated the "Reports" label is gone.
-    expect(children.find((c) => c.path === '/cloud/reports')).toBeUndefined();
+    // Reports was an empty placeholder; exporting now lives on Cost Analytics.
+    expect(leaf(entries, 'reports')).toBeUndefined();
   });
 
-  it('keeps Reports and Billing for an invoice-only org and hides them when Cloud Cost is not subscribed', () => {
+  it('keeps Billing for an invoice-only org and hides it when Cloud Cost is not subscribed', () => {
     const member: User = { id: '1', email: 'a@b.com', role: 'member' };
     const permissions = derivePermissions(member, [], true);
-    expect(leaf(resolveNav(permissions, ctx({}, true)), 'reports')).toBeDefined();
     expect(leaf(resolveNav(permissions, ctx({}, true)), 'billing')).toBeDefined();
     const cloudOff = resolveNav(permissions, ctx({}, false, { cloudCost: false }));
-    expect(leaf(cloudOff, 'reports')).toBeUndefined();
     expect(leaf(cloudOff, 'billing')).toBeUndefined();
+  });
+
+  it('merges duplicate pages: one entry each for SAP Overview, Jobs & Dumps and Savings & Optimization', () => {
+    const admin: User = { id: '1', email: 'a@b.com', role: 'admin' };
+    const entries = resolveNav(derivePermissions(admin, ['azure'], false), ctx());
+    expect(leaf(entries, 'sap-systems')).toMatchObject({ label: 'SAP Overview', path: '/sap/systems' });
+    expect(leaf(entries, 'sap-jobs')).toMatchObject({ label: 'Jobs & Dumps', path: '/sap/jobs' });
+    expect(leaf(entries, 'cloud-optimization')).toMatchObject({ label: 'Savings & Optimization', path: '/cloud/optimization' });
+    ['sap-health', 'sap-dumps', 'recommendations', 'reports'].forEach((key) => expect(leaf(entries, key)).toBeUndefined());
   });
 
   it("hides a module's entire nav group when the super admin hasn't subscribed the org to it", () => {
@@ -85,13 +89,9 @@ describe('resolveNav', () => {
     const sapOff = resolveNav(permissions, ctx({}, false, { sapMonitoring: false }));
     expect(sapOff.find((e) => e.key === 'sap')).toBeUndefined();
     expect(sapOff.find((e) => e.key === 'cloud-cost')).toBeDefined();
-    expect(sapOff.find((e) => e.key === 'idoc')).toBeDefined();
 
     const cloudCostOff = resolveNav(permissions, ctx({}, false, { cloudCost: false }));
     expect(cloudCostOff.find((e) => e.key === 'cloud-cost')).toBeUndefined();
-
-    const idocOff = resolveNav(permissions, ctx({}, false, { idocMonitoring: false }));
-    expect(idocOff.find((e) => e.key === 'idoc')).toBeUndefined();
   });
 
   it('uses "Cloud Cost Monitoring" as the dropdown title while the trigger label stays "Cloud Cost"', () => {
@@ -130,12 +130,12 @@ describe('resolveNav', () => {
   });
 
   // Reference components/Sidebar.jsx gates these on user.features.*.
-  it('locks Recommendations, Smart Alerts, Budgets and Sync Logs when their subscription feature is off', () => {
+  it('locks Smart Alerts, Budgets and Sync Logs when their subscription feature is off', () => {
     const admin: User = { id: '1', email: 'a@b.com', role: 'admin' };
     const permissions = derivePermissions(admin, ['azure'], false);
 
     const allOn = resolveNav(permissions, ctx());
-    ['recommendations', 'smart-alerts', 'budgets', 'sync-logs'].forEach((key) =>
+    ['smart-alerts', 'budgets', 'sync-logs'].forEach((key) =>
       expect(leaf(allOn, key)?.locked).toBe(false),
     );
 
@@ -143,7 +143,7 @@ describe('resolveNav', () => {
       permissions,
       ctx({ recommendations: false, smartAlerts: false, budgets: false, syncLogs: false }),
     );
-    ['recommendations', 'smart-alerts', 'budgets', 'sync-logs'].forEach((key) =>
+    ['smart-alerts', 'budgets', 'sync-logs'].forEach((key) =>
       expect(leaf(allOff, key)?.locked).toBe(true),
     );
   });
@@ -152,7 +152,7 @@ describe('resolveNav', () => {
     const admin: User = { id: '1', email: 'a@b.com', role: 'admin' };
     const entries = resolveNav(derivePermissions(admin, ['azure'], false), ctx({ smartAlerts: false }));
     expect(leaf(entries, 'smart-alerts')?.locked).toBe(true);
-    expect(leaf(entries, 'recommendations')?.locked).toBe(false);
+    expect(leaf(entries, 'sync-logs')?.locked).toBe(false);
     expect(leaf(entries, 'budgets')?.locked).toBe(false);
   });
 
@@ -198,7 +198,6 @@ describe('dropdown sections', () => {
   it('groups each module menu into ordered, labelled sections', () => {
     expect(navSections(group(nav(), 'sap').children).map((s) => s.label)).toEqual(['Systems', 'Operations', 'Security', 'Settings']);
     expect(navSections(group(nav(), 'cloud-cost').children).map((s) => s.label)).toEqual(['Overview', 'Cloud providers', 'Optimization', 'Governance', 'Billing & reports']);
-    expect(navSections(group(nav(), 'idoc').children).map((s) => s.label)).toEqual(['Overview', 'Processing', 'Partners & alerts']);
   });
 
   it('keeps Administration as one unlabelled list and leaves Invoice Builder to the super admin portal', () => {
@@ -217,9 +216,11 @@ describe('dropdown sections', () => {
 
   it('lays big menus out in balanced columns and short ones as a single list', () => {
     const cloud = group(nav(), 'cloud-cost').children;
-    expect(navMenuColumns(cloud)).toBe(3);
-    const columns = navColumnLayout(navSections(cloud), 3).map((col) => col.map((s) => s.label));
-    expect(columns).toEqual([['Overview', 'Cloud providers'], ['Optimization'], ['Governance', 'Billing & reports']]);
+    // Merging pages shortened the Cloud Cost menu, so it now fits two balanced columns.
+    expect(navMenuColumns(cloud)).toBe(2);
+    const columns = navColumnLayout(navSections(cloud), 2).map((col) => col.map((s) => s.label));
+    expect(columns).toHaveLength(2);
+    expect(columns.flat()).toEqual(['Overview', 'Cloud providers', 'Optimization', 'Governance', 'Billing & reports']);
     expect(navMenuColumns(group(nav(), 'administration').children)).toBe(1);
   });
 });

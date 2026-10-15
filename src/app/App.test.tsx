@@ -44,7 +44,7 @@ describe('App', () => {
 
     expect(await screen.findByRole('img', { name: 'Mavera' })).toBeInTheDocument();
     // The dashboard's one h1 is the hero headline, not the literal word
-    // "Dashboard" (that still appears in the nav link and breadcrumb).
+    // "Dashboard" (that still appears in the nav link).
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
     expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
   });

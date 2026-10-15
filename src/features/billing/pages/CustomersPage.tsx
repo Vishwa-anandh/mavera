@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import type { Customer } from '../../../shared/domain/billing/billingTypes';
 import { CUSTOMERS } from '../../../demo/billing/mockBillingData';
 import { TrashIcon, PlusIcon, BuildingIcon } from '../../../shared/ui/icons';
 import { cssVars } from '../../../shared/lib/cssVars';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 let nextCustomerId = 100;
 const emptyForm = { name: '', billingAddress: '', shippingAddress: '', sameAsBilling: true, primaryContactEmail: '', discountPct: '0' };
@@ -40,10 +40,7 @@ export function CustomersPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Billing', path: '/admin/billing' }, { label: 'Customers' }]} />
-      <div className="mv-page-heading">
-        <div><h1 className="mv-title">Customers</h1><p className="mv-subtitle">Manage the companies Maitsys invoices.</p></div>
-      </div>
+      <PageHeader title="Customers" subtitle="Manage the companies Maitsys invoices." />
 
       <div className="mv-columns-16-8" style={cssVars({ '--mv-cols': '1fr 2fr' })}>
         <section className="mv-panel">

@@ -1,7 +1,7 @@
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useBilling } from '../model/BillingContext';
 import { SELF_CUSTOMER_ID } from '../../../demo/billing/mockBillingData';
 import { CustomerBillingView } from '../components/CustomerBillingView';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 /**
  * Read-only for every org role, including admin/owner — creating and
@@ -15,10 +15,7 @@ export function BillingPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Billing' }]} />
-      <div className="mv-page-heading">
-        <div><h1 className="mv-title">Billing</h1><p className="mv-subtitle">View and pay your invoices from Maitsys.</p></div>
-      </div>
+      <PageHeader title="Billing" subtitle="View and pay your invoices from Maitsys." />
 
       <CustomerBillingView invoices={invoices.filter((inv) => inv.customerId === SELF_CUSTOMER_ID)} customer={customers.find((c) => c.id === SELF_CUSTOMER_ID)} onPay={payInvoice} />
     </div>

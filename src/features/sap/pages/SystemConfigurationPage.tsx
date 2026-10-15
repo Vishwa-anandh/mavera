@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { MOCK_SAP_DESTINATIONS, type SapDestination } from '../../../demo/sap/mockSystemConfiguration';
 import { CloudIcon, PlusIcon, PencilIcon, TrashIcon, SearchIcon, HierarchyIcon, GridIcon, ServerIcon, CloseIcon } from '../../../shared/ui/icons';
 import { Select } from '../../../shared/ui/Select';
 import { fireToast } from '../../../shared/lib/toastEvents';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const STRATEGIES = [
   { key: 'ODATA' as const, label: 'OData', icon: GridIcon, help: 'SAP NetWeaver Gateway / S/4HANA OData services' },
@@ -99,11 +99,9 @@ export function SystemConfigurationPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'SAP Monitoring', path: '/sap/systems' }, { label: 'System Configuration' }]} />
-      <div className="mv-page-heading">
-        <div><h1 className="mv-title">System Configuration</h1><p className="mv-subtitle">Manage and connect your SAP environment endpoints.</p></div>
+      <PageHeader title="System Configuration" subtitle="Manage and connect your SAP environment endpoints.">
         <button className="mv-primary-button" onClick={() => setAdding(true)}><PlusIcon size={16} style={{ marginRight: 6 }} />Add Destination</button>
-      </div>
+      </PageHeader>
 
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16 }}>
         <span className="mv-status mv-status--success">Connected</span>

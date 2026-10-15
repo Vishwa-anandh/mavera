@@ -1,16 +1,26 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { cloudInsightsRepository } from '../../../data-access';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
-import { resetOpportunityStates } from '../model/optimizationStore';
+import { resetOpportunityStates } from '../../../shared/lib/opportunityStore';
 import { formatMoney } from '../model/cloudFormat';
 import { CostAnalyticsPage } from './CostAnalyticsPage';
 import { OptimizationAdvisorPage } from './OptimizationAdvisorPage';
 import { ReservationsPage } from './ReservationsPage';
 import { ResourceInventoryPage } from './ResourceInventoryPage';
+
+// Savings & Optimization opens with the savings overview, which reads the signed-in user's access.
+vi.mock('../../auth', () => ({
+  useAuth: () => ({
+    user: { id: '1', email: 'a@b.com', role: 'admin' },
+    cloudAccess: ['azure', 'aws'],
+    invoiceOnly: false,
+    features: { budgets: true, smartAlerts: true, syncLogs: true, recommendations: true, cloudManagement: true, invoices: true },
+  }),
+}));
 
 const wrap = (node: ReactNode) => render(<ThemeProvider><MemoryRouter>{node}</MemoryRouter></ThemeProvider>);
 
@@ -57,6 +67,14 @@ describe('Cloud Cost pages', () => {
     const expected = all.filter((o) => !o.overlapsWith || !all.some((x) => x.id === o.overlapsWith)).reduce((s, o) => s + o.monthlySaving, 0);
     expect(screen.getByText(formatMoney(expected, 'USD'))).toBeInTheDocument();
     expect(screen.getByText(/1 overlapping not double-counted/)).toBeInTheDocument();
+  });
+
+  it('Savings & Optimization shows the savings overview above the opportunities, once each', () => {
+    wrap(<OptimizationAdvisorPage />);
+    expect(screen.getByRole('heading', { level: 1, name: 'Savings & Optimization' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Savings overview' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Opportunities' })).toBeInTheDocument();
+    expect(screen.queryByText('Top Recommendations')).not.toBeInTheDocument();
   });
 
   it('Optimization Advisor dismisses with a reason and only records the decision', async () => {

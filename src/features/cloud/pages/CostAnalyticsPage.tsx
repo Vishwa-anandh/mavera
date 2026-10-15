@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { cloudInsightsRepository, type CloudProviderId, type CostBreakdownRow } from '../../../data-access';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { BarList } from '../../../shared/ui/BarList';
 import { Select } from '../../../shared/ui/Select';
 import { downloadCsv } from '../../../shared/lib/csv';
@@ -11,6 +10,7 @@ import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedStat
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { PROVIDER_LABEL, formatChange, formatMoney, monthLabel, percentChange } from '../model/cloudFormat';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 type ProviderScope = 'usd' | CloudProviderId;
 type GroupBy = 'services' | 'regions' | 'accounts';
@@ -79,14 +79,10 @@ export function CostAnalyticsPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Cost Analytics' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">Cost Analytics</h1>
-          <p className="mv-subtitle">Investigate spend over time and by service, region or account.</p>
-        </div>
+      <PageHeader title="Cost Analytics" subtitle="Investigate spend over time and by service, region or account.">
         <button type="button" className="mv-secondary-button" onClick={saveView}>Save view</button>
-      </div>
+        <button type="button" className="mv-primary-button" onClick={exportRows} disabled={rows.length === 0}>Export report</button>
+      </PageHeader>
 
       <div className="mv-filter-bar" role="search" aria-label="Cost analytics scope">
         <Select label="Providers" value={scope} onChange={(v) => { setScope(v); setSelected(null); }} options={(Object.keys(SCOPE_LABEL) as ProviderScope[]).map((v) => ({ value: v, label: SCOPE_LABEL[v] }))} />
@@ -134,7 +130,6 @@ export function CostAnalyticsPage() {
       <section className="mv-panel" aria-labelledby="breakdown-title">
         <div className="mv-panel-header">
           <div><h2 className="mv-panel-title" id="breakdown-title">Cost by {GROUP_LABEL[groupBy].toLowerCase()}</h2><p className="mv-muted">{monthLabel(data.currentMonth)} to date · change against the same {GROUP_LABEL[groupBy].toLowerCase()} last month</p></div>
-          <button type="button" className="mv-secondary-button" onClick={exportRows} disabled={rows.length === 0}>Export CSV</button>
         </div>
         {missingGroup.length > 0 && <p className="mv-muted">{GROUP_LABEL[groupBy]} breakdown isn’t available for {missingGroup.map((p) => PROVIDER_LABEL[p]).join(', ')}.</p>}
         {rows.length === 0 ? (

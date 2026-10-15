@@ -1,15 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { PasswordField } from '../../../shared/ui/PasswordField';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const ROLE_LABEL = { owner: 'Owner', admin: 'Administrator', member: 'Member' } as const;
 const MODULE_LABELS = [
   { key: 'sapMonitoring', label: 'SAP Monitoring' },
   { key: 'cloudCost', label: 'Cloud Cost Monitoring' },
-  { key: 'idocMonitoring', label: 'IDoc Monitoring' },
 ] as const;
 
 function errorText(error: unknown): string {
@@ -58,13 +57,7 @@ export function AccountPage() {
 
   return (
     <div className="mv-reading-width">
-      <AppBreadcrumb items={[{ label: 'Account' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">Account</h1>
-          <p className="mv-subtitle">Your profile, organisation and preferences.</p>
-        </div>
-      </div>
+      <PageHeader title="Account" subtitle="Your profile, organisation and preferences." />
 
       <section className="mv-panel mv-account-section" aria-labelledby="identity-title">
         <h2 className="mv-panel-title" id="identity-title">Profile</h2>

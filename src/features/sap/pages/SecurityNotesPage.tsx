@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import { useRememberedState } from '../../../shared/lib/useRememberedState';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { MOCK_SECURITY_NOTES, MOCK_NOTE_UPLOAD_HISTORY, securityNoteCounts, type SecurityNote, type SecurityNoteStatus, type NoteUploadHistoryEntry } from '../../../demo/sap/mockSecurityNotes';
 import { Select } from '../../../shared/ui/Select';
 import { RefreshIcon, UploadIcon, ClockIcon, SearchIcon, FileTextIcon, CloseIcon, TrashIcon } from '../../../shared/ui/icons';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
 import { fireToast } from '../../../shared/lib/toastEvents';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const STATUS_TONE: Record<SecurityNoteStatus, string> = {
   'Completely Implemented': 'success',
@@ -143,11 +143,9 @@ export function SecurityNotesPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'SAP Monitoring', path: '/sap/systems' }, { label: 'Security Notes' }]} />
-      <div className="mv-page-heading">
-        <div><h1 className="mv-title">Security Notes</h1><p className="mv-subtitle">SAP Security Notes tracking & management.</p></div>
+      <PageHeader title="Security Notes" subtitle={<>SAP Security Notes tracking & management.</>}>
         <DestinationSwitcher />
-      </div>
+      </PageHeader>
 
       <div className="mv-kpi-row-5" style={{ marginBottom: 20 }}>
         <article className="mv-kpi"><span className="mv-kpi-label">Total Notes</span><strong className="mv-kpi-value">{notes.length}</strong><span className="mv-muted">All uploaded notes</span></article>
@@ -203,7 +201,7 @@ export function SecurityNotesPage() {
                   <td className="mv-muted">{note.releasedOn}</td>
                   <td><span className={`mv-status ${note.downloadStatus === 'Not Downloaded' ? 'mv-status--neutral' : 'mv-status--success'}`}>{note.downloadStatus === 'Success' ? 'SUCCESS' : note.downloadStatus}</span></td>
                   <td><span className={`mv-status mv-status--${STATUS_TONE[note.status]}`}>{note.status}</span></td>
-                  <td style={{ display: 'flex', gap: 4 }}>
+                  <td><div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                     <button
                       className="mv-icon-button"
                       aria-label={`Recheck status for ${note.noteNumber} from SAP`}
@@ -215,7 +213,7 @@ export function SecurityNotesPage() {
                     <button className="mv-icon-button" aria-label={`Delete note ${note.noteNumber}`} onClick={() => deleteNote(note.noteNumber)}>
                       <TrashIcon size={14} />
                     </button>
-                  </td>
+                  </div></td>
                 </tr>
               ))}
               {filtered.length === 0 && (

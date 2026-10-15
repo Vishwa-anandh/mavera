@@ -1,7 +1,7 @@
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useAuth } from '../../auth';
 import { assistantIntroLabel, assistantSuggestions, useAssistantConversation } from '../model/useAssistantConversation';
 import { AssistantConversation } from '../components/AssistantConversation';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 export function AiAssistantPage() {
   const { modules } = useAuth();
@@ -10,13 +10,7 @@ export function AiAssistantPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'AI Assistant' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">AI Assistant</h1>
-          <p className="mv-subtitle">{introLabel}</p>
-        </div>
-      </div>
+      <PageHeader title="AI Assistant" subtitle={<>{introLabel}</>} />
       <section className="mv-panel">
         <AssistantConversation
           messages={messages}

@@ -34,7 +34,7 @@ export function AssistantWidget() {
           <header className="mv-ai-assistant-header">
             <div className="mv-ai-assistant-title">
               <span className="mv-ai-assistant-avatar"><AssistantLauncherFace className="mv-bot-face--sm" /></span>
-              <span><strong id="ai-assistant-title">Mavera AI</strong><small>Ask about systems, costs or IDocs</small></span>
+              <span><strong id="ai-assistant-title">Mavera AI</strong><small>Ask about systems or costs</small></span>
             </div>
             <button type="button" className="mv-ai-assistant-close" aria-label="Close AI Assistant" onClick={() => setOpen(false)}>
               <CloseIcon size={18} />

@@ -1420,6 +1420,38 @@ html:has(.mv-login-page) { background: var(--mv-login-gradient) fixed; }
 a.mv-primary-button, a.mv-secondary-button, a.mv-quiet-button { text-decoration: none; }
 .mv-field textarea { font: inherit; }
 
+/* Pastel workspace surfaces. The treatment is intentionally reserved for
+   interface backgrounds and information groups; data visualisations retain
+   the standard chart palette from theme/tokens.ts for fast interpretation. */
+:root {
+  --mv-pastel-blue: #F3F7FF;
+  --mv-pastel-lilac: #F7F3FF;
+  --mv-pastel-mint: #F1FAF6;
+  --mv-pastel-peach: #FFF6ED;
+  --mv-card-white: #FFFFFF;
+}
+[data-theme="dark"] {
+  --mv-pastel-blue: #1B2940;
+  --mv-pastel-lilac: #292440;
+  --mv-pastel-mint: #1B342F;
+  --mv-pastel-peach: #392C22;
+  --mv-card-white: var(--mv-surface);
+}
+.mv-dashboard-sidebar .mv-side-card { background: var(--mv-card-white); }
+/* KPI tiles: white cards, told apart by a thin outline in their own colour (all four sides, no fill). */
+.mv-kpi-row-4 > .mv-kpi, .mv-dashboard-grid > .mv-kpi {
+  background: var(--mv-card-white);
+  border: 1px solid color-mix(in srgb, var(--mv-kpi-marker, var(--mv-primary)) 45%, var(--mv-divider));
+  box-shadow: none;
+}
+.mv-kpi-row-4 > .mv-kpi:nth-child(4n + 1), .mv-dashboard-grid > .mv-kpi:nth-child(4n + 1) { --mv-kpi-marker: var(--mv-primary); }
+.mv-kpi-row-4 > .mv-kpi:nth-child(4n + 2), .mv-dashboard-grid > .mv-kpi:nth-child(4n + 2) { --mv-kpi-marker: #7C5CFA; }
+.mv-kpi-row-4 > .mv-kpi:nth-child(4n + 3), .mv-dashboard-grid > .mv-kpi:nth-child(4n + 3) { --mv-kpi-marker: var(--mv-success); }
+.mv-kpi-row-4 > .mv-kpi:nth-child(4n + 4), .mv-dashboard-grid > .mv-kpi:nth-child(4n + 4) { --mv-kpi-marker: var(--mv-warning); }
+.mv-empty { background: var(--mv-card-white); }
+.mv-panel:has(.recharts-wrapper),
+.mv-panel:has(.mv-donut-row) { background: var(--mv-card-white); }
+
 /* Phones: metric cards two to a row instead of one tall stack. */
 @media (max-width: 680px) {
   .mv-kpi-row-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -1622,12 +1654,6 @@ button.mv-bar-list-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2
 .mv-tag-list li { padding: 3px 9px; border-radius: 6px; background: var(--mv-surface-subtle); font-size: 12.5px; }
 .mv-copy-button { gap: 4px; }
 
-/* IDoc status cell. */
-.mv-idoc-status { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
-.mv-idoc-status-text { color: var(--mv-text-secondary); font-size: 12.5px; }
-.mv-idoc-table td { vertical-align: top; padding-top: 10px; padding-bottom: 10px; }
-.mv-reprocess-list { display: grid; gap: 6px; max-height: 260px; overflow: auto; margin: 12px 0 0; padding: 0; list-style: none; }
-.mv-reprocess-list li { display: grid; gap: 2px; padding: 8px 10px; border-radius: 6px; background: var(--mv-surface-subtle); }
 
 /* Processing Status lifecycle strip. */
 .mv-lifecycle-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 16px; }
@@ -1680,12 +1706,531 @@ button.mv-bar-list-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2
   .mv-table--stack th.mv-hide-phone, .mv-table.mv-table--stack td.mv-hide-phone { display: none; }
   .mv-table.mv-table--stack td.mv-col-check { justify-content: flex-start; gap: 10px; }
   .mv-table.mv-table--stack td.mv-col-check::before { order: 2; }
-  .mv-table.mv-table--stack td.mv-idoc-status-cell { display: grid; justify-items: end; gap: 4px; }
-  .mv-table.mv-table--stack td.mv-idoc-status-cell::before { justify-self: start; }
-  .mv-idoc-status { justify-content: flex-end; text-align: right; }
 }
 
 @media (max-width: 680px) {
-  .mv-table.mv-table--stack.mv-idoc-table td { justify-content: flex-start; gap: 6px; }
-  .mv-table--stack.mv-idoc-table td[data-label]::before { margin-right: auto; }
 }
+
+/* ==========================================================================
+   Workspace layout system — spacing, corner radius, alignment, pagination.
+   Adopted from the Maitsys Projects (project.ai-rbac) design system and
+   placed last so it is the authority wherever it overlaps an earlier pass.
+
+   Scope: .mv-content and the overlays only. The header, the dashboard's
+   operations-pulse deck (.mv-pulse) and the sign-in screens keep their own
+   treatment.
+
+   Radius   --mv-r-xs 4  tags            --mv-r-md 12  buttons, inputs, selects
+            --mv-r-sm 8  chips, small    --mv-r-lg 16  panels, cards, tables, dialogs
+   Spacing  4-pt steps: 8 within a control group, 12 inside a section,
+            16 between sections, 24 page edge.
+   Tables   one 16px container holds the table and its pagination footer;
+            40px header row, 48px body rows, 16px cell inset.
+   ========================================================================== */
+:root {
+  --mv-r-xs: 4px;
+  --mv-r-sm: 8px;
+  --mv-r-md: 12px;
+  --mv-r-lg: 16px;
+  --mv-gap-xs: 8px;
+  --mv-gap-sm: 12px;
+  --mv-gap: 16px;
+  --mv-control-h: 40px;
+  --mv-control-h-sm: 32px;
+}
+
+/* ---- Page heading: title block left, actions right, one baseline ---- */
+.mv-content .mv-page-heading { align-items: center; gap: var(--mv-gap); min-height: 48px; margin-bottom: var(--mv-gap); }
+.mv-content .mv-page-heading > :last-child:not(:first-child) { display: flex; align-items: center; gap: var(--mv-gap-xs); justify-content: flex-end; }
+.mv-content .mv-page-heading > :last-child:not(:first-child):not(.mv-heading-actions) { flex-wrap: wrap; }
+.mv-content .mv-title:not(.mv-pulse-title) { font: 500 24px/32px var(--mv-font-heading); letter-spacing: 0; }
+.mv-content .mv-subtitle { margin-top: 2px; font-size: 13px; line-height: 20px; }
+.mv-content .mv-scope-note { margin: calc(-1 * var(--mv-gap-xs)) 0 var(--mv-gap-sm); font-size: 13px; }
+
+/* ---- Surfaces: one radius, one inset ---- */
+.mv-content :is(.mv-panel, .mv-kpi, .mv-module-card, .mv-side-card, .mv-empty, .mv-table-wrap, .mv-dashboard-toolbar):not(.mv-pulse *) {
+  border-radius: var(--mv-r-lg);
+}
+.mv-content .mv-panel:not(.mv-pulse *) { padding: var(--mv-gap); }
+.mv-content .mv-kpi:not(.mv-pulse *) { padding: var(--mv-gap); }
+.mv-content .mv-side-card:not(.mv-pulse *) { padding: var(--mv-gap); }
+.mv-content .mv-panel-header { min-height: 32px; margin-bottom: var(--mv-gap-sm); gap: var(--mv-gap-xs); }
+.mv-dialog { padding: 20px; border-radius: var(--mv-r-lg); }
+.mv-dialog-actions { gap: var(--mv-gap-xs); margin-top: var(--mv-gap); }
+
+/* Grids breathe the same everywhere (the clamp()ed 10–16px rows made tiles
+   sit closer together on laptops than on desktops). */
+.mv-content :is(.mv-row-3col, .mv-row-4col, .mv-kpi-row-4, .mv-kpi-row-5, .mv-dashboard-grid, .mv-dashboard-layout, .mv-dashboard-main, .mv-columns-16-8, .mv-column-stack, .mv-card-grid, .mv-donut-row) { gap: var(--mv-gap); }
+.mv-content :is(.mv-service-tile-grid, .mv-server-grid, .mv-form-stack) { gap: var(--mv-gap-sm); }
+
+/* ---- Controls ---- */
+.mv-content :is(.mv-primary-button, .mv-secondary-button) { min-height: var(--mv-control-h); padding-inline: 16px; border-radius: var(--mv-r-md); }
+.mv-content .mv-quiet-button { min-height: var(--mv-control-h-sm); border-radius: var(--mv-r-sm); }
+.mv-content .mv-icon-button { border-radius: var(--mv-r-sm); }
+.mv-content .mv-table :is(.mv-primary-button, .mv-secondary-button) { min-height: var(--mv-control-h-sm); padding-inline: 12px; border-radius: var(--mv-r-sm); }
+.mv-content :is(.mv-select, .mv-field input, .mv-field textarea, .mv-filter-search, .mv-dashboard-search input, .mv-dashboard-filters .mv-select):not(.mv-pulse *) { border-radius: var(--mv-r-md); }
+.mv-content :is(.mv-select, .mv-field input, .mv-filter-search):not(.mv-pulse *) { min-height: var(--mv-control-h); }
+.mv-select-popup { border-radius: var(--mv-r-md); }
+.mv-content .mv-segmented { padding: 4px; border-radius: var(--mv-r-md); }
+.mv-content .mv-segmented-btn { min-height: var(--mv-control-h-sm); border-radius: var(--mv-r-sm); }
+.mv-content .mv-status, .mv-content .mv-condition-pill { border-radius: var(--mv-r-xs); }
+
+/* ---- Filter toolbar: one slim bar above the table ---- */
+.mv-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--mv-gap-sm) var(--mv-gap);
+  margin-bottom: var(--mv-gap); padding: var(--mv-gap-xs) var(--mv-gap-sm);
+  border: 1px solid var(--mv-divider); border-radius: var(--mv-r-lg); background: var(--mv-surface);
+}
+.mv-toolbar svg { flex: none; color: var(--mv-text-muted); }
+.mv-toolbar-group { display: flex; flex-wrap: wrap; align-items: center; gap: var(--mv-gap-xs); }
+.mv-toolbar-label { color: var(--mv-text-secondary); font-size: 12px; font-weight: 500; }
+.mv-heading-search { flex: 0 1 280px; min-width: 200px; }
+@media (max-width: 900px) { .mv-heading-search { flex: 1 1 100%; } }
+
+/* ---- Table container: the table and its pagination are one surface ---- */
+.mv-content .mv-panel.mv-panel--table:not(.mv-pulse *) { padding: 0; overflow: hidden; }
+.mv-content .mv-panel--table > .mv-table-wrap { border: 0; border-radius: 0; }
+.mv-content .mv-panel--table > .mv-empty { margin: 0; border: 0; border-radius: 0; }
+.mv-content .mv-table th { height: 40px; padding-inline: var(--mv-gap); text-align: left; vertical-align: middle; }
+.mv-content .mv-table td { height: 48px; padding-inline: var(--mv-gap); vertical-align: middle; }
+.mv-content .mv-table tbody td { padding-block: 8px; }
+.mv-content .mv-table th:first-child, .mv-content .mv-table td:first-child { padding-left: var(--mv-gap); }
+.mv-content .mv-table th:last-child, .mv-content .mv-table td:last-child { padding-right: var(--mv-gap); }
+
+/* ---- Pagination ---- */
+.mv-pagination {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: var(--mv-gap-sm) var(--mv-gap); padding: var(--mv-gap-sm) var(--mv-gap);
+  color: var(--mv-text-secondary); font-size: 13px;
+}
+.mv-panel--table > .mv-pagination, .mv-table-wrap + .mv-pagination { border-top: 1px solid var(--mv-divider); background: var(--mv-surface); }
+.mv-pagination-summary { margin: 0; }
+.mv-pagination-summary strong { color: var(--mv-text); font-weight: 500; }
+.mv-pagination-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--mv-gap-sm); }
+.mv-pagination-size { width: 124px; }
+.mv-content .mv-pagination .mv-pagination-size .mv-select:not(.mv-pulse *) { min-height: var(--mv-control-h-sm); height: var(--mv-control-h-sm); border-radius: var(--mv-r-sm); font-size: 13px; }
+.mv-pagination-pages { display: flex; align-items: center; gap: 4px; }
+.mv-pagination-btn {
+  display: inline-grid; place-items: center; min-width: var(--mv-control-h-sm); height: var(--mv-control-h-sm); padding: 0 8px;
+  border: 1px solid transparent; border-radius: var(--mv-r-sm); background: transparent;
+  color: var(--mv-text-secondary); font-size: 13px; font-variant-numeric: tabular-nums;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.mv-pagination-btn:hover:not(:disabled):not(.is-active) { background: var(--mv-surface-hover); color: var(--mv-text); }
+.mv-pagination-btn:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 1px; }
+.mv-pagination-btn.is-active { border-color: var(--mv-primary); background: var(--mv-selected); color: var(--mv-primary); font-weight: 500; }
+.mv-pagination-btn:disabled { opacity: .4; cursor: not-allowed; }
+.mv-pagination-gap { display: inline-grid; place-items: center; min-width: 24px; color: var(--mv-text-muted); }
+@media (max-width: 680px) {
+  .mv-pagination { justify-content: center; text-align: center; }
+  .mv-pagination-controls { justify-content: center; }
+}
+
+/* ---- Add-user dialog and heading actions ---- */
+.mv-heading-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--mv-gap-xs); }
+.mv-field input[aria-invalid='true'] { border-color: var(--mv-danger); }
+.mv-checkbox-group { display: flex; flex-wrap: wrap; gap: var(--mv-gap-xs) var(--mv-gap); margin: 0; padding: 0; border: 0; }
+.mv-checkbox-group legend { margin-bottom: var(--mv-gap-xs); padding: 0; color: var(--mv-text-secondary); font-size: 13px; font-weight: 500; }
+.mv-checkbox { display: inline-flex; align-items: center; gap: var(--mv-gap-xs); color: var(--mv-text); font-size: 13px; }
+.mv-checkbox input { width: 16px; height: 16px; accent-color: var(--mv-primary); }
+.mv-heading-actions { flex-wrap: nowrap; }
+.mv-page-heading .mv-heading-actions { flex-wrap: nowrap; }
+.mv-heading-actions .mv-heading-search { flex: 0 1 260px; min-width: 160px; }
+.mv-form-stack > .mv-field { margin-bottom: 0; }
+@media (max-width: 680px) { .mv-page-heading .mv-heading-actions { flex-wrap: wrap; justify-content: stretch; } .mv-heading-actions .mv-heading-search { flex: 1 1 100%; } }
+.mv-heading-actions > button { flex: none; white-space: nowrap; }
+
+/* ---- Operations pulse deck: same radius and spacing scale as the workspace ---- */
+.mv-pulse { padding: var(--mv-gap) var(--mv-pad); }
+.mv-pulse-head { gap: var(--mv-gap-sm) var(--mv-gap); margin-bottom: var(--mv-gap); }
+.mv-pulse .mv-dashboard-toolbar { gap: var(--mv-gap-xs); }
+.mv-pulse .mv-dashboard-filters { gap: var(--mv-gap-xs); }
+.mv-pulse .mv-dashboard-search input,
+.mv-pulse .mv-dashboard-filters .mv-select { height: var(--mv-control-h); border-radius: var(--mv-r-md); }
+.mv-pulse .mv-dashboard-filters .mv-primary-button { min-height: var(--mv-control-h); border-radius: var(--mv-r-md); }
+.mv-pulse-grid { border-radius: var(--mv-r-lg); }
+.mv-pulse .mv-module-card { padding: var(--mv-gap) 20px; gap: var(--mv-gap-sm); }
+.mv-pulse .mv-module-card-metrics { gap: var(--mv-gap-sm) var(--mv-gap); }
+.mv-pulse .mv-status { border-radius: var(--mv-r-xs); }
+
+/* A table inside a padded panel is a nested surface: one step down the radius scale. */
+.mv-content .mv-panel:not(.mv-panel--table) .mv-table-wrap { border-radius: var(--mv-r-md); }
+
+/* Pulse metrics: content-width columns with a real gutter, so figures don't crowd each other. */
+.mv-pulse .mv-module-card-metrics { display: flex; flex-wrap: wrap; gap: var(--mv-gap-sm) 32px; }
+.mv-pulse .mv-module-card-metric { flex: 0 0 auto; }
+
+/* ---- No left/right accent strokes on cards ---- */
+/* Insight cards carry their type in tint and text colour only; every edge is the same hairline. */
+.mv-ai-insight { border-left-width: 1px; }
+.mv-ai-insight.mv-ai-insight--warning,
+.mv-ai-insight.mv-ai-insight--success,
+.mv-ai-insight.mv-ai-insight--info { border-left-color: color-mix(in srgb, currentColor 30%, var(--mv-divider)); }
+/* Pulse deck: three separate cards with a gutter, not one slab cut by vertical hairlines. */
+.mv-pulse-grid { gap: var(--mv-gap); overflow: visible; border: 0; background: transparent; }
+.mv-pulse .mv-module-card { border: 1px solid var(--mv-ink-line); border-radius: var(--mv-r-lg); }
+
+/* ==========================================================================
+   Page header, table ergonomics, bulk actions and load states.
+   ========================================================================== */
+
+/* ---- Page header: module icon + title block, actions on the right ---- */
+.mv-page-header-main { display: flex; align-items: flex-start; gap: var(--mv-gap-sm); min-width: 0; }
+.mv-page-header-icon {
+  flex: none; display: grid; place-items: center; width: 40px; height: 40px;
+  border-radius: var(--mv-r-md); color: var(--mv-primary);
+  background: color-mix(in srgb, var(--mv-primary) 10%, var(--mv-surface));
+}
+.mv-page-header-text { min-width: 0; }
+.mv-sync-chip {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: var(--mv-gap-xs); padding: 2px 8px;
+  border: 1px solid var(--mv-divider); border-radius: 999px; background: var(--mv-surface);
+  color: var(--mv-text-secondary); font-size: 12px; line-height: 18px;
+}
+@media (max-width: 680px) { .mv-page-header-icon { width: 36px; height: 36px; } }
+
+/* ---- Tables ---- */
+/* Headers never wrap; dates, ages and amounts stay on one line. */
+.mv-content .mv-table th { white-space: nowrap; }
+.mv-content .mv-table td.mv-num, .mv-content .mv-table td.mv-date { white-space: nowrap; }
+
+/* Long tables scroll inside their container so the header row stays in view. */
+@media (min-width: 681px) {
+  .mv-content .mv-table-wrap { max-height: min(72vh, 760px); overflow: auto; }
+  .mv-content .mv-table-wrap > .mv-table > thead > tr > th { position: sticky; top: 0; z-index: 2; }
+  .mv-content .mv-table-wrap > .mv-table > thead > tr:nth-child(2) > th { top: 40px; }
+}
+.mv-content .mv-table-wrap > .mv-table > thead > tr > th { background: var(--mv-surface-subtle); box-shadow: 0 1px 0 var(--mv-divider); }
+
+/* Row actions are quiet until the row is hovered or focused. */
+.mv-content .mv-table tbody tr .mv-row-actions { opacity: .55; transition: opacity 120ms ease; }
+.mv-content .mv-table tbody tr:hover .mv-row-actions,
+.mv-content .mv-table tbody tr:focus-within .mv-row-actions { opacity: 1; }
+@media (hover: none) { .mv-content .mv-table tbody tr .mv-row-actions { opacity: 1; } }
+
+/* Density (chosen in the table footer, remembered across visits). */
+[data-density='compact'] .mv-content .mv-table td { height: 38px; padding-block: 4px; font-size: 13px; }
+[data-density='compact'] .mv-content .mv-table th { height: 34px; }
+[data-density='compact'] .mv-content .mv-table-wrap > .mv-table > thead > tr:nth-child(2) > th { top: 34px; }
+.mv-density-toggle { display: inline-flex; padding: 2px; border: 1px solid var(--mv-divider); border-radius: var(--mv-r-sm); background: var(--mv-surface-subtle); }
+.mv-density-toggle button {
+  height: 26px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent;
+  color: var(--mv-text-secondary); font-size: 12px;
+}
+.mv-density-toggle button[aria-pressed='true'] { background: var(--mv-surface); color: var(--mv-text); box-shadow: 0 0 0 1px var(--mv-divider); }
+.mv-density-toggle button:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 1px; }
+@media (max-width: 680px) { .mv-density-toggle { display: none; } }
+
+/* ---- Bulk selection bar ---- */
+.mv-selection-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--mv-gap-sm);
+  margin-bottom: var(--mv-gap-sm); padding: var(--mv-gap-xs) var(--mv-gap-sm);
+  border: 1px solid color-mix(in srgb, var(--mv-primary) 35%, var(--mv-divider)); border-radius: var(--mv-r-md);
+  background: var(--mv-selected); color: var(--mv-text); font-size: 13px;
+  animation: mv-fade-in 140ms ease;
+}
+.mv-selection-bar-actions { display: flex; flex-wrap: wrap; gap: var(--mv-gap-xs); margin-left: auto; }
+.mv-selection-bar .mv-primary-button, .mv-selection-bar .mv-secondary-button { min-height: var(--mv-control-h-sm); }
+
+/* ---- Loading and error states ---- */
+.mv-skeleton { display: block; height: 12px; border-radius: 6px; background: var(--mv-surface-subtle); position: relative; overflow: hidden; }
+.mv-skeleton--head { width: 60%; height: 10px; }
+.mv-skeleton::after {
+  content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--mv-text) 7%, transparent), transparent);
+  animation: mv-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes mv-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .mv-skeleton::after { animation: none; } }
+.mv-skeleton-table td { height: 48px; }
+.mv-empty--error .mv-empty-icon { color: var(--mv-danger); background: color-mix(in srgb, var(--mv-danger) 10%, var(--mv-surface)); }
+.mv-empty .mv-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--mv-gap-xs); margin-top: var(--mv-gap-sm); }
+
+/* ---- At-a-glance panel: one surface, several columns split by hairlines ---- */
+.mv-eyebrow-accent { margin: 0 0 2px; color: var(--mv-primary); font-size: 13px; font-weight: 500; line-height: 20px; }
+.mv-content .mv-panel.mv-glance:not(.mv-pulse *) { padding: 0; overflow: hidden; margin-bottom: var(--mv-gap); }
+.mv-glance-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--mv-gap-xs) var(--mv-gap); padding: var(--mv-gap) 20px; border-bottom: 1px solid var(--mv-divider); }
+.mv-glance-title { margin: 0; font: 600 18px/26px var(--mv-font-heading); letter-spacing: -.01em; }
+.mv-glance-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mv-glance-col { display: flex; flex-direction: column; min-width: 0; padding: var(--mv-gap) 20px 20px; }
+.mv-glance-col + .mv-glance-col { border-left: 1px solid var(--mv-divider); }
+@media (max-width: 1100px) {
+  .mv-glance-grid { grid-template-columns: 1fr; }
+  .mv-glance-col + .mv-glance-col { border-left: 0; border-top: 1px solid var(--mv-divider); }
+}
+
+/* ---- Stat cards: tinted icon tile on the left, label / value / detail on the right ---- */
+.mv-kpi--stat { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: var(--mv-gap-sm); align-content: start; }
+.mv-kpi--stat > .mv-stat-icon { grid-column: 1; grid-row: 1 / span 8; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--mv-r-md); }
+.mv-kpi--stat > :not(.mv-stat-icon) { grid-column: 2; min-width: 0; }
+.mv-stat-icon--info { color: var(--mv-primary); background: color-mix(in srgb, var(--mv-primary) 12%, var(--mv-card-white)); }
+.mv-stat-icon--violet { color: #7C5CFA; background: color-mix(in srgb, #7C5CFA 12%, var(--mv-card-white)); }
+.mv-stat-icon--success { color: var(--mv-success); background: color-mix(in srgb, var(--mv-success) 12%, var(--mv-card-white)); }
+.mv-stat-icon--warning { color: var(--mv-warning); background: color-mix(in srgb, var(--mv-warning) 14%, var(--mv-card-white)); }
+.mv-stat-icon--danger { color: var(--mv-danger); background: color-mix(in srgb, var(--mv-danger) 12%, var(--mv-card-white)); }
+@media (max-width: 680px) {
+  .mv-kpi--stat { grid-template-columns: 40px minmax(0, 1fr); }
+  .mv-kpi--stat > .mv-stat-icon { width: 40px; height: 40px; }
+}
+
+/* ==========================================================================
+   Calm surfaces — fewer boxes.
+   One soft white surface per section instead of a box inside a box: panels
+   are lifted by a shadow rather than outlined, KPI figures sit open inside a
+   single strip, and lists are separated by hairlines instead of per-item
+   borders. The header and the operations-pulse deck are untouched.
+   ========================================================================== */
+:root {
+  --mv-lift: 0 1px 2px rgba(16, 24, 40, .04), 0 6px 20px -10px rgba(16, 24, 40, .10);
+}
+:root[data-theme='dark'] { --mv-lift: none; }
+
+/* Panels: lifted, not outlined (dark keeps a hairline since shadows don't read there). */
+.mv-content .mv-panel:not(.mv-pulse *),
+.mv-content .mv-glance:not(.mv-pulse *),
+.mv-content .mv-side-card:not(.mv-pulse *),
+.mv-content .mv-kpi-row-4:not(.mv-pulse *),
+.mv-content .mv-kpi-row-5:not(.mv-pulse *) {
+  border-color: transparent;
+  box-shadow: var(--mv-lift);
+  background: var(--mv-card-white);
+}
+:root[data-theme='dark'] .mv-content .mv-panel:not(.mv-pulse *),
+:root[data-theme='dark'] .mv-content .mv-glance:not(.mv-pulse *),
+:root[data-theme='dark'] .mv-content .mv-side-card:not(.mv-pulse *),
+:root[data-theme='dark'] .mv-content .mv-kpi-row-4:not(.mv-pulse *),
+:root[data-theme='dark'] .mv-content .mv-kpi-row-5:not(.mv-pulse *) { border-color: var(--mv-divider); }
+
+/* KPI rows become one strip: open figures separated by hairlines. */
+.mv-content .mv-kpi-row-4:not(.mv-pulse *),
+.mv-content .mv-kpi-row-5:not(.mv-pulse *) {
+  gap: 0;
+  border: 1px solid transparent;
+  border-radius: var(--mv-r-lg);
+  padding: 6px 0;
+  margin-bottom: var(--mv-gap);
+}
+.mv-content .mv-kpi-row-4 > .mv-kpi,
+.mv-content .mv-kpi-row-5 > .mv-kpi {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 0;
+  padding: 14px 22px;
+}
+.mv-content .mv-kpi-row-4 > .mv-kpi + .mv-kpi,
+.mv-content .mv-kpi-row-5 > .mv-kpi + .mv-kpi { border-left: 1px solid var(--mv-divider); }
+@media (max-width: 1100px) {
+  .mv-content .mv-kpi-row-4 > .mv-kpi + .mv-kpi,
+  .mv-content .mv-kpi-row-5 > .mv-kpi + .mv-kpi { border-left: 0; }
+}
+.mv-content .mv-kpi-row-4 > .mv-kpi .mv-kpi-label,
+.mv-content .mv-kpi-row-5 > .mv-kpi .mv-kpi-label { color: var(--mv-text-secondary); }
+
+/* Open lists: hairline rows, no per-item boxes. */
+.mv-content .mv-account-row-body {
+  border: 0 !important;
+  border-radius: var(--mv-r-sm) !important;
+  padding: 10px 8px !important;
+}
+.mv-content .mv-service-tile { border-color: transparent; background: var(--mv-surface-subtle); }
+.mv-content .mv-empty { border-color: transparent; box-shadow: none; background: transparent; }
+.mv-content .mv-panel .mv-table-wrap { border: 0; border-radius: 0; background: transparent; }
+
+/* Insight cards: hairline rows with a coloured marker, no tinted boxes. */
+.mv-content .mv-ai-insight,
+.mv-content .mv-ai-insight.mv-ai-insight--warning,
+.mv-content .mv-ai-insight.mv-ai-insight--success,
+.mv-content .mv-ai-insight.mv-ai-insight--info,
+.mv-content .mv-ai-insight.mv-ai-insight--danger {
+  position: relative;
+  border: 0;
+  border-bottom: 1px solid var(--mv-divider);
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 0 12px 20px;
+  color: var(--mv-text);
+}
+.mv-content .mv-ai-insight:last-child { border-bottom: 0; }
+.mv-content .mv-ai-insight::before {
+  content: ''; position: absolute; left: 2px; top: 18px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--mv-primary);
+}
+.mv-content .mv-ai-insight--warning::before { background: var(--mv-warning); }
+.mv-content .mv-ai-insight--success::before { background: var(--mv-success); }
+.mv-content .mv-ai-insight--danger::before { background: var(--mv-danger); }
+.mv-content .mv-ai-insight--info::before { background: var(--mv-info, var(--mv-primary)); }
+
+/* Filter toolbars sit on the page rather than in their own box. */
+.mv-toolbar { border-color: transparent; background: transparent; padding: 0; box-shadow: none; }
+
+/* Soften the icon tile, which now carries each KPI on its own. */
+.mv-kpi--stat > .mv-stat-icon { border-radius: 14px; }
+
+/* Any group made only of KPI figures reads as one strip, whatever wrapper it has. */
+.mv-content :is(div, section):has(> .mv-kpi):not(:has(> :not(.mv-kpi))):not(.mv-pulse *) {
+  gap: 0 !important;
+  padding: 6px 0;
+  border: 1px solid transparent;
+  border-radius: var(--mv-r-lg);
+  background: var(--mv-card-white);
+  box-shadow: var(--mv-lift);
+}
+.mv-content :is(div, section):has(> .mv-kpi):not(:has(> :not(.mv-kpi))) > .mv-kpi {
+  min-height: 0 !important;
+  padding: 14px 22px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.mv-content :is(div, section):has(> .mv-kpi):not(:has(> :not(.mv-kpi))) > .mv-kpi + .mv-kpi { border-left: 1px solid var(--mv-divider) !important; }
+@media (max-width: 1100px) {
+  .mv-content :is(div, section):has(> .mv-kpi):not(:has(> :not(.mv-kpi))) > .mv-kpi + .mv-kpi { border-left: 0 !important; }
+}
+/* Two stacked strips (SAP Performance) join into one surface. */
+.mv-content .mv-kpi-row-4:has(+ .mv-kpi-row-4) { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: none; }
+.mv-content .mv-kpi-row-4 + .mv-kpi-row-4 { border-top-left-radius: 0; border-top-right-radius: 0; border-top: 1px solid var(--mv-divider); }
+
+/* Boxed list items drawn with inline borders become hairline rows. */
+.mv-content :is([style*="border: 1px solid var(--mv-divider)"], [style*="border: 1px solid var(--mv-border)"]):not(input, select, textarea, label, .mv-select, .mv-field, .mv-status, .mv-segmented, .mv-secondary-button, .mv-primary-button, .mv-quiet-button) {
+  border: 0 !important;
+  border-bottom: 1px solid var(--mv-divider) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+/* Tinted row backgrounds in lists (Top Recommendations) become plain hairline rows too. */
+.mv-content .mv-panel div[style*="background: var(--mv-surface-subtle)"][style*="border-radius: 8px"] {
+  background: transparent !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid var(--mv-divider);
+}
+
+/* Account and other reading-width pages use the width they have. */
+@media (min-width: 1180px) {
+  .mv-content .mv-reading-width { max-width: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--mv-gap); align-items: start; }
+  .mv-content .mv-reading-width > .mv-page-heading { grid-column: 1 / -1; }
+  .mv-content .mv-reading-width > .mv-panel { margin-bottom: 0; }
+}
+
+/* Status lines and filter bars sit on the page itself rather than in their own boxes. */
+.mv-meta-line { color: var(--mv-text-secondary); font-size: 13px; }
+.mv-meta-line strong { color: var(--mv-text); font-weight: 500; }
+.mv-content .mv-panel.mv-panel--flat:not(.mv-pulse *),
+.mv-content .mv-panel.mv-alert-filter-bar:not(.mv-pulse *) { background: transparent; box-shadow: none; border-color: transparent; padding: 0; }
+.mv-content .mv-panel.mv-alert-filter-bar:not(.mv-pulse *) { margin-bottom: var(--mv-gap-sm); }
+/* Joined strips: win over the generic strip rule. */
+.mv-content .mv-kpi-row-4:has(+ .mv-kpi-row-4):not(.mv-pulse *) { margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; box-shadow: none; padding-bottom: 0; }
+.mv-content .mv-kpi-row-4 + .mv-kpi-row-4:not(.mv-pulse *) { border-top: 1px solid var(--mv-divider); border-top-left-radius: 0; border-top-right-radius: 0; padding-top: 0; }
+
+/* Donut fills the room it is given (up to 300px) instead of a fixed 184px. */
+.mv-donut-total { flex: 1 1 220px; min-width: 180px; max-width: 300px; aspect-ratio: 1 / 1; margin-inline: auto; }
+.mv-donut-body { justify-content: center; }
+.mv-donut-total-label strong { font-size: clamp(22px, 2.2vw, 30px); }
+.mv-donut-total { flex-basis: 240px; container-type: inline-size; }
+.mv-donut-legend { flex: 1 1 200px; }
+.mv-donut-total-label strong { font-size: clamp(15px, 11cqw, 32px); }
+.mv-content .mv-kpi-row-4:has(+ .mv-kpi-row-4):not(.mv-pulse *) { margin-bottom: 0 !important; }
+
+/* Account rows are buttons: no browser button chrome, just a hairline between rows. */
+button.mv-account-row {
+  border: 0;
+  border-bottom: 1px solid var(--mv-divider);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border-radius: 0;
+}
+button.mv-account-row:hover { background: var(--mv-surface-hover); }
+button.mv-account-row:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: -2px; }
+button.mv-account-row:last-child { border-bottom: 0; }
+
+/* ==========================================================================
+   QA pass: alignment and spacing fixes found by walking every page.
+   ========================================================================== */
+/* The assistant launcher floats over the bottom-right corner; keep content clear of it. */
+.mv-content { padding-bottom: 96px; }
+
+/* Tags never wrap into tall boxes. */
+.mv-content .mv-status, .mv-content .mv-condition-pill { white-space: nowrap; }
+
+/* A short description directly under a panel title sits close to it. */
+.mv-content .mv-panel-header + p.mv-muted,
+.mv-content .mv-panel-header + .mv-muted { margin-top: -6px; }
+
+/* Insight columns side by side need no row hairlines. */
+.mv-content [style*="grid-template-columns"] > .mv-ai-insight { border-bottom: 0; }
+
+/* Nested tinted tiles inside panels (financial snapshot, health score, top services) become open figures. */
+.mv-content .mv-panel div[style*="background: var(--mv-surface-subtle)"][style*="border-radius: 10px"],
+.mv-content .mv-panel div[style*="background: var(--mv-surface-subtle)"][style*="border-radius: 12px"] {
+  background: transparent !important;
+}
+
+/* Table action cells stay in the table's row. */
+.mv-content .mv-table td > .mv-row-actions { justify-content: flex-end; }
+
+/* KPI figures never get clipped; long currency values wrap on phones. */
+.mv-content .mv-kpi-value { overflow-wrap: anywhere; }
+@media (max-width: 680px) {
+  .mv-content .mv-kpi-value { font-size: clamp(20px, 7vw, 28px); }
+}
+
+/* Eight figures in one horizontal strip (SAP Performance); fewer columns as the screen narrows. */
+.mv-kpi-row-8 { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.mv-kpi-row-8 > .mv-kpi { grid-column: auto; }
+.mv-content .mv-kpi-row-8 > .mv-kpi { padding: 14px 16px !important; }
+@media (max-width: 1360px) { .mv-kpi-row-8 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 680px) { .mv-kpi-row-8 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Numeric columns: header and figures share the right edge (the generic th rule had left-aligned the headers). */
+.mv-content .mv-table th.mv-num, .mv-content .mv-table td.mv-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Section headings on merged pages: one page, several titled sections (no tabs). */
+.mv-section-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--mv-gap-sm) var(--mv-gap); margin: 8px 0 var(--mv-gap-sm); }
+.mv-section-head p { margin: 2px 0 0; font-size: 13px; }
+.mv-section-title { margin: 0; font: 600 18px/26px var(--mv-font-heading); letter-spacing: -.01em; color: var(--mv-text); }
+.mv-section-head .mv-heading-actions .mv-select { min-width: 170px; }
+[id] { scroll-margin-top: calc(var(--mv-header-height) + 16px); }
+
+/* ---- Insight rows (InsightList): tone dot, title, one-line detail ---- */
+.mv-insight-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.mv-insight-list li { border-bottom: 1px solid var(--mv-divider); }
+.mv-insight-list li:last-child { border-bottom: 0; }
+.mv-insight-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 4px; color: var(--mv-text); text-decoration: none; border-radius: var(--mv-r-sm); }
+a.mv-insight-row:hover { background: var(--mv-surface-hover); text-decoration: none; }
+a.mv-insight-row:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: -2px; }
+.mv-insight-dot { flex: none; width: 8px; height: 8px; margin-top: 7px; border-radius: 50%; background: var(--mv-primary); }
+.mv-insight-dot--danger { background: var(--mv-danger); }
+.mv-insight-dot--warning { background: var(--mv-warning); }
+.mv-insight-dot--success { background: var(--mv-success); }
+.mv-insight-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.mv-insight-text strong { font-weight: 500; font-size: 13.5px; line-height: 20px; }
+.mv-insight-text .mv-muted { font-size: 12.5px; line-height: 18px; }
+.mv-insight-chevron { flex: none; margin-top: 4px; color: var(--mv-text-muted); }
+
+/* ---- Biggest movers: provider, before → after, change ---- */
+.mv-mover-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.mv-mover-row { display: grid; grid-template-columns: minmax(140px, 1.2fr) minmax(0, 2fr) minmax(0, 1.4fr); align-items: center; gap: var(--mv-gap); padding: 12px 4px; border-bottom: 1px solid var(--mv-divider); font-size: 13.5px; }
+.mv-mover-row:last-child { border-bottom: 0; }
+.mv-mover-name { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.mv-mover-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.mv-mover-delta { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; font-weight: 500; font-variant-numeric: tabular-nums; color: var(--mv-text-secondary); }
+.mv-mover-delta.is-up { color: var(--mv-danger); }
+.mv-mover-delta.is-down { color: var(--mv-success); }
+@media (max-width: 680px) { .mv-mover-row { grid-template-columns: 1fr auto; } .mv-mover-row > .mv-muted { grid-column: 1 / -1; order: 3; } }
+
+/* Dashboard glance strip: sparkline under a KPI figure. */
+.mv-kpi-spark { display: block; margin-top: 6px; color: var(--mv-primary); }
+.mv-sparkline { display: block; }
+.mv-dashboard-main > .mv-kpi-row-5 { margin-bottom: 0; }
+
+
+/* Dashboard glance strip: six compact figures that never break a currency across lines. */
+.mv-content .mv-glance-strip.mv-kpi-row-5 { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.mv-content .mv-glance-strip > .mv-kpi { padding: 14px 16px !important; }
+.mv-content .mv-glance-strip .mv-kpi-value { font-size: 22px; line-height: 28px; white-space: nowrap; overflow-wrap: normal; }
+.mv-content .mv-glance-strip .mv-kpi-label { font-size: 12.5px; }
+.mv-content .mv-glance-strip .mv-muted { font-size: 12px; }

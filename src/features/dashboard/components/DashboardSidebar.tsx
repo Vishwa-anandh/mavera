@@ -1,13 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
-import { CrownIcon, ServerIcon, CloudIcon, SwapIcon, BellIcon, ReportIcon, SettingsIcon, HeadsetIcon } from '../../../shared/ui/icons';
+import { CrownIcon, ServerIcon, CloudIcon, BellIcon, ReportIcon, SettingsIcon, HeadsetIcon } from '../../../shared/ui/icons';
 
 const QUICK_ACCESS = [
   { key: 'sap', label: 'Add SAP System', path: '/sap/systems', icon: ServerIcon, module: 'sapMonitoring' as const },
   { key: 'azure', label: 'Add Azure Subscription', path: '/cloud/overview', icon: CloudIcon, module: 'cloudCost' as const },
-  { key: 'idoc', label: 'Configure IDoc Monitoring', path: '/idocs/overview', icon: SwapIcon, module: 'idocMonitoring' as const },
   { key: 'alerts', label: 'Manage Alerts', path: '/alerts', icon: BellIcon },
-  { key: 'reports', label: 'Generate Report', path: '/reports', icon: ReportIcon },
+  { key: 'reports', label: 'Generate Report', path: '/cloud/analytics', icon: ReportIcon },
   { key: 'settings', label: 'Settings', path: '/account', icon: SettingsIcon },
 ];
 
@@ -16,12 +15,12 @@ const QUICK_ACCESS = [
  * status, quick shortcuts and support, matching the reference layout's left
  * rail exactly (structure only; copy and colours are ours). Both the
  * subscription summary and the quick-access list read the org's module
- * entitlements (set by the super admin), so an org on fewer than all 3
+ * entitlements (set by the super admin), so an org on fewer than both
  * modules doesn't see shortcuts into ones it can't open.
  */
 export function DashboardSidebar() {
   const { modules } = useAuth();
-  const activeCount = Number(modules.cloudCost) + Number(modules.idocMonitoring) + Number(modules.sapMonitoring);
+  const activeCount = Number(modules.cloudCost) + Number(modules.sapMonitoring);
   const quickAccess = QUICK_ACCESS.filter((item) => !item.module || modules[item.module]);
 
   return (
@@ -32,7 +31,7 @@ export function DashboardSidebar() {
           <strong>Enterprise Plan</strong>
           <span className="mv-status mv-status--success">Active</span>
         </div>
-        <p className="mv-muted" style={{ margin: '6px 0 12px' }}>{activeCount} of 3 modules active</p>
+        <p className="mv-muted" style={{ margin: '6px 0 12px' }}>{activeCount} of 2 modules active</p>
         <Link className="mv-quiet-button" to="/subscription">View subscription</Link>
       </section>
 

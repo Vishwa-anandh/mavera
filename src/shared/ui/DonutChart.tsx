@@ -29,10 +29,10 @@ export function DonutChart({ title, data, totalLabel }: DonutChartProps) {
   return (
     <div className="mv-donut-card">
       <div className="mv-donut-body" role="img" aria-label={title}>
-        <div className="mv-donut-total" style={{ width: 184, height: 184 }}>
+        <div className="mv-donut-total">
           <ResponsiveContainer>
             <PieChart>
-              <Pie data={data} dataKey="value" nameKey="label" innerRadius={62} outerRadius={88} paddingAngle={1} stroke="none" isAnimationActive={false}>
+              <Pie data={data} dataKey="value" nameKey="label" innerRadius="68%" outerRadius="98%" paddingAngle={1} stroke="none" isAnimationActive={false}>
                 {data.map((slice) => (
                   <Cell key={slice.label} fill={slice.color} />
                 ))}

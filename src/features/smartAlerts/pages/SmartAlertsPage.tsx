@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import {
   BellIcon, RefreshIcon, CheckIcon, EyeIcon, CloseIcon,
   ClockIcon, MailIcon, SettingsIcon, UsersIcon, TrashIcon, PlusIcon, FilterIcon,
@@ -8,6 +7,7 @@ import { Tooltip } from '../../../shared/ui/Tooltip';
 import { MOCK_ALERT_STATS, MOCK_RECIPIENT_CONFIGS, MOCK_SMART_ALERTS, MOCK_SMART_ALERTS_CONFIG } from '../../../demo/smartAlerts/mockSmartAlertsData';
 import { SEVERITY_LABELS, SEVERITY_TONE, TYPE_LABELS, formatMoney } from '../model/smartAlertsDerivations';
 import type { AlertType, RecipientConfig, SmartAlert, SmartAlertsConfig } from '../model/smartAlertsTypes';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 type StatusFilter = 'all' | 'unread' | 'critical' | 'high';
 type TypeFilter = 'all' | AlertType;
@@ -63,19 +63,14 @@ export function SmartAlertsPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Smart Alerts' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">Smart Alerts &amp; Anomalies</h1>
-          <p className="mv-subtitle">Automated detection of billing spikes, unusual spend, budget breaches, and new resource creation.</p>
-        </div>
+      <PageHeader title={<>Smart Alerts &amp; Anomalies</>} subtitle="Automated detection of billing spikes, unusual spend, budget breaches, and new resource creation.">
         {activeTab === 'alerts' && (
           <div style={{ display: 'flex', gap: 10 }}>
             {unreadCount > 0 && <button className="mv-secondary-button" onClick={markAllRead}><CheckIcon size={16} style={{ marginRight: 6 }} />Mark All Read</button>}
             <button className="mv-secondary-button"><RefreshIcon size={16} style={{ marginRight: 6 }} />Refresh</button>
           </div>
         )}
-      </div>
+      </PageHeader>
 
       <div className="mv-segmented" style={{ marginBottom: 20 }}>
         <button className={`mv-segmented-btn${activeTab === 'alerts' ? ' is-active' : ''}`} onClick={() => setActiveTab('alerts')}><BellIcon size={15} />Alerts</button>
@@ -89,7 +84,7 @@ export function SmartAlertsPage() {
         <SettingsPanel />
       ) : (
         <>
-          <div className="mv-notice" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
+          <div className="mv-meta-line" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ClockIcon size={14} />Last alert: <strong>{new Date(MOCK_ALERT_STATS.lastDetectedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong></span>
             <span>Ignored this month: <strong>{MOCK_ALERT_STATS.ignoredThisMonth}</strong></span>
             <span>Threshold adjustments: <strong>{MOCK_ALERT_STATS.feedbackAdjustments}</strong></span>
@@ -222,7 +217,7 @@ function SettingsPanel() {
       <div className="mv-notice" style={{ marginBottom: 16 }}>
         These settings tune how sensitive anomaly detection is for your organisation. Changes take effect on the next daily detection run at <strong>02:30 AM</strong>. Ignoring an alert automatically widens the sensitivity for that account.
       </div>
-      {saved && <div className="mv-notice" style={{ marginBottom: 16, borderLeftColor: 'var(--mv-success)' }}><CheckIcon size={14} style={{ marginRight: 6, verticalAlign: -2 }} />Settings saved successfully.</div>}
+      {saved && <div className="mv-notice" style={{ marginBottom: 16 }}><CheckIcon size={14} style={{ marginRight: 6, verticalAlign: -2 }} />Settings saved successfully.</div>}
       <section className="mv-panel" style={{ marginBottom: 16 }}>
         {SETTINGS_FIELDS.map((field) => (
           <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 0', borderBottom: '1px solid var(--mv-divider)' }}>

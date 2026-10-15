@@ -4,8 +4,10 @@ import {
   activeAlertCountOf,
   budgetCountOf,
   invoiceCountOf,
+  monthlyByProviderOf,
   monthlyTrendOf,
   mspSavingsTotalOf,
+  providerMoversOf,
   recommendationCountOf,
   totalSpendOf,
   useDashboardData,
@@ -141,5 +143,34 @@ describe('dashboard derivations', () => {
     expect(mspSavingsTotalOf(garbage)).toBe(0);
     expect(invoiceCountOf(garbage)).toBe(0);
     expect(budgetCountOf({} as never)).toBe(0);
+  });
+});
+
+describe('provider breakdown helpers', () => {
+  const summary = {
+    monthly: [
+      { key: '2026-09', total: 1300, azure: 600, aws: 400, btp: 300, gcp: 0 },
+      { key: '2026-07', total: 1000, azure: 500, aws: 400, btp: 100, gcp: 0 },
+      { key: '2026-08', total: 1100, azure: 500, aws: 500, btp: 100, gcp: 0 },
+    ],
+  };
+
+  it('returns the latest months in order, labelled by month name', () => {
+    expect(monthlyByProviderOf(summary, 2).map((r) => [r.key, r.name, r.azure])).toEqual([['2026-08', 'Aug', 500], ['2026-09', 'Sep', 600]]);
+    expect(monthlyByProviderOf(null)).toEqual([]);
+  });
+
+  it('ranks providers by the size of their month-over-month move', () => {
+    const movers = providerMoversOf(summary);
+    expect(movers.map((m) => m.provider)).toEqual(['btp', 'azure', 'aws']);
+    expect(movers[0]).toMatchObject({ provider: 'btp', delta: 200, changePct: 200 });
+    expect(movers.find((m) => m.provider === 'aws')).toMatchObject({ delta: -100, changePct: -20 });
+    expect(movers.some((m) => m.provider === 'gcp')).toBe(false);
+  });
+
+  it('has no movers without two months of history, and no percentage without previous spend', () => {
+    expect(providerMoversOf({ monthly: [{ key: '2026-09', total: 1, azure: 1 }] })).toEqual([]);
+    const fresh = providerMoversOf({ monthly: [{ key: '2026-08', total: 0 }, { key: '2026-09', total: 5, aws: 5 }] });
+    expect(fresh[0]).toMatchObject({ provider: 'aws', changePct: null });
   });
 });

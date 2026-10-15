@@ -3,33 +3,33 @@ import { renderHook, act } from '@testing-library/react';
 import { assistantIntroLabel, assistantSuggestions, useAssistantConversation } from './useAssistantConversation';
 import { FLOW_GUIDES } from './flowGuides';
 
-const ALL_ON = { cloudCost: true, idocMonitoring: true, sapMonitoring: true };
+const ALL_ON = { cloudCost: true, sapMonitoring: true };
 
 describe('assistantSuggestions', () => {
   it('shows every module suggestion plus Generate report when all 3 modules are enabled', () => {
-    expect(assistantSuggestions(ALL_ON)).toEqual(['System health', 'Cost optimization', 'Failed IDocs', 'Generate report']);
+    expect(assistantSuggestions(ALL_ON)).toEqual(['System health', 'Cost optimization', 'Generate report']);
   });
 
   it('drops a suggestion for a module the org is not subscribed to, keeping Generate report', () => {
-    expect(assistantSuggestions({ ...ALL_ON, sapMonitoring: false })).toEqual(['Cost optimization', 'Failed IDocs', 'Generate report']);
+    expect(assistantSuggestions({ ...ALL_ON, sapMonitoring: false })).toEqual(['Cost optimization', 'Generate report']);
   });
 
   it('keeps only Generate report when no module is enabled', () => {
-    expect(assistantSuggestions({ cloudCost: false, idocMonitoring: false, sapMonitoring: false })).toEqual(['Generate report']);
+    expect(assistantSuggestions({ cloudCost: false, sapMonitoring: false })).toEqual(['Generate report']);
   });
 });
 
 describe('assistantIntroLabel', () => {
   it('mentions all 3 topics when every module is enabled', () => {
-    expect(assistantIntroLabel(ALL_ON)).toBe('Ask anything about your SAP systems, cloud costs or IDoc processing.');
+    expect(assistantIntroLabel(ALL_ON)).toBe('Ask anything about your SAP systems or cloud costs.');
   });
 
   it('mentions only the enabled topics', () => {
-    expect(assistantIntroLabel({ ...ALL_ON, sapMonitoring: false })).toBe('Ask anything about your cloud costs or IDoc processing.');
+    expect(assistantIntroLabel({ ...ALL_ON, sapMonitoring: false })).toBe('Ask anything about your cloud costs.');
   });
 
   it('falls back to a generic label when no module is enabled', () => {
-    expect(assistantIntroLabel({ cloudCost: false, idocMonitoring: false, sapMonitoring: false })).toBe('Ask me anything about your Mavera workspace.');
+    expect(assistantIntroLabel({ cloudCost: false, sapMonitoring: false })).toBe('Ask me anything about your Mavera workspace.');
   });
 });
 

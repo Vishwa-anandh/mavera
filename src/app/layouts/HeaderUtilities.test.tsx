@@ -23,7 +23,7 @@ function auth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
     cloudAccess: ['azure'],
     features: { budgets: true, smartAlerts: true, syncLogs: true, recommendations: true, cloudManagement: true, invoices: true },
     accountLimits: { azure: 3, aws: 3, btp: 3 },
-    modules: { cloudCost: true, idocMonitoring: true, sapMonitoring: true },
+    modules: { cloudCost: true, sapMonitoring: true },
     maxUsers: undefined,
     planType: 'enterprise',
     subscriptionStartsAt: undefined,
@@ -77,7 +77,7 @@ describe('header notifications', () => {
   });
 
   it("never shows notifications from a module the org isn't subscribed to", async () => {
-    useAuthMock.mockReturnValue(auth({ modules: { cloudCost: true, idocMonitoring: true, sapMonitoring: false } }));
+    useAuthMock.mockReturnValue(auth({ modules: { cloudCost: true, sapMonitoring: false } }));
     const user = userEvent.setup();
     renderShell();
 
@@ -91,9 +91,9 @@ describe('header notifications', () => {
     renderShell();
 
     await user.click(screen.getByRole('button', { name: /^Notifications/ }));
-    await user.click(screen.getByRole('button', { name: /IDoc processing failed/ }));
+    await user.click(screen.getByRole('button', { name: /^Unread: Azure cost threshold exceeded/ }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByTestId('where')).toHaveTextContent('/idocs/failed');
+    expect(screen.getByTestId('where')).toHaveTextContent('/budgets');
   });
 });
 
@@ -105,12 +105,12 @@ describe('page search', () => {
 
     await user.keyboard('{Control>}k{/Control}');
     const dialog = screen.getByRole('dialog', { name: 'Search pages' });
-    await user.type(within(dialog).getByRole('combobox'), 'failed idocs');
-    expect(within(dialog).getByRole('option', { name: /Failed IDocs/ })).toHaveAttribute('aria-selected', 'true');
+    await user.type(within(dialog).getByRole('combobox'), 'budgets');
+    expect(within(dialog).getByRole('option', { name: /Budgets & Alerts/ })).toHaveAttribute('aria-selected', 'true');
     await user.keyboard('{Enter}');
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByTestId('where')).toHaveTextContent('/idocs/failed');
+    expect(screen.getByTestId('where')).toHaveTextContent('/budgets');
   });
 
   it('explains when nothing matches', async () => {
@@ -143,9 +143,9 @@ describe('module menus', () => {
     const user = userEvent.setup();
     renderShell();
 
-    await user.click(screen.getByRole('button', { name: /^IDoc Monitoring/ }));
-    await user.click(screen.getByRole('menuitem', { name: 'Failed IDocs' }));
+    await user.click(screen.getByRole('button', { name: /^Cloud Cost/ }));
+    await user.click(screen.getByRole('menuitem', { name: 'Budgets & Alerts' }));
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-    expect(screen.getByTestId('where')).toHaveTextContent('/idocs/failed');
+    expect(screen.getByTestId('where')).toHaveTextContent('/budgets');
   });
 });

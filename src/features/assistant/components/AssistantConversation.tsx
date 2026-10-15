@@ -36,7 +36,7 @@ export function AssistantConversation({ messages, draft, onDraftChange, onSend, 
                 </button>
               </div>
             )}
-            <p className="mv-muted">{introLabel ?? 'Ask about your SAP systems, cloud costs or IDoc processing.'}</p>
+            <p className="mv-muted">{introLabel ?? 'Ask about your SAP systems or cloud costs.'}</p>
             <div>
               <p className="mv-muted mv-assistant-try">Try asking</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -59,7 +59,7 @@ export function AssistantConversation({ messages, draft, onDraftChange, onSend, 
       <form className="mv-assistant-composer" onSubmit={onSubmit}>
         <input
           aria-label="Ask the AI Assistant"
-          placeholder="e.g., Show me failed IDocs today"
+          placeholder="e.g., Show me this month’s cloud spend"
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
         />

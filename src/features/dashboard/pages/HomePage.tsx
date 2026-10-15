@@ -1,19 +1,28 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
-import { activeAlertCountOf, recommendationCountOf, totalSpendOf, useDashboardData } from '../model/useDashboardData';
+import {
+  activeAlertCountOf,
+  activeAlertsOf,
+  budgetUtilPctOf,
+  monthlyTrendOf,
+  recommendationCountOf,
+  totalBudgetOf,
+  totalSpendOf,
+  useDashboardData,
+} from '../model/useDashboardData';
+import { buildAttentionFeed } from '../model/attentionFeed';
 import { DashboardToolbar } from '../components/DashboardToolbar';
 import { DashboardSidebar } from '../components/DashboardSidebar';
 import { ModuleCard, type MeterSegment } from '../../../shared/ui/ModuleCard';
-import { SapSystemsPanel } from '../../sap';
-import { sapConditionCounts, MOCK_SAP_SYSTEMS } from '../../../demo/sap/mockSapData';
-import { IdocStatusPanel } from '../../idoc';
-import { MOCK_IDOC_STATUS, idocSuccessRate } from '../../../demo/idoc/mockIdocData';
-import { AlertsPanel } from '../../alerts';
+import { SapSystemsPanel, useSapFleetSnapshot } from '../../sap';
+import { useCloudAttentionSources } from '../model/cloudAttention';
+import { InsightList } from '../../../shared/ui/InsightList';
+import { Sparkline } from '../../../shared/ui/Sparkline';
 import { DonutChart } from '../../../shared/ui/DonutChart';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
-import { ServerIcon, CloudIcon, SwapIcon } from '../../../shared/ui/icons';
+import { ServerIcon, CloudIcon } from '../../../shared/ui/icons';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -54,19 +63,19 @@ function greetingFor(hour: number): string {
 export function HomePage() {
   const { user, cloudAccess, invoiceOnly, modules } = useAuth();
   const permissions = derivePermissions(user, cloudAccess, invoiceOnly);
-  const { summary, recommendations, smartAlerts, refetch } = useDashboardData();
+  const { summary, recommendations, smartAlerts, budgets, refetch } = useDashboardData();
 
-  const sapCounts = sapConditionCounts(MOCK_SAP_SYSTEMS);
-  const idocTotal = MOCK_IDOC_STATUS.successful + MOCK_IDOC_STATUS.failed + MOCK_IDOC_STATUS.inProcess + MOCK_IDOC_STATUS.waiting;
+  const sap = useSapFleetSnapshot();
+  const cloud = useCloudAttentionSources();
+  const sapCounts = sap.counts;
   const noCloudAccessAtAll = !permissions.azure.orgHasAccess && !permissions.aws.orgHasAccess && !permissions.btp.orgHasAccess && !permissions.gcp.orgHasAccess;
   const cloudSubscribed = !noCloudAccessAtAll || invoiceOnly;
 
-  const sapOrder: Record<string, number> = { critical: 0, warning: 1, healthy: 2 };
   const sapMeter = {
-    segments: [...MOCK_SAP_SYSTEMS]
-      .sort((a, b) => (sapOrder[a.condition] ?? 3) - (sapOrder[b.condition] ?? 3))
-      .map((system): MeterSegment => (system.condition === 'critical' ? 'crit' : system.condition === 'warning' ? 'warn' : system.condition === 'healthy' ? 'ok' : 'empty')),
-    caption: `${sapCounts.critical} critical and ${sapCounts.warning} warning across ${MOCK_SAP_SYSTEMS.length} systems`,
+    // Most severe first, so problems lead the meter.
+    segments: (['critical', 'warning', 'healthy'] as const)
+      .flatMap((condition) => Array<MeterSegment>(sapCounts[condition]).fill(condition === 'critical' ? 'crit' : condition === 'warning' ? 'warn' : 'ok')),
+    caption: `${sapCounts.critical} critical and ${sapCounts.warning} warning across ${sap.systemCount} systems`,
   };
 
   const spend = summary.data ? totalSpendOf(summary.data) : 0;
@@ -79,21 +88,30 @@ export function HomePage() {
     caption: `${Math.round((spend / forecast) * 100)}% of the ${formatCurrency(forecast)} month-end forecast`,
   } : undefined;
 
-  const idocMeter = {
-    segments: proportionalSegments([
-      { value: MOCK_IDOC_STATUS.successful, segment: 'ok' },
-      { value: MOCK_IDOC_STATUS.inProcess + MOCK_IDOC_STATUS.waiting, segment: 'warn' },
-      { value: MOCK_IDOC_STATUS.failed, segment: 'crit' },
-    ]),
-    caption: `${MOCK_IDOC_STATUS.failed.toLocaleString()} failed of ${idocTotal.toLocaleString()} in the last 24 hours`,
-  };
+  const trend = monthlyTrendOf(summary.data ?? null).map((p) => p.amount);
+  const totalBudget = totalBudgetOf(budgets.data ?? null);
+  const budgetUtilPct = budgetUtilPctOf(spend, totalBudget);
+  const openCloudAlerts = activeAlertsOf(smartAlerts.data ?? null);
+  const savingsPotential = recommendations.data?.summary?.totalEstimatedSavings ?? null;
+  const openAlertCount = (modules.cloudCost ? openCloudAlerts.length : 0) + (modules.sapMonitoring ? sap.unreadAlerts : 0);
+
+  const attention = buildAttentionFeed({
+    modules,
+    sapInsights: sap.insights,
+    smartAlerts: openCloudAlerts,
+    budgetUtilPct,
+    totalBudget,
+    forecastEom: forecast,
+    highImpactSavings: cloud.highImpactSavings,
+    expiringReservations: cloud.expiringReservations,
+  });
 
   const firstName = user?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'there';
 
   // Each module the org isn't subscribed to (super admin's call, not the
   // org's) drops out of both rows below — the grid itself reflows to fill
   // the freed space rather than leaving an empty slot (see .mv-row-3col's
-  // auto-fit columns), so this stays correct whether 1, 2 or all 3 modules
+  // auto-fit columns), so this stays correct whether 1 or both modules
   // are enabled.
   const summaryRows = [
     modules.cloudCost && (
@@ -129,22 +147,6 @@ export function HomePage() {
         actionPath="/sap/systems"
       />
     ),
-    modules.idocMonitoring && (
-      <ModuleCard
-        key="idoc"
-        title="IDoc Monitoring"
-        icon={SwapIcon}
-        subscribed
-        meter={idocMeter}
-        metrics={[
-          { label: 'Total IDocs', value: idocTotal.toLocaleString() },
-          { label: 'Failed', value: MOCK_IDOC_STATUS.failed.toLocaleString() },
-          { label: 'Success rate', value: `${idocSuccessRate(MOCK_IDOC_STATUS)}%` },
-        ]}
-        actionLabel="Open IDoc Overview"
-        actionPath="/idocs/overview"
-      />
-    ),
   ].filter(Boolean);
 
   const healthRows = [
@@ -170,15 +172,6 @@ export function HomePage() {
         )}
       </section>
     ),
-    modules.idocMonitoring && (
-      <section key="idoc-health" className="mv-panel" aria-labelledby="idoc-status-title">
-        <div className="mv-panel-header">
-          <h2 id="idoc-status-title" className="mv-panel-title">IDoc Status (Last 24h)</h2>
-          <Link className="mv-quiet-button" to="/idocs/overview">View all</Link>
-        </div>
-        <IdocStatusPanel limit={2} showCounts={false} compact />
-      </section>
-    ),
   ].filter(Boolean);
 
   return (
@@ -198,15 +191,62 @@ export function HomePage() {
         <DashboardSidebar />
 
         <div className="mv-dashboard-main">
-          <div className="mv-row-4col">
-            <section className="mv-panel" aria-labelledby="recent-alerts-title">
-              <div className="mv-panel-header">
-                <h2 id="recent-alerts-title" className="mv-panel-title">Recent Alerts</h2>
-                <Link className="mv-quiet-button" to="/alerts">View all</Link>
-              </div>
-              <AlertsPanel limit={3} compact />
-            </section>
+          <div className="mv-kpi-row-5 mv-glance-strip" aria-label="At a glance">
+            {modules.cloudCost && (
+              <article className="mv-kpi">
+                <span className="mv-kpi-label">Cloud spend (MTD)</span>
+                <strong className="mv-kpi-value">{summary.data ? formatCurrency(spend) : '—'}</strong>
+                <span className="mv-kpi-spark"><Sparkline values={trend} label="Monthly cloud spend, last months" /></span>
+              </article>
+            )}
+            {modules.cloudCost && (
+              <article className="mv-kpi">
+                <span className="mv-kpi-label">Forecast vs budget</span>
+                <strong className="mv-kpi-value">{forecast !== null ? formatCurrency(forecast) : '—'}</strong>
+                <span className="mv-muted">{totalBudget > 0 ? `${Math.round(((forecast ?? 0) / totalBudget) * 100)}% of ${formatCurrency(totalBudget)} budget` : 'No budget set'}</span>
+              </article>
+            )}
+            {modules.cloudCost && (
+              <article className="mv-kpi">
+                <span className="mv-kpi-label">Savings potential</span>
+                <strong className="mv-kpi-value" style={{ color: 'var(--mv-success)' }}>{savingsPotential !== null ? formatCurrency(Number(savingsPotential)) : recommendations.data ? `${recommendationCountOf(recommendations.data)} ideas` : '—'}</strong>
+                <Link className="mv-quiet-button" to="/cloud/optimization">Review opportunities</Link>
+              </article>
+            )}
+            {modules.sapMonitoring && (
+              <article className="mv-kpi">
+                <span className="mv-kpi-label">SAP systems healthy</span>
+                <strong className="mv-kpi-value">{sapCounts.healthy}/{sap.systemCount}</strong>
+                <span className="mv-muted">{sapCounts.critical} critical · {sapCounts.warning} warning</span>
+              </article>
+            )}
+            {modules.sapMonitoring && (
+              <article className="mv-kpi">
+                <span className="mv-kpi-label">HANA memory</span>
+                <strong className="mv-kpi-value">{sap.hanaMemoryPercent}%</strong>
+                <Link className="mv-quiet-button" to="/sap/databases">Open HANA</Link>
+              </article>
+            )}
+            <article className="mv-kpi">
+              <span className="mv-kpi-label">Open alerts</span>
+              <strong className="mv-kpi-value">{openAlertCount}</strong>
+              <Link className="mv-quiet-button" to="/alerts">View all alerts</Link>
+            </article>
+          </div>
 
+          <section className="mv-panel" aria-labelledby="attention-title">
+            <div className="mv-panel-header">
+              <div>
+                <h2 id="attention-title" className="mv-panel-title">Needs attention</h2>
+                <p className="mv-muted">Across {[modules.sapMonitoring && 'SAP', modules.cloudCost && 'Cloud Cost'].filter(Boolean).join(' and ') || 'your modules'}, most urgent first.</p>
+              </div>
+              <Link className="mv-quiet-button" to="/alerts">All alerts</Link>
+            </div>
+            <InsightList items={attention.slice(0, 6)} label="Items that need attention" empty="Nothing needs attention right now." />
+            {attention.length > 6 && <p className="mv-muted" style={{ margin: '8px 0 0' }}>+{attention.length - 6} more on their module pages.</p>}
+          </section>
+
+          <div className="mv-row-3col">
             {healthRows}
           </div>
         </div>

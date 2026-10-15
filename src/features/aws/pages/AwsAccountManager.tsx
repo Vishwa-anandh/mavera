@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
@@ -65,7 +64,6 @@ export function AwsAccountManager() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'AWS', path: '/aws' }, { label: 'Account Manager' }]} />
       <div className="mv-page-heading">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Link className="mv-icon-button" aria-label="Back to dashboard" to="/aws">

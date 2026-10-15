@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useAuth } from '../../auth';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { CloudIcon, ChevronRightIcon, TrashIcon, PlusIcon, LockIcon } from '../../../shared/ui/icons';
@@ -84,7 +83,6 @@ export function GcpAccountManager() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'GCP', path: '/gcp' }, { label: 'Account Manager' }]} />
       <div className="mv-page-heading">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="mv-avatar" style={{ background: '#3b82f6', borderRadius: 10 }}><CloudIcon size={18} /></span>

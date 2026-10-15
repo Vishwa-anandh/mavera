@@ -1,10 +1,10 @@
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { SAP_PERFORMANCE, SAP_SERVER_TOPOLOGY, SAP_DISK_USAGE } from '../../../demo/sap/mockSapPerformance';
 import { DonutChart } from '../../../shared/ui/DonutChart';
 import { chartColors } from '../../../shared/theme/tokens';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { TrendUpIcon, RefreshIcon } from '../../../shared/ui/icons';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 /** A percentage metric that shows "Not reported" instead of a misleading 0% when the SAP
  * system didn't send a value. */
@@ -49,13 +49,11 @@ export function SapPerformancePage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'SAP Monitoring', path: '/sap/systems' }, { label: 'Performance' }]} />
-      <div className="mv-page-heading">
-        <div><h1 className="mv-title">Performance</h1><p className="mv-subtitle">ABAP system performance — response time, work processes and disk health.</p></div>
+      <PageHeader title="Performance" subtitle="ABAP system performance — response time, work processes and disk health.">
         <DestinationSwitcher />
-      </div>
+      </PageHeader>
 
-      <section className="mv-panel" style={{ marginBottom: 20 }}>
+      <section className="mv-panel mv-panel--flat" style={{ marginBottom: 12 }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title"><TrendUpIcon size={16} style={{ verticalAlign: -3, marginRight: 6 }} />SAP Performance <span className="mv-muted" style={{ fontWeight: 400 }}>{p.system}</span></h2>
           <button className="mv-quiet-button"><RefreshIcon size={14} style={{ marginRight: 6 }} />Refresh</button>
@@ -67,13 +65,11 @@ export function SapPerformancePage() {
         </div>
       </section>
 
-      <div className="mv-kpi-row-4" style={{ marginBottom: 12 }}>
+      <div className="mv-kpi-row-8" style={{ marginBottom: 20 }}>
         <article className="mv-kpi"><span className="mv-kpi-label">Response Time</span><strong className="mv-kpi-value">{p.responseTimeMs}ms</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Active Users</span><strong className="mv-kpi-value">{p.activeUsers}</strong></article>
         <PercentKpi label="DB Hit Ratio" value={p.dbHitRatioPercent} />
         <article className="mv-kpi"><span className="mv-kpi-label">Work Processes</span><strong className="mv-kpi-value">{p.workProcessesUsed}/{p.workProcessesTotal}</strong></article>
-      </div>
-      <div className="mv-kpi-row-4" style={{ marginBottom: 20 }}>
         <article className="mv-kpi"><span className="mv-kpi-label">ABAP Dumps</span><strong className="mv-kpi-value">{p.abapDumps}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Aborted Jobs</span><strong className="mv-kpi-value">{p.abortedJobs}</strong></article>
         <PercentKpi label="Memory Usage" value={p.memoryUsagePercent} />
@@ -106,10 +102,6 @@ export function SapPerformancePage() {
                 </li>
               ))}
             </ul>
-          </section>
-          <section className="mv-panel">
-            <div className="mv-panel-header"><h2 className="mv-panel-title">ABAP Runtime Errors <span className="mv-muted" style={{ fontWeight: 400 }}>ST22</span></h2></div>
-            <p className="mv-muted" style={{ margin: 0 }}>No runtime errors — system is running clean.</p>
           </section>
         </div>
         <section className="mv-panel">

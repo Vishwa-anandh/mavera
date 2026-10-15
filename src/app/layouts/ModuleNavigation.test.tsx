@@ -29,7 +29,7 @@ function mockAuth(user: User, overrides: Partial<AuthContextValue> = {}): AuthCo
       invoices: true,
     },
     accountLimits: { azure: 3, aws: 3, btp: 3 },
-    modules: { cloudCost: true, idocMonitoring: true, sapMonitoring: true },
+    modules: { cloudCost: true, sapMonitoring: true },
     maxUsers: undefined,
     planType: 'enterprise',
     subscriptionStartsAt: undefined,
@@ -65,7 +65,6 @@ describe('ModuleNavigation', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(triggers.some((t) => t?.startsWith('SAP Monitoring'))).toBe(true);
     expect(triggers.some((t) => t?.startsWith('Cloud Cost'))).toBe(true);
-    expect(triggers.some((t) => t?.startsWith('IDoc Monitoring'))).toBe(true);
     // Reports and Billing live inside the Cloud Cost dropdown, not at the top level.
     expect(screen.queryByText('Reports')).not.toBeInTheDocument();
     expect(screen.queryByText('Billing')).not.toBeInTheDocument();
@@ -101,14 +100,15 @@ describe('ModuleNavigation', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('lists Billing and Reports in the Cloud Cost dropdown', async () => {
+  it('lists Billing and Cost Analytics (which now holds report export) in the Cloud Cost dropdown', async () => {
     useAuthMock.mockReturnValue(mockAuth({ id: '1', email: 'a@b.com', role: 'member' }, { cloudAccess: ['azure'] }));
     const user = userEvent.setup();
     renderNav();
 
     await user.click(screen.getByText('Cloud Cost').closest('button')!);
     expect(screen.getByRole('menuitem', { name: /^Billing/ })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /^Reports/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^Cost Analytics/ })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^Reports/ })).not.toBeInTheDocument();
   });
 
   it('marks a locked destination with an upgrade label instead of hiding or disabling it', async () => {

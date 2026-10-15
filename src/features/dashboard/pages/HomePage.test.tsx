@@ -46,7 +46,7 @@ function auth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
       invoices: true,
     },
     accountLimits: { azure: 3, aws: 3, btp: 3 },
-    modules: { cloudCost: true, idocMonitoring: true, sapMonitoring: true },
+    modules: { cloudCost: true, sapMonitoring: true },
     maxUsers: undefined,
     planType: 'enterprise',
     subscriptionStartsAt: undefined,
@@ -103,15 +103,30 @@ function renderDashboard() {
 }
 
 describe('HomePage (unified dashboard)', () => {
-  it('renders a ModuleCard for each of the three modules with real cost KPI values', () => {
+  it('renders a ModuleCard for each of the two modules with real cost KPI values', () => {
     useAuthMock.mockReturnValue(auth());
     useDashboardDataMock.mockReturnValue(dashboardData());
     renderDashboard();
 
     expect(screen.getByText('SAP Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Cloud Cost Monitoring')).toBeInTheDocument();
-    expect(screen.getByText('IDoc Monitoring')).toBeInTheDocument();
-    expect(screen.getByText('$12,000.00')).toBeInTheDocument();
+    const pulse = screen.getByRole('region', { name: 'Operations pulse' });
+    expect(within(pulse).getByText('$12,000.00')).toBeInTheDocument();
+  });
+
+  it('consolidates the key figures of every subscribed module into one glance strip', () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData());
+    renderDashboard();
+
+    const strip = screen.getByLabelText('At a glance');
+    expect(within(strip).getByText('Cloud spend (MTD)')).toBeInTheDocument();
+    expect(within(strip).getByText('$12,000.00')).toBeInTheDocument();
+    expect(within(strip).getByText('Forecast vs budget')).toBeInTheDocument();
+    expect(within(strip).getByText('SAP systems healthy')).toBeInTheDocument();
+    expect(within(strip).getByText('3/5')).toBeInTheDocument();
+    expect(within(strip).getByText('HANA memory')).toBeInTheDocument();
+    expect(within(strip).getByText('Open alerts')).toBeInTheDocument();
   });
 
   it('shows the SAP system health overview table', () => {
@@ -123,42 +138,48 @@ describe('HomePage (unified dashboard)', () => {
     expect(within(healthPanel).getByText('HANA-PRD')).toBeInTheDocument();
   });
 
-  it('shows the cloud cost by provider and IDoc status charts', () => {
+  it('shows the cloud cost by provider chart', () => {
     useAuthMock.mockReturnValue(auth());
     useDashboardDataMock.mockReturnValue(dashboardData());
     renderDashboard();
 
     expect(screen.getByRole('img', { name: 'Cloud cost by provider' })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'IDoc status (last 24 hours)' })).toBeInTheDocument();
   });
 
-  it('shows recent alerts from every module with a link to the full alerts page', () => {
+  it('lists what needs attention across modules, most urgent first, each row linking to its page', () => {
     useAuthMock.mockReturnValue(auth());
     useDashboardDataMock.mockReturnValue(dashboardData());
     renderDashboard();
 
-    expect(screen.getByText('Recent Alerts')).toBeInTheDocument();
-    expect(screen.getByText('High CPU usage (92%)')).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'View all' }).some((link) => link.getAttribute('href') === '/alerts')).toBe(true);
+    const panel = screen.getByRole('heading', { name: 'Needs attention' }).closest('.mv-panel') as HTMLElement;
+    const list = within(panel).getByRole('list', { name: 'Items that need attention' });
+    const rows = within(list).getAllByRole('listitem');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThanOrEqual(6);
+    expect(within(rows[0]).getByText('HANA-PRD is critical')).toBeInTheDocument();
+    expect(within(rows[0]).getByRole('link')).toHaveAttribute('href', '/sap/systems');
+    expect(within(panel).getByRole('link', { name: 'All alerts' })).toHaveAttribute('href', '/alerts');
   });
 
   it('shows the subscription summary', () => {
     useAuthMock.mockReturnValue(auth());
     useDashboardDataMock.mockReturnValue(dashboardData());
     renderDashboard();
-    expect(screen.getByText('3 of 3 modules active')).toBeInTheDocument();
+    expect(screen.getByText('2 of 2 modules active')).toBeInTheDocument();
   });
 
-  it('adapts to an org subscribed to only 2 of 3 modules: drops the disabled module everywhere and updates the count', () => {
-    useAuthMock.mockReturnValue(auth({ modules: { cloudCost: true, idocMonitoring: true, sapMonitoring: false } }));
+  it('adapts to an org subscribed to only 1 of 2 modules: drops the disabled module everywhere and updates the count', () => {
+    useAuthMock.mockReturnValue(auth({ modules: { cloudCost: true, sapMonitoring: false } }));
     useDashboardDataMock.mockReturnValue(dashboardData());
     renderDashboard();
 
     expect(screen.queryByText('SAP Monitoring')).not.toBeInTheDocument();
     expect(screen.queryByText('System & Service Health Overview')).not.toBeInTheDocument();
     expect(screen.queryByText('Add SAP System')).not.toBeInTheDocument();
+    expect(screen.queryByText('HANA-PRD is critical')).not.toBeInTheDocument();
+    expect(screen.queryByText('SAP systems healthy')).not.toBeInTheDocument();
+    expect(screen.queryByText('HANA memory')).not.toBeInTheDocument();
     expect(screen.getByText('Cloud Cost Monitoring')).toBeInTheDocument();
-    expect(screen.getByText('IDoc Monitoring')).toBeInTheDocument();
-    expect(screen.getByText('2 of 3 modules active')).toBeInTheDocument();
+    expect(screen.getByText('1 of 2 modules active')).toBeInTheDocument();
   });
 });

@@ -72,15 +72,15 @@ export const FLOW_GUIDES: FlowGuide[] = [
   },
   {
     key: 'recommendations',
-    pathPrefix: '/recommendations',
+    pathPrefix: '/cloud/optimization',
     prompt: 'Want help finding savings on this page?',
     chipLabel: 'Help me act on a recommendation',
     reply: [
-      "Here's how to use Recommendations:",
-      '1. Filter by provider at the top if you only want Azure, AWS, BTP or GCP recommendations.',
-      "2. The KPI row splits savings into what you control (right-sizing, orphaned disks, etc.) and what Maitsys' MSP rates already save you automatically.",
-      '3. Click a category card, like Reserved Instances, to see the specific line items behind that number.',
-      "4. These are informational — nothing here changes your cloud spend automatically, so it's safe to explore.",
+      "Here's how to use Savings & Optimization:",
+      '1. In Savings overview, filter by provider if you only want Azure, AWS, BTP or GCP savings.',
+      "2. The figures split savings into what you control (right-sizing, orphaned disks, etc.) and what Maitsys' MSP rates already save you automatically — click a category to see the line items.",
+      '3. Under Opportunities, open any recommendation to assign an owner, start a review or dismiss it with a reason.',
+      "4. Nothing here changes your cloud resources automatically, so it's safe to explore.",
     ].join('\n'),
   },
   {

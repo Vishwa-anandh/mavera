@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { MOCK_TRANSPORTS, TRANSPORT_SUMMARY } from '../../../demo/sap/mockTransportManagement';
 import { SwapIcon, RefreshIcon, UploadIcon, PlusIcon, SearchIcon } from '../../../shared/ui/icons';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const TABS = ['Open', 'Released', 'Imported', 'Failed', 'All Transports'] as const;
 
@@ -16,14 +16,12 @@ export function TransportManagementPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'SAP Monitoring', path: '/sap/systems' }, { label: 'Transport Management' }]} />
-      <div className="mv-page-heading">
-        <div><h1 className="mv-title">Transport Management</h1><p className="mv-subtitle">SAP landscape transport intelligence & operations.</p></div>
+      <PageHeader title="Transport Management" subtitle={<>SAP landscape transport intelligence & operations.</>}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <DestinationSwitcher />
           <button className="mv-secondary-button"><RefreshIcon size={14} style={{ marginRight: 6 }} />Refresh</button>
         </div>
-      </div>
+      </PageHeader>
 
       <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16, fontSize: 13 }}>
         <span className={`mv-status ${s.stmsConnected ? 'mv-status--success' : 'mv-status--danger'}`}>{s.stmsConnected ? 'STMS Connected' : 'STMS Disconnected'}</span>

@@ -1,5 +1,4 @@
 import { useState, type FormEvent, type KeyboardEvent } from 'react';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { cssVars } from '../../../shared/lib/cssVars';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
@@ -7,6 +6,7 @@ import { SettingsIcon, BellIcon, TrashIcon, PlusIcon, CreditCardIcon, CloseIcon,
 import { Select } from '../../../shared/ui/Select';
 import { allCloudAccountOptions, MOCK_BUDGETS, MOCK_INTEGRATIONS } from '../../../demo/budgets/mockBudgetsData';
 import type { AlertIntegration, AlertScope, Budget, IntegrationProvider } from '../model/budgetsTypes';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -85,13 +85,7 @@ export function BudgetsPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Budgets & Alerts' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">Budgets & Alerts</h1>
-          <p className="mv-subtitle">Manage your spending limits and notification channels.</p>
-        </div>
-      </div>
+      <PageHeader title={<>Budgets & Alerts</>} subtitle="Manage your spending limits and notification channels." />
 
       <div className="mv-segmented" style={{ marginBottom: 20 }}>
         <button className={`mv-segmented-btn${activeTab === 'budgets' ? ' is-active' : ''}`} onClick={() => setActiveTab('budgets')}><SettingsIcon size={15} />Budgets</button>

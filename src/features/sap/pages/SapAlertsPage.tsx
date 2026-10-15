@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { MOCK_SAP_ALERTS, SAP_ALERTS_META, HANA_ALERT_THRESHOLDS, SAP_ALERT_THRESHOLDS, type SapAlert, type AlertThresholdConfig } from '../../../demo/sap/mockSapAlerts';
 import { BellIcon, CheckIcon, RefreshIcon, EyeSlashIcon, ServerIcon, TrendUpIcon, UsersIcon } from '../../../shared/ui/icons';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
 import { fireToast } from '../../../shared/lib/toastEvents';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const SEVERITY_TONE: Record<SapAlert['severity'], string> = { Critical: 'danger', High: 'warning', Medium: 'info', Low: 'neutral' };
 const TYPE_FILTERS = ['All', 'CPU', 'Memory', 'Disk', 'Sessions', 'Dumps', 'Jobs', 'Locks', 'Work Processes'] as const;
@@ -96,9 +96,7 @@ export function SapAlertsPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'SAP Monitoring', path: '/sap/systems' }, { label: 'Alerts & Escalations' }]} />
-      <div className="mv-page-heading">
-        <div><h1 className="mv-title">Alerts & Escalations</h1><p className="mv-subtitle">Automated detection of threshold breaches across SAP HANA and ABAP monitoring metrics.</p></div>
+      <PageHeader title={<>Alerts & Escalations</>} subtitle="Automated detection of threshold breaches across SAP HANA and ABAP monitoring metrics.">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <DestinationSwitcher />
           {topTab === 'Alerts List' && (
@@ -108,7 +106,7 @@ export function SapAlertsPage() {
             </>
           )}
         </div>
-      </div>
+      </PageHeader>
 
       <div className="mv-segmented" style={{ marginBottom: 20 }}>
         {TOP_TABS.map((t) => (
@@ -171,10 +169,10 @@ export function SapAlertsPage() {
                             <td className="mv-muted">{alert.system}</td>
                             <td style={{ maxWidth: 420 }}>{alert.message}</td>
                             <td className="mv-muted">{alert.detectedAt}</td>
-                            <td style={{ display: 'flex', gap: 6 }}>
+                            <td><div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                               {!alert.read && <button className="mv-quiet-button" onClick={() => markRead(alert.id)}>Read</button>}
                               <button className="mv-icon-button" aria-label={`Dismiss alert for ${alert.system}`} onClick={() => dismiss(alert.id)}><EyeSlashIcon size={15} /></button>
-                            </td>
+                            </div></td>
                           </tr>
                         ))}
                       </tbody>

@@ -50,14 +50,14 @@ describe('Super Admin organizations', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Northwind Logistics' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
 
-    const idocCheckbox = screen.getByRole('checkbox', { name: /IDoc Monitoring/ });
-    expect(idocCheckbox).toBeChecked();
-    await user.click(idocCheckbox);
+    const sapCheckbox = screen.getByRole('checkbox', { name: /SAP Monitoring/ });
+    expect(sapCheckbox).not.toBeChecked();
+    await user.click(sapCheckbox);
     expect(screen.getByText('You have unsaved changes')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
     expect(screen.getByRole('heading', { level: 1, name: 'Organizations' })).toBeInTheDocument();
-    expect(within(rowFor('Northwind Logistics')).getByLabelText('IDoc Monitoring')).not.toHaveClass('mv-sa-module-dot--on');
+    expect(within(rowFor('Northwind Logistics')).getByLabelText('SAP Monitoring')).toHaveClass('mv-sa-module-dot--on');
   });
 
   it("changes an org's seat limit from its page", async () => {

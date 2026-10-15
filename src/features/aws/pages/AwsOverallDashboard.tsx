@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { CloudIcon, RefreshIcon, PlusIcon } from '../../../shared/ui/icons';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
 import { useAwsAccounts } from '../model/AwsAccountContext';
@@ -58,7 +57,6 @@ export function AwsOverallDashboard() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'AWS' }]} />
       <div className="mv-page-heading">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="mv-avatar" style={{ background: '#f97316', borderRadius: 10 }}><CloudIcon size={18} /></span>

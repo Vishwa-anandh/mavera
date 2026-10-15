@@ -22,7 +22,6 @@ const SYSTEM_OPTIONS = [
   { value: 'all', label: 'All Systems' },
   { value: 'sap', label: 'SAP' },
   { value: 'cloud', label: 'Cloud' },
-  { value: 'idoc', label: 'IDoc' },
 ];
 
 /**
@@ -48,7 +47,7 @@ export function DashboardToolbar({ onRefresh }: DashboardToolbarProps) {
     <div className="mv-dashboard-toolbar">
       <div className="mv-dashboard-search">
         <SearchIcon size={18} />
-        <input type="search" aria-label="Search systems, resources, alerts, IDocs" placeholder="Search systems, resources, alerts, IDocs…" />
+        <input type="search" aria-label="Search systems, resources, alerts" placeholder="Search systems, resources, alerts…" />
       </div>
       <div className="mv-dashboard-filters">
         <Select label="Time range" hideLabel value={timeRange} onChange={setTimeRange} options={TIME_RANGE_OPTIONS} />

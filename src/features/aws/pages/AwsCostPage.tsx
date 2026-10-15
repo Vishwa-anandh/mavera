@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { ChevronLeftIcon, ChevronDownIcon, RefreshIcon, SparkleIcon } from '../../../shared/ui/icons';
@@ -76,7 +75,6 @@ export function AwsCostPage() {
   if (!account) {
     return (
       <div>
-        <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'AWS' }]} />
         <div className="mv-empty">
           <h2>Account not found</h2>
           <p>This AWS account isn't in your connected accounts.</p>
@@ -120,7 +118,6 @@ export function AwsCostPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'AWS', path: '/aws' }, { label: account.name }]} />
 
       <div className="mv-cost-header">
         <div className="mv-cost-header-title">

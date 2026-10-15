@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { cloudInsightsRepository, type OptimizationOpportunity } from '../../../data-access';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { BarList } from '../../../shared/ui/BarList';
 import { DetailDrawer, DetailList } from '../../../shared/ui/DetailDrawer';
 import { Select } from '../../../shared/ui/Select';
@@ -9,7 +7,10 @@ import { StatusTag } from '../../../shared/ui/StatusTag';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { PROVIDER_LABEL, formatMoney } from '../model/cloudFormat';
-import { updateOpportunity, useOpportunityStates, type OpportunityState } from '../model/optimizationStore';
+import { updateOpportunity, useOpportunityStates, type OpportunityState } from '../../../shared/lib/opportunityStore';
+import { PageHeader } from '../../../shared/ui/PageHeader';
+import { useScrollToHash } from '../../../shared/lib/useScrollToHash';
+import { SavingsOverviewSection } from '../../recommendations';
 
 const ALL = 'All';
 const CATEGORIES: OptimizationOpportunity['category'][] = ['Rightsizing', 'Idle resources', 'Storage tiering', 'Commitments', 'Consolidation'];
@@ -19,11 +20,14 @@ const OWNERS = ['Unassigned', 'platform-team', 'data-team', 'web-team', 'finance
 const DISMISS_REASONS = ['Not applicable', 'Already planned', 'Business requirement', 'Estimate is wrong'];
 
 /**
- * CLOUD-04 — prioritised cost opportunities. Totals leave out recommendations that overlap
+ * Savings & Optimization (CLOUD-04): the savings overview (former Recommendations page) followed
+ * by the prioritised cost opportunities. `/recommendations` redirects here.
+ * Opportunities: Totals leave out recommendations that overlap
  * another one (same spend) so savings aren't counted twice. Actions here only record ownership
  * and decisions; nothing is changed in the cloud from this page.
  */
 export function OptimizationAdvisorPage() {
+  useScrollToHash();
   const opportunities = useMemo(() => cloudInsightsRepository.listOptimizationOpportunities(), []);
   const states = useOpportunityStates();
   const [category, setCategory] = useRememberedState('cloud', 'optimization-category', ALL, oneOf([ALL, ...CATEGORIES]));
@@ -47,13 +51,16 @@ export function OptimizationAdvisorPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Optimization Advisor' }]} />
-      <div className="mv-page-heading">
+      <PageHeader title="Savings & Optimization" subtitle="What you could save, what Maitsys rates already save you, and every opportunity to act on." />
+
+      <SavingsOverviewSection />
+
+      <section id="opportunities" aria-labelledby="opportunities-title">
+      <div className="mv-section-head">
         <div>
-          <h1 className="mv-title">Optimization Advisor</h1>
-          <p className="mv-subtitle">Cost-saving opportunities ranked by estimated monthly saving. Assign them, review them or dismiss them with a reason.</p>
+          <h2 id="opportunities-title" className="mv-section-title">Opportunities</h2>
+          <p className="mv-muted">Ranked by estimated monthly saving. Assign them, review them or dismiss them with a reason.</p>
         </div>
-        <Link className="mv-secondary-button" to="/recommendations">Savings overview</Link>
       </div>
 
       <div className="mv-kpi-row-4">
@@ -102,6 +109,7 @@ export function OptimizationAdvisorPage() {
           <BarList label="Estimated monthly saving by category" items={byCategory.map(({ c, saving }) => ({ key: c, label: c, value: saving, display: formatMoney(saving, 'USD', { compact: true }), tone: 'success', selected: category === c, onSelect: () => setCategory(category === c ? ALL : c) }))} />
         </section>
       </div>
+      </section>
 
       {open && (
         <DetailDrawer

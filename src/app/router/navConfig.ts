@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import type { PermissionSet } from '../../shared/lib/permissions';
 import type { AuthContextValue } from '../../features/auth';
-import { ServerIcon, CloudIcon, SwapIcon, HomeIcon } from '../../shared/ui/icons';
+import { ServerIcon, CloudIcon, HomeIcon } from '../../shared/ui/icons';
 
 export type NavFeatures = AuthContextValue['features'];
 
@@ -27,7 +27,7 @@ const ALL_FEATURES: NavFeatures = {
   invoices: true,
 };
 
-const ALL_MODULES: NavModules = { cloudCost: true, idocMonitoring: true, sapMonitoring: true };
+const ALL_MODULES: NavModules = { cloudCost: true, sapMonitoring: true };
 
 type NavPredicate = (permissions: PermissionSet, context: NavContext) => boolean;
 
@@ -100,17 +100,14 @@ const NAV_TREE: NavNodeDef[] = [
     icon: ServerIcon,
     visible: (_p, c) => c.modules.sapMonitoring,
     children: [
-      { key: 'sap-systems', section: 'Systems', label: 'SAP System Monitoring', path: '/sap/systems', keywords: 'landscape sid instances' },
+      { key: 'sap-systems', section: 'Systems', label: 'SAP Overview', path: '/sap/systems', keywords: 'landscape sid instances system health availability uptime' },
       { key: 'sap-databases', section: 'Systems', label: 'HANA/DB Monitoring', path: '/sap/databases', keywords: 'hana database db02 memory' },
-      { key: 'sap-health', section: 'Systems', label: 'System Health', path: '/sap/health', keywords: 'availability uptime' },
       { key: 'sap-performance', section: 'Systems', label: 'Performance', path: '/sap/performance', keywords: 'st03 response time workload' },
-      { key: 'sap-jobs', section: 'Operations', label: 'Jobs', path: '/sap/jobs', keywords: 'sm37 background batch' },
-      { key: 'sap-dumps', section: 'Operations', label: 'Dumps', path: '/sap/dumps', keywords: 'st22 short dumps abap' },
+      { key: 'sap-jobs', section: 'Operations', label: 'Jobs & Dumps', path: '/sap/jobs', keywords: 'sm37 background batch st22 short dumps abap runtime errors' },
       { key: 'sap-alerts', section: 'Operations', label: 'Alerts & Escalations', path: '/sap/alerts', keywords: 'incidents' },
       { key: 'sap-transport', section: 'Operations', label: 'Transport Management', path: '/sap/transport-management', keywords: 'stms transports' },
       { key: 'sap-security-notes', section: 'Security', label: 'Security Notes', path: '/sap/security-notes', keywords: 'patches snotes' },
       { key: 'sap-btp-security', section: 'Security', label: 'BTP Security Assessment', path: '/sap/btp-security' },
-      { key: 'sap-team', section: 'Settings', label: 'Team Management', path: '/sap/team', keywords: 'people on call' },
       { key: 'sap-config', section: 'Settings', label: 'System Configuration', path: '/sap/configuration', keywords: 'connect add system rfc' },
     ],
   },
@@ -123,13 +120,12 @@ const NAV_TREE: NavNodeDef[] = [
     visible: (_p, c) => c.modules.cloudCost,
     children: [
       { key: 'cloud-overview', section: 'Overview', label: 'Cost Overview', path: '/cloud/overview', visible: needsCloudResource, keywords: 'spend summary' },
-      { key: 'cloud-analytics', section: 'Overview', label: 'Cost Analytics', path: '/cloud/analytics', visible: needsCloudResource, keywords: 'trends breakdown' },
+      { key: 'cloud-analytics', section: 'Overview', label: 'Cost Analytics', path: '/cloud/analytics', visible: needsCloudResource, keywords: 'trends breakdown reports export download csv' },
       { key: 'azure', section: 'Cloud providers', label: 'Azure Subscriptions', path: '/azure', locked: (p) => !p.azure.canView || !p.azure.orgHasAccess, visible: needsCloudResource, keywords: 'microsoft' },
       { key: 'aws', section: 'Cloud providers', label: 'AWS', path: '/aws', locked: (p) => !p.aws.canView || !p.aws.orgHasAccess, visible: needsCloudResource, keywords: 'amazon web services' },
       { key: 'btp', section: 'Cloud providers', label: 'SAP BTP', path: '/btp', locked: (p) => !p.btp.canView || !p.btp.orgHasAccess, visible: needsCloudResource, keywords: 'business technology platform' },
       { key: 'gcp', section: 'Cloud providers', label: 'Google Cloud', path: '/gcp', locked: (p) => !p.gcp.canView || !p.gcp.orgHasAccess, visible: needsCloudResource, keywords: 'gcp' },
-      { key: 'cloud-optimization', section: 'Optimization', label: 'Optimization Advisor', path: '/cloud/optimization', visible: needsCloudResource, keywords: 'rightsizing idle savings' },
-      { key: 'recommendations', section: 'Optimization', label: 'Recommendations', path: '/recommendations', locked: (_p, c) => !c.features.recommendations, keywords: 'savings' },
+      { key: 'cloud-optimization', section: 'Optimization', label: 'Savings & Optimization', path: '/cloud/optimization', visible: needsCloudResource, keywords: 'rightsizing idle savings recommendations msp advisor' },
       { key: 'cloud-reservations', section: 'Optimization', label: 'Reserved Instances', path: '/cloud/reservations', visible: needsCloudResource, keywords: 'savings plans commitments ri' },
       { key: 'cloud-resources', section: 'Optimization', label: 'Resource Inventory', path: '/cloud/resources', visible: needsCloudResource, keywords: 'vms assets' },
       {
@@ -149,23 +145,6 @@ const NAV_TREE: NavNodeDef[] = [
       // subscribed to that module (the profile menu keeps a Billing link for those orgs).
       { key: 'invoices', section: 'Billing & reports', label: 'Invoices', path: '/invoices', visible: (p, c) => c.invoiceOnly || p.isHybridOrg },
       { key: 'billing', section: 'Billing & reports', label: 'Billing', path: '/billing', keywords: 'invoices payment pay' },
-      { key: 'reports', section: 'Billing & reports', label: 'Reports', path: '/reports', keywords: 'export download pdf csv' },
-    ],
-  },
-  {
-    type: 'group',
-    key: 'idoc',
-    label: 'IDoc Monitoring',
-    icon: SwapIcon,
-    visible: (_p, c) => c.modules.idocMonitoring,
-    children: [
-      { key: 'idoc-overview', section: 'Overview', label: 'IDoc Overview', path: '/idocs/overview', keywords: 'we02 summary' },
-      { key: 'idoc-analytics', section: 'Overview', label: 'IDoc Analytics', path: '/idocs/analytics', keywords: 'trends volume' },
-      { key: 'idoc-traffic', section: 'Processing', label: 'Inbound / Outbound', path: '/idocs/traffic', keywords: 'direction' },
-      { key: 'idoc-status', section: 'Processing', label: 'Processing Status', path: '/idocs/status', keywords: 'status codes' },
-      { key: 'idoc-failed', section: 'Processing', label: 'Failed IDocs', path: '/idocs/failed', keywords: 'errors bd87 reprocess retry' },
-      { key: 'idoc-partners', section: 'Partners & alerts', label: 'Partner/Message Monitoring', path: '/idocs/partners', keywords: 'we20 partner profiles message types' },
-      { key: 'idoc-alerts-reports', section: 'Partners & alerts', label: 'Alerts & Reports', path: '/idocs/alerts-reports' },
     ],
   },
   {

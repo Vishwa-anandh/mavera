@@ -7,7 +7,7 @@ import { appPaths, isRegisteredPath, routeById, routeManifest } from './route-ma
 const ALL_ON: NavContext = {
   features: { budgets: true, smartAlerts: true, syncLogs: true, recommendations: true, cloudManagement: true, invoices: true },
   invoiceOnly: false,
-  modules: { cloudCost: true, idocMonitoring: true, sapMonitoring: true },
+  modules: { cloudCost: true, sapMonitoring: true },
 };
 
 function navigationPaths(): string[] {
@@ -41,7 +41,7 @@ describe('route manifest', () => {
   });
 
   it('serves the former placeholder destinations as real member pages in the app layout', () => {
-    for (const key of ['cloudAnalytics', 'cloudOptimization', 'cloudReservations', 'cloudResources', 'idocTraffic', 'idocFailed', 'idocStatus', 'idocAnalytics', 'idocPartners', 'idocAlertsReports', 'account'] as const) {
+    for (const key of ['cloudAnalytics', 'cloudOptimization', 'cloudReservations', 'cloudResources', 'account'] as const) {
       const route = routeManifest.find((item) => item.path === appPaths[key]);
       expect(route, `${key} is missing from the manifest`).toBeDefined();
       expect(route?.access.kind).toBe('authenticated');

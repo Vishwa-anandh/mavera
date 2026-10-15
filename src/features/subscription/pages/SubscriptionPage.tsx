@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useAuth } from '../../auth';
 import { cssVars } from '../../../shared/lib/cssVars';
 import {
@@ -16,14 +15,13 @@ import {
   CreditCardIcon,
   LockIcon,
   ServerIcon,
-  SwapIcon,
-} from '../../../shared/ui/icons';
+  } from '../../../shared/ui/icons';
 import { CLOUD_PROVIDER_INFO, MSP_BADGE, PLANS, isCurrentPlan } from '../model/subscriptionData';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const MODULE_LABELS = [
   { key: 'sapMonitoring', label: 'SAP Monitoring', icon: <ServerIcon size={16} /> },
   { key: 'cloudCost', label: 'Cloud Cost Monitoring', icon: <CloudIcon size={16} /> },
-  { key: 'idocMonitoring', label: 'IDoc Monitoring', icon: <SwapIcon size={16} /> },
 ] as const;
 
 function formatDate(value?: string | null): string {
@@ -123,13 +121,7 @@ export function SubscriptionPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Subscription' }]} />
-      <div className="mv-page-heading">
-        <div>
-          <h1 className="mv-title">Subscription</h1>
-          <p className="mv-subtitle">Your plan, modules and access. Maitsys manages these for your organisation.</p>
-        </div>
-      </div>
+      <PageHeader title="Subscription" subtitle="Your plan, modules and access. Maitsys manages these for your organisation." />
 
       {/* Current Plan */}
       <section className="mv-panel" style={{ marginBottom: 16 }}>
@@ -153,7 +145,7 @@ export function SubscriptionPage() {
               label="Valid Until"
               value={<>{formatDate(subscriptionExpiresAt)}<ValidityBadge expiresAt={subscriptionExpiresAt} /></>}
             />
-            <Row icon={<ShieldIcon size={16} />} label="Team Members" value={`Up to ${maxUsers ?? '—'}`} />
+            <Row icon={<ShieldIcon size={16} />} label="Team Members" value={maxUsers ? `Up to ${maxUsers}` : 'No seat limit'} />
             <Row
               icon={<SparkleIcon size={16} />}
               label="AI Chatbot"

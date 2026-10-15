@@ -20,7 +20,7 @@ function auth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
     cloudAccess: ['azure'],
     features: { budgets: true, smartAlerts: true, syncLogs: true, recommendations: true, cloudManagement: true, invoices: true },
     accountLimits: { azure: 3, aws: 3, btp: 3 },
-    modules: { cloudCost: true, idocMonitoring: false, sapMonitoring: true },
+    modules: { cloudCost: true, sapMonitoring: false },
     maxUsers: 25,
     planType: 'premium',
     subscriptionStartsAt: '2026-01-01',
@@ -56,6 +56,6 @@ describe('SubscriptionPage (organization view)', () => {
 
     expect(screen.getByText('Note from Maitsys')).toBeInTheDocument();
     expect(screen.getByText('Extended per renewal agreement')).toBeInTheDocument();
-    expect(screen.getByText('IDoc Monitoring').closest('div')).toHaveTextContent('Locked');
+    expect(screen.getByText('SAP Monitoring').closest('div')).toHaveTextContent('Locked');
   });
 });

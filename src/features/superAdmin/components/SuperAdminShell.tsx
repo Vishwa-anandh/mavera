@@ -60,7 +60,7 @@ export function SuperAdminShell() {
             <button type="button" className="mv-secondary-button" onClick={signOut}>Log out</button>
           </div>
         </header>
-        <main className="mv-sa-main" id="mv-sa-main" tabIndex={-1}>
+        <main className="mv-sa-main mv-content" id="mv-sa-main" tabIndex={-1}>
           <Outlet />
         </main>
       </div>

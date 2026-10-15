@@ -13,7 +13,7 @@ interface DetailDrawerProps {
 }
 
 /**
- * Right-hand detail drawer for a selected record (resource, IDoc, recommendation…): 440px wide,
+ * Right-hand detail drawer for a selected record (resource, job, recommendation…): 440px wide,
  * full width on phones. Modal: Escape closes it, focus stays inside and returns to the row that
  * opened it.
  */

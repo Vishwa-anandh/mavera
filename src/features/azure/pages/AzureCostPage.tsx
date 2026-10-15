@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { ChevronLeftIcon, ChevronDownIcon, RefreshIcon, SparkleIcon } from '../../../shared/ui/icons';
@@ -83,7 +82,6 @@ export function AzureCostPage() {
   if (!account) {
     return (
       <div>
-        <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Azure' }]} />
         <div className="mv-empty">
           <h2>Account not found</h2>
           <p>This Azure subscription isn't in your connected accounts.</p>
@@ -132,7 +130,6 @@ export function AzureCostPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'Azure', path: '/azure' }, { label: account.name }]} />
 
       <div className="mv-cost-header">
         <div className="mv-cost-header-title">

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { MOCK_BTP_USERS, MOCK_BTP_ROLE_COLLECTIONS, MOCK_BTP_ROLES } from '../../../demo/sap/mockBtpSecurity';
 import { UsersIcon, HierarchyIcon, LockIcon, RefreshIcon, SearchIcon } from '../../../shared/ui/icons';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
 import { Select } from '../../../shared/ui/Select';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const TABS = [
   { key: 'users', label: 'Users', icon: UsersIcon },
@@ -20,14 +20,12 @@ export function BtpSecurityPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'SAP Monitoring', path: '/sap/systems' }, { label: 'BTP Security Assessment' }]} />
-      <div className="mv-page-heading">
-        <div><h1 className="mv-title">BTP Security Assessment</h1><p className="mv-subtitle">Users, role collections & roles for the connected destination.</p></div>
+      <PageHeader title="BTP Security Assessment" subtitle={<>Users, role collections & roles for the connected destination.</>}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <DestinationSwitcher />
           <button className="mv-secondary-button"><RefreshIcon size={14} style={{ marginRight: 6 }} />Refresh</button>
         </div>
-      </div>
+      </PageHeader>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
         <div className="mv-segmented">
@@ -39,7 +37,7 @@ export function BtpSecurityPage() {
           <div style={{ display: 'flex', gap: 8 }}>
             <div style={{ position: 'relative' }}>
               <SearchIcon size={15} style={{ position: 'absolute', left: 10, top: 12, color: 'var(--mv-text-muted)' }} />
-              <input className="mv-select" style={{ paddingLeft: 32, width: 260 }} placeholder="Search by name, email, or username" />
+              <input className="mv-select" style={{ paddingLeft: 32, width: 'min(260px, 100%)' }} placeholder="Search by name, email, or username" />
             </div>
             <Select label="Status" hideLabel value={statusFilter} onChange={setStatusFilter} options={['All', 'Active', 'Inactive'].map((v) => ({ value: v, label: v === 'All' ? 'All Status' : v }))} style={{ width: 150 }} />
           </div>

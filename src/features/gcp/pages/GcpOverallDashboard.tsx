@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { CloudIcon, SettingsIcon } from '../../../shared/ui/icons';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
 import { DonutChart } from '../../../shared/ui/DonutChart';
@@ -38,7 +37,6 @@ export function GcpOverallDashboard() {
   if (accounts.length === 0) {
     return (
       <div>
-        <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'GCP' }]} />
         <div className="mv-empty">
           <div className="mv-empty-icon" aria-hidden><CloudIcon size={28} /></div>
           <h2>No GCP projects connected</h2>
@@ -51,7 +49,6 @@ export function GcpOverallDashboard() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'GCP' }]} />
       <div className="mv-page-heading">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span className="mv-avatar" style={{ background: '#3b82f6', borderRadius: 10 }}><CloudIcon size={18} /></span>

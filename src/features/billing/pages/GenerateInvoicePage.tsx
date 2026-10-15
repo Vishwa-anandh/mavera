@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useBilling } from '../model/BillingContext';
 import { buildInvoice, dueDateFor, formatCurrency, formatDate, recomputeInvoiceTotals, synthesizeSentEmail } from '../../../shared/domain/billing/billingDerivations';
 import { LineItemsEditor } from '../components/LineItemsEditor';
@@ -12,6 +11,7 @@ import { Select } from '../../../shared/ui/Select';
 import { cssVars } from '../../../shared/lib/cssVars';
 import type { CustomField, InvoiceColumn, InvoiceLine } from '../../../shared/domain/billing/billingTypes';
 import type { SentEmail } from '../../../shared/domain/billing/billingTypes';
+import { PageHeader } from '../../../shared/ui/PageHeader';
 
 /**
  * Mounts the shared invoice-builder engine with the FULL prop set (customer
@@ -95,11 +95,9 @@ export function GenerateInvoicePage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Billing', path: '/admin/billing' }, { label: 'New Invoice' }]} />
-      <div className="mv-page-heading">
-        <div><h1 className="mv-title">New Invoice</h1><p className="mv-subtitle">Build a customer invoice and send it — Maitsys tracks payment status until it's paid.</p></div>
+      <PageHeader title="New Invoice" subtitle="Build a customer invoice and send it — Maitsys tracks payment status until it's paid.">
         <button className="mv-secondary-button" onClick={() => setShowPreview((v) => !v)}>{showPreview ? 'Hide Preview' : 'Show Preview'}</button>
-      </div>
+      </PageHeader>
 
       <div className="mv-split-panel" style={cssVars({ '--mv-cols': showPreview ? '1fr 1fr' : '1fr' })}>
         <section className="mv-panel">

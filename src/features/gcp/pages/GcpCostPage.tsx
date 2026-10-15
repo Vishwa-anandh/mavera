@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { ChevronLeftIcon, RefreshIcon, SparkleIcon } from '../../../shared/ui/icons';
@@ -62,7 +61,6 @@ export function GcpCostPage() {
   if (!account) {
     return (
       <div>
-        <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'GCP' }]} />
         <div className="mv-empty">
           <h2>Project not found</h2>
           <p>This GCP project isn't in your connected accounts.</p>
@@ -92,7 +90,6 @@ export function GcpCostPage() {
 
   return (
     <div>
-      <AppBreadcrumb items={[{ label: 'Cloud Cost', path: '/cloud/overview' }, { label: 'GCP', path: '/gcp' }, { label: account.name }]} />
 
       <div className="mv-cost-header">
         <div className="mv-cost-header-title">

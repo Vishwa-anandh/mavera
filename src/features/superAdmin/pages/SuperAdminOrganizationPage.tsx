@@ -1,10 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AppBreadcrumb } from '../../../shared/ui/AppBreadcrumb';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { Select } from '../../../shared/ui/Select';
 import { fireToast } from '../../../shared/lib/toastEvents';
-import { CloudIcon, SwapIcon, ServerIcon, ClockIcon, UsersIcon, FileTextIcon, LockIcon } from '../../../shared/ui/icons';
+import { CloudIcon, ServerIcon, ClockIcon, UsersIcon, FileTextIcon, LockIcon } from '../../../shared/ui/icons';
 import type { CloudProvider } from '../../../shared/types/auth';
 import { ExpiryBadge } from '../components/OrgStatus';
 import { extendDate, formatLongDate, today } from '../model/orgDates';
@@ -13,7 +12,7 @@ import { CLOUD_PROVIDER_OPTIONS, MAX_USER_OPTIONS, MODULE_DEFS, type Organizatio
 
 type Draft = Omit<Organization, 'id' | 'memberCount'> & { notes: string };
 
-const MODULE_ICONS = { cloudCost: CloudIcon, idocMonitoring: SwapIcon, sapMonitoring: ServerIcon } as const;
+const MODULE_ICONS = { cloudCost: CloudIcon, sapMonitoring: ServerIcon } as const;
 const PROVIDER_LABELS: Record<CloudProvider, string> = { azure: 'Microsoft Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'Google Cloud' };
 
 function toDraft(org: Organization): Draft {
@@ -23,7 +22,7 @@ function toDraft(org: Organization): Draft {
 function emptyDraft(): Draft {
   return {
     name: '',
-    modules: { cloudCost: false, idocMonitoring: false, sapMonitoring: false },
+    modules: { cloudCost: false, sapMonitoring: false },
     maxUsers: 10,
     aiEnabled: false,
     cloudAccess: [],
@@ -71,7 +70,6 @@ function OrganizationEditor({ orgId }: { orgId?: string }) {
   if (!isNew && !org) {
     return (
       <div className="mv-sa-content">
-        <AppBreadcrumb items={[{ label: 'Organizations', path: '/admin/organizations' }, { label: 'Not found' }]} />
         <div className="mv-empty">
           <h2>Organization not found</h2>
           <p>It may have been removed, or the link is wrong.</p>
@@ -113,7 +111,6 @@ function OrganizationEditor({ orgId }: { orgId?: string }) {
 
   return (
     <div className="mv-sa-content mv-sa-org">
-      <AppBreadcrumb items={[{ label: 'Organizations', path: '/admin/organizations' }, { label: title }]} />
       <div className="mv-page-heading">
         <div>
           <h1 className="mv-title">{title}</h1>

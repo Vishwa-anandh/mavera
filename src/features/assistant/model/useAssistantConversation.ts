@@ -7,11 +7,10 @@ export interface AssistantMessage {
   text: string;
 }
 
-export const ASSISTANT_SUGGESTIONS = ['System health', 'Cost optimization', 'Failed IDocs', 'Generate report'];
+export const ASSISTANT_SUGGESTIONS = ['System health', 'Cost optimization', 'Generate report'];
 
 interface AssistantModules {
   cloudCost: boolean;
-  idocMonitoring: boolean;
   sapMonitoring: boolean;
 }
 
@@ -21,24 +20,22 @@ export function assistantSuggestions(modules: AssistantModules): string[] {
   return [
     modules.sapMonitoring && 'System health',
     modules.cloudCost && 'Cost optimization',
-    modules.idocMonitoring && 'Failed IDocs',
     'Generate report',
   ].filter((item): item is string => Boolean(item));
 }
 
 /** Matches the copy to whichever modules are actually enabled, so an org
- * on fewer than all 3 isn't invited to ask about ones it can't open. */
+ * on fewer than both isn't invited to ask about ones it can't open. */
 export function assistantIntroLabel(modules: AssistantModules): string {
   const topics = [
     modules.sapMonitoring && 'SAP systems',
     modules.cloudCost && 'cloud costs',
-    modules.idocMonitoring && 'IDoc processing',
   ].filter((item): item is string => Boolean(item));
   if (topics.length === 0) return 'Ask me anything about your Mavera workspace.';
   return `Ask anything about your ${topics.join(', ').replace(/, ([^,]*)$/, ' or $1')}.`;
 }
 
-const NO_MODEL_REPLY = 'This prototype build has no live model connected yet, so I can’t answer that from real data. Once connected, answers here will cite the specific systems, costs or IDocs behind them.';
+const NO_MODEL_REPLY = 'This prototype build has no live model connected yet, so I can’t answer that from real data. Once connected, answers here will cite the specific systems or costs behind them.';
 
 /**
  * Shared behind the AI Assistant drawer, its dedicated nav page, and the

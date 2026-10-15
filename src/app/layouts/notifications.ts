@@ -4,7 +4,7 @@ import type { NavModules } from '../router/navConfig';
 export interface NotificationItem {
   id: string;
   title: string;
-  module: 'SAP Monitoring' | 'Cloud Cost' | 'IDoc Monitoring';
+  module: 'SAP Monitoring' | 'Cloud Cost';
   timestamp: string;
   read: boolean;
   /** Where "open" takes the user; the destination page re-checks access itself. */
@@ -14,15 +14,13 @@ export interface NotificationItem {
 const MODULE_FLAG: Record<NotificationItem['module'], keyof NavModules> = {
   'SAP Monitoring': 'sapMonitoring',
   'Cloud Cost': 'cloudCost',
-  'IDoc Monitoring': 'idocMonitoring',
 };
 
 // Prototype feed until the notifications API exists.
 const SEED: NotificationItem[] = [
   { id: 'n1', title: 'SAP system HANA-PRD reported a critical condition', module: 'SAP Monitoring', timestamp: '10 minutes ago', read: false, path: '/sap/systems' },
   { id: 'n2', title: 'Azure cost threshold exceeded for Production subscription', module: 'Cloud Cost', timestamp: '1 hour ago', read: false, path: '/budgets' },
-  { id: 'n3', title: 'IDoc processing failed for message type ORDERS05', module: 'IDoc Monitoring', timestamp: '2 hours ago', read: true, path: '/idocs/failed' },
-  { id: 'n4', title: 'Monthly cost report is ready to download', module: 'Cloud Cost', timestamp: 'Yesterday', read: true, path: '/reports' },
+  { id: 'n4', title: 'Monthly cost report is ready to download', module: 'Cloud Cost', timestamp: 'Yesterday', read: true, path: '/cloud/analytics' },
 ];
 
 export interface NotificationsState {

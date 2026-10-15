@@ -40,8 +40,8 @@
 
 body {
   font-family: var(--mv-font-body);
-  font-size: 14px;
-  line-height: 22px;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
   margin: 0;
   background: var(--mv-canvas);
   color: var(--mv-text);
@@ -58,6 +58,6 @@ body {
 
 .mv-code {
   font-family: var(--mv-font-mono);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
 }

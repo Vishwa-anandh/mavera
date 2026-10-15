@@ -15,11 +15,11 @@ export function HanaVitalsChart({ data }: { data: HanaVitalPoint[] }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 20, marginBottom: 12, fontSize: 13 }}>
+      <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '0.75rem', fontSize: '0.8125rem' }}>
         <span className="mv-muted">Avg CPU <strong style={{ color: 'var(--mv-text)' }}>{avgCpu}%</strong></span>
         <span className="mv-muted">Avg Memory <strong style={{ color: 'var(--mv-text)' }}>{avgMem}%</strong></span>
       </div>
-      <div role="img" aria-label="CPU and memory performance over 24 hours" style={{ width: '100%', height: 260 }}>
+      <div role="img" aria-label="CPU and memory performance over 24 hours" style={{ width: '100%', height: '16.25rem' }}>
         <ResponsiveContainer>
           <LineChart data={data}>
             <CartesianGrid stroke={colors.grid} vertical={false} />

@@ -28,7 +28,7 @@ function StatusBadge({ status }: { status: OrgMember['status'] }) {
 }
 
 function cellLabel(text: string) {
-  return <span className="mv-muted" style={{ fontSize: 10, fontWeight: 600 }}>{text}</span>;
+  return <span className="mv-muted" style={{ fontSize: '0.625rem', fontWeight: 600 }}>{text}</span>;
 }
 
 /** View-access cell: always-on and disabled for admins/owners, otherwise a
@@ -36,7 +36,7 @@ function cellLabel(text: string) {
 function ViewCell({ privileged, checked, onToggle }: { privileged: boolean; checked: boolean; onToggle: (value: boolean) => void }) {
   return (
     <td style={{ textAlign: 'center', borderLeft: '1px solid var(--mv-divider)' }}>
-      <div style={{ display: 'grid', justifyItems: 'center', gap: 4 }}>
+      <div style={{ display: 'grid', justifyItems: 'center', gap: '0.25rem' }}>
         <Toggle checked={privileged || checked} disabled={privileged} onChange={onToggle} label="Toggle view access" />
         {cellLabel(privileged ? 'Always On' : checked ? 'On' : 'Off')}
       </div>
@@ -53,7 +53,7 @@ function AccessCell({ privileged, canView, readOnly, onToggle }: { privileged: b
   const isFullAccess = privileged || !readOnly;
   return (
     <td style={{ textAlign: 'center', borderLeft: '1px solid var(--mv-divider)' }}>
-      <div style={{ display: 'grid', justifyItems: 'center', gap: 4 }}>
+      <div style={{ display: 'grid', justifyItems: 'center', gap: '0.25rem' }}>
         <Toggle checked={isFullAccess} disabled={privileged} onChange={onToggle} label="Toggle full access" />
         {cellLabel(isFullAccess ? 'Full' : 'Read Only')}
       </div>
@@ -135,7 +135,7 @@ export function UserManagementPage() {
             />
           </label>
           <button type="button" className="mv-primary-button" disabled={seats.full} onClick={() => setAdding(true)}>
-            <PlusIcon size={16} style={{ marginRight: 6 }} />
+            <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />
             Add user
           </button>
         </div>
@@ -169,15 +169,15 @@ export function UserManagementPage() {
                   <th />
                   {visibleProviders.map((p) => (
                     <th key={p.id} colSpan={2} style={{ textAlign: 'center', borderLeft: '1px solid var(--mv-divider)' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: 12, color: 'var(--mv-text)' }}>
-                        <span aria-hidden style={{ width: 7, height: 7, borderRadius: '50%', background: p.dot, display: 'inline-block' }} />
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontWeight: 600, fontSize: '0.75rem', color: 'var(--mv-text)' }}>
+                        <span aria-hidden style={{ width: '0.4375rem', height: '0.4375rem', borderRadius: '50%', background: p.dot, display: 'inline-block' }} />
                         {p.label}
                       </span>
                     </th>
                   ))}
                   {showInvoiceColumn && (
                     <th style={{ textAlign: 'center', borderLeft: '1px solid var(--mv-divider)' }}>
-                      <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--mv-text-secondary)' }}>Invoice</span>
+                      <span style={{ fontWeight: 600, fontSize: '0.75rem', color: 'var(--mv-text-secondary)' }}>Invoice</span>
                     </th>
                   )}
                   <th style={{ borderLeft: '1px solid var(--mv-divider)' }} />
@@ -201,17 +201,17 @@ export function UserManagementPage() {
                   return (
                     <tr key={member.userId}>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <span style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--mv-selected)', color: 'var(--mv-primary)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 13, flex: 'none' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                          <span style={{ width: '2.125rem', height: '2.125rem', borderRadius: '0.5625rem', background: 'var(--mv-selected)', color: 'var(--mv-primary)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '0.8125rem', flex: 'none' }}>
                             {member.fullName.charAt(0).toUpperCase()}
                           </span>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <strong style={{ fontSize: 13 }}>{member.fullName}</strong>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <strong style={{ fontSize: '0.8125rem' }}>{member.fullName}</strong>
                               {privileged && <ShieldIcon size={12} style={{ color: 'var(--mv-primary)' }} aria-label="Administrator" />}
                             </div>
-                            <p className="mv-muted" style={{ margin: '1px 0 2px', fontSize: 12 }}>{member.email}</p>
-                            <span className="mv-status mv-status--neutral" style={{ fontSize: 10, minHeight: 18, textTransform: 'capitalize' }}>{member.role}</span>
+                            <p className="mv-muted" style={{ margin: '1px 0 2px', fontSize: '0.75rem' }}>{member.email}</p>
+                            <span className="mv-status mv-status--neutral" style={{ fontSize: '0.625rem', minHeight: '1.125rem', textTransform: 'capitalize' }}>{member.role}</span>
                           </div>
                         </div>
                       </td>
@@ -244,7 +244,7 @@ export function UserManagementPage() {
                       )}
 
                       <td style={{ borderLeft: '1px solid var(--mv-divider)' }}>
-                        <div style={{ display: 'grid', justifyItems: 'center', gap: 6 }}>
+                        <div style={{ display: 'grid', justifyItems: 'center', gap: '0.375rem' }}>
                           <StatusBadge status={member.status} />
                           {(() => {
                             const buttonContent = (
@@ -253,7 +253,7 @@ export function UserManagementPage() {
                                 className="mv-icon-button"
                                 disabled={isSelf || (member.status === 'inactive' && seats.full)}
                                 onClick={() => toggleStatus(member.userId, member.status)}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, width: 'auto', padding: '0 8px', color: member.status === 'active' ? 'var(--mv-danger)' : 'var(--mv-success)' }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.6875rem', width: 'auto', padding: '0 0.5rem', color: member.status === 'active' ? 'var(--mv-danger)' : 'var(--mv-success)' }}
                               >
                                 {member.status === 'active' ? <PersonXIcon size={14} /> : <CheckIcon size={12} />}
                                 {member.status === 'active' ? 'Deactivate' : 'Activate'}
@@ -265,7 +265,7 @@ export function UserManagementPage() {
                             return isSelf ? (
                               <>
                                 {buttonContent}
-                                <span className="mv-muted" style={{ fontSize: 10 }}>Cannot deactivate yourself</span>
+                                <span className="mv-muted" style={{ fontSize: '0.625rem' }}>Cannot deactivate yourself</span>
                               </>
                             ) : (
                               <Tooltip content={member.status === 'active' ? 'Deactivate user' : 'Activate user'}>{buttonContent}</Tooltip>

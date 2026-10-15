@@ -31,7 +31,7 @@ export function DashboardSidebar() {
           <strong>Enterprise Plan</strong>
           <span className="mv-status mv-status--success">Active</span>
         </div>
-        <p className="mv-muted" style={{ margin: '6px 0 12px' }}>{activeCount} of 2 modules active</p>
+        <p className="mv-muted" style={{ margin: '0.375rem 0 0.75rem' }}>{activeCount} of 2 modules active</p>
         <Link className="mv-quiet-button" to="/subscription">View subscription</Link>
       </section>
 

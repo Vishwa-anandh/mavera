@@ -87,7 +87,7 @@ export function BudgetsPage() {
     <div>
       <PageHeader title={<>Budgets & Alerts</>} subtitle="Manage your spending limits and notification channels." />
 
-      <div className="mv-segmented" style={{ marginBottom: 20 }}>
+      <div className="mv-segmented" style={{ marginBottom: '1.25rem' }}>
         <button className={`mv-segmented-btn${activeTab === 'budgets' ? ' is-active' : ''}`} onClick={() => setActiveTab('budgets')}><SettingsIcon size={15} />Budgets</button>
         <button className={`mv-segmented-btn${activeTab === 'integrations' ? ' is-active' : ''}`} onClick={() => setActiveTab('integrations')}><BellIcon size={15} />Alert Integrations</button>
       </div>
@@ -101,7 +101,7 @@ export function BudgetsPage() {
                 <label className="mv-field">Budget Name<input required value={budgetForm.name} onChange={(e) => setBudgetForm({ ...budgetForm, name: e.target.value })} placeholder="e.g. Q3 Engineering" /></label>
                 <Select
                   label="Budget Scope"
-                  style={{ height: 44 }}
+                  style={{ height: '2.75rem' }}
                   value={budgetForm.scope_type}
                   onChange={(scope_type) => setBudgetForm({ ...budgetForm, scope_type })}
                   options={[
@@ -113,7 +113,7 @@ export function BudgetsPage() {
                   <Select
                     label="Select Account"
                     required
-                    style={{ height: 44 }}
+                    style={{ height: '2.75rem' }}
                     value={budgetForm.scope_value}
                     onChange={(scope_value) => setBudgetForm({ ...budgetForm, scope_value })}
                     options={[{ value: '', label: '-- Choose Account --' }, ...cloudAccounts.map((a) => ({ value: a.id, label: a.name }))]}
@@ -121,7 +121,7 @@ export function BudgetsPage() {
                 )}
                 <label className="mv-field">Target Amount ($)<input required type="number" step="0.01" value={budgetForm.target_amount} onChange={(e) => setBudgetForm({ ...budgetForm, target_amount: e.target.value })} placeholder="5000" /></label>
                 <label className="mv-field">Alert Threshold (%)<input required type="number" min={1} max={150} value={budgetForm.alert_threshold} onChange={(e) => setBudgetForm({ ...budgetForm, alert_threshold: e.target.value })} /></label>
-                <button className="mv-primary-button" type="submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: 6 }} />Add Budget</button>
+                <button className="mv-primary-button" type="submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Budget</button>
               </form>
             ) : (
               <div className="mv-empty" style={{ margin: 0 }}>
@@ -132,12 +132,12 @@ export function BudgetsPage() {
             )}
           </section>
 
-          <div style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
+          <div style={{ display: 'grid', gap: '0.75rem', alignContent: 'start' }}>
             {budgets.map((b) => (
               <section className="mv-panel" key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{b.name}</h3>
-                  <p className="mv-muted" style={{ margin: '4px 0 0' }}>Target: {formatCurrency(b.target_amount)} · Alerts at {b.alert_threshold}%</p>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{b.name}</h3>
+                  <p className="mv-muted" style={{ margin: '0.25rem 0 0' }}>Target: {formatCurrency(b.target_amount)} · Alerts at {b.alert_threshold}%</p>
                   <p className="mv-muted" style={{ margin: '2px 0 0' }}>Scope: {b.scope_type === 'organization' ? 'Organization Wide' : cloudAccounts.find((a) => a.id === b.scope_value)?.name ?? `Account ID: ${b.scope_value}`}</p>
                 </div>
                 {canManageBudgets && <button className="mv-icon-button" aria-label={`Delete ${b.name}`} onClick={() => deleteBudget(b.id)}><TrashIcon size={18} /></button>}
@@ -160,7 +160,7 @@ export function BudgetsPage() {
               <form onSubmit={createIntegration}>
                 <Select
                   label="Provider"
-                  style={{ height: 44 }}
+                  style={{ height: '2.75rem' }}
                   value={integrationForm.provider}
                   onChange={(provider) => setIntegrationForm({ ...integrationForm, provider })}
                   options={[
@@ -170,7 +170,7 @@ export function BudgetsPage() {
                 />
                 <Select
                   label="Alert Scope"
-                  style={{ height: 44 }}
+                  style={{ height: '2.75rem' }}
                   value={integrationForm.alert_scope}
                   onChange={(alert_scope) => setIntegrationForm({ ...integrationForm, alert_scope })}
                   options={[
@@ -181,7 +181,7 @@ export function BudgetsPage() {
                 {integrationForm.alert_scope === 'budget_specific' && (
                   <Select
                     label="Select Budget"
-                    style={{ height: 44 }}
+                    style={{ height: '2.75rem' }}
                     value={integrationForm.budget_id}
                     onChange={(budget_id) => setIntegrationForm({ ...integrationForm, budget_id })}
                     options={[{ value: '', label: '-- Choose Budget --' }, ...budgets.map((b) => ({ value: b.id, label: b.name }))]}
@@ -193,9 +193,9 @@ export function BudgetsPage() {
                   <label className="mv-field">
                     Email Addresses (press Enter to add)
                     {emails.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.375rem' }}>
                         {emails.map((email) => (
-                          <span key={email} className="mv-status mv-status--info" style={{ gap: 6 }}>
+                          <span key={email} className="mv-status mv-status--info" style={{ gap: '0.375rem' }}>
                             {email}
                             <button type="button" onClick={() => removeEmail(email)} aria-label={`Remove ${email}`} style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', display: 'inline-flex' }}><CloseIcon size={12} /></button>
                           </span>
@@ -205,7 +205,7 @@ export function BudgetsPage() {
                     <input value={emailInput} onChange={(e) => setEmailInput(e.target.value)} onKeyDown={addEmail} placeholder="user@company.com" />
                   </label>
                 )}
-                <button className="mv-primary-button" type="submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: 6 }} />Add Channel</button>
+                <button className="mv-primary-button" type="submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Channel</button>
               </form>
             ) : (
               <div className="mv-empty" style={{ margin: 0 }}>
@@ -216,13 +216,13 @@ export function BudgetsPage() {
             )}
           </section>
 
-          <div style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
+          <div style={{ display: 'grid', gap: '0.75rem', alignContent: 'start' }}>
             {integrations.map((i) => (
               <section className="mv-panel" key={i.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, textTransform: 'capitalize' }}>{i.provider} Integration</h3>
-                  <p className="mv-muted" style={{ margin: '4px 0 0', wordBreak: 'break-all' }}>{i.provider === 'teams' ? i.webhook_url : i.email_addresses}</p>
-                  <span className="mv-status mv-status--neutral" style={{ marginTop: 8 }}>{i.budget_id ? `Budget Specific: ${budgets.find((b) => b.id === i.budget_id)?.name ?? 'Unknown'}` : 'Global Alert'}</span>
+                  <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, textTransform: 'capitalize' }}>{i.provider} Integration</h3>
+                  <p className="mv-muted" style={{ margin: '0.25rem 0 0', wordBreak: 'break-all' }}>{i.provider === 'teams' ? i.webhook_url : i.email_addresses}</p>
+                  <span className="mv-status mv-status--neutral" style={{ marginTop: '0.5rem' }}>{i.budget_id ? `Budget Specific: ${budgets.find((b) => b.id === i.budget_id)?.name ?? 'Unknown'}` : 'Global Alert'}</span>
                 </div>
                 {canManageBudgets && <button className="mv-icon-button" aria-label="Delete integration" onClick={() => deleteIntegration(i.id)}><TrashIcon size={18} /></button>}
               </section>

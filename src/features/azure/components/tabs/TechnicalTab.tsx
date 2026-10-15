@@ -33,7 +33,7 @@ export function TechnicalTab(props: AzureCostTabProps) {
 
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Top Resources by Cost</h2>
         </div>
@@ -44,7 +44,7 @@ export function TechnicalTab(props: AzureCostTabProps) {
         )}
       </section>
 
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Resource Inventory</h2>
         </div>
@@ -55,12 +55,12 @@ export function TechnicalTab(props: AzureCostTabProps) {
         )}
       </section>
 
-      <div className="mv-row-3col" style={{ marginBottom: 16 }}>
+      <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <NamedCostPanel title="By Resource Group" columnLabel="Resource Group" rows={data.resourceGroups} />
         <NamedCostPanel title="By Location" columnLabel="Location" rows={data.locations} />
       </div>
 
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Reservation Utilization (Daily)</h2>
         </div>
@@ -125,7 +125,7 @@ function TopResourcesTable({ resources, mspRate }: { resources: AzureResourceCos
         </table>
       </div>
       {sorted.length > TOP_RESOURCES_VISIBLE && (
-        <p className="mv-muted" style={{ marginTop: 12 }}>
+        <p className="mv-muted" style={{ marginTop: '0.75rem' }}>
           Showing top {TOP_RESOURCES_VISIBLE} of {sorted.length} cost-tracked resources this month.
         </p>
       )}
@@ -149,7 +149,7 @@ function ResourceInventorySection({ resources }: { resources: AzureResources }) 
 
   return (
     <>
-      <div className="mv-kpi-row-4" style={{ marginBottom: 20 }}>
+      <div className="mv-kpi-row-4" style={{ marginBottom: '1.25rem' }}>
         <article className="mv-kpi"><span className="mv-kpi-label">Total Resources</span><strong className="mv-kpi-value">{resources.total.toLocaleString()}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">With Spend</span><strong className="mv-kpi-value">{resources.active.toLocaleString()}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Unused ($0)</span><strong className="mv-kpi-value">{unused.toLocaleString()}</strong></article>
@@ -157,7 +157,7 @@ function ResourceInventorySection({ resources }: { resources: AzureResources }) 
       </div>
 
       {sortedTypes.length > 0 && (
-        <div className="mv-service-tile-grid" style={{ marginBottom: 20 }}>
+        <div className="mv-service-tile-grid" style={{ marginBottom: '1.25rem' }}>
           {sortedTypes.map((type) => (
             <div className="mv-service-tile" key={type.type}>
               <span className="mv-service-tile-badge">{(type.type.replace(/[^A-Za-z]/g, '').slice(0, 2) || '??').toUpperCase()}</span>
@@ -195,7 +195,7 @@ function ResourceInventorySection({ resources }: { resources: AzureResources }) 
             </table>
           </div>
           {sortedResources.length > ALL_RESOURCES_PAGE && (
-            <button type="button" className="mv-quiet-button" style={{ marginTop: 12 }} onClick={() => setShowAll((value) => !value)}>
+            <button type="button" className="mv-quiet-button" style={{ marginTop: '0.75rem' }} onClick={() => setShowAll((value) => !value)}>
               {showAll ? 'Show less' : `Show all ${sortedResources.length} resources`}
             </button>
           )}
@@ -246,10 +246,10 @@ function ReservationUtilizationChart({ data, colors }: { data: AzureReservationU
 
   return (
     <div>
-      <p className="mv-muted" style={{ marginBottom: 12 }}>
+      <p className="mv-muted" style={{ marginBottom: '0.75rem' }}>
         Average daily utilization: <strong style={{ color: 'var(--mv-text)' }}>{average.toFixed(1)}%</strong>
       </p>
-      <div role="img" aria-label="Reservation utilization percentage by day" style={{ width: '100%', height: 240 }}>
+      <div role="img" aria-label="Reservation utilization percentage by day" style={{ width: '100%', height: '15rem' }}>
         <ResponsiveContainer>
           <AreaChart data={data}>
             <CartesianGrid stroke={colors.grid} vertical={false} />

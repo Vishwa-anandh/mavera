@@ -47,7 +47,7 @@ export function SapOverviewPage() {
 
       <SapHealthSummary />
 
-      <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr', marginBottom: 16 } as React.CSSProperties}>
+      <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr', marginBottom: '1rem' } as React.CSSProperties}>
         <section className="mv-panel" aria-labelledby="sap-load-title">
           <div className="mv-panel-header">
             <div>
@@ -74,7 +74,7 @@ export function SapOverviewPage() {
         </section>
       </div>
 
-      <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr', marginBottom: 16 } as React.CSSProperties}>
+      <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr', marginBottom: '1rem' } as React.CSSProperties}>
         <section className="mv-panel" aria-labelledby="sap-attention-title">
           <div className="mv-panel-header">
             <h2 id="sap-attention-title" className="mv-panel-title">Needs attention</h2>
@@ -91,7 +91,7 @@ export function SapOverviewPage() {
           ) : (
             <BarList label="Unread SAP alerts by severity" items={bySeverity.map((x) => ({ key: x.severity, label: x.severity, value: x.count, tone: SEVERITY_TONE[x.severity] }))} />
           )}
-          <h3 className="mv-detail-heading" style={{ marginTop: 16 }}>Background jobs</h3>
+          <h3 className="mv-detail-heading" style={{ marginTop: '1rem' }}>Background jobs</h3>
           <p className="mv-muted" style={{ margin: 0 }}>
             {jobCounts.filter((j) => j.count > 0).map((j) => `${j.count} ${j.status.toLowerCase()}`).join(' · ')}
             {' · '}<Link to="/sap/jobs">Open Jobs &amp; Dumps</Link>

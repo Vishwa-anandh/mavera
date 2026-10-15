@@ -65,14 +65,14 @@ export function SmartAlertsPage() {
     <div>
       <PageHeader title={<>Smart Alerts &amp; Anomalies</>} subtitle="Automated detection of billing spikes, unusual spend, budget breaches, and new resource creation.">
         {activeTab === 'alerts' && (
-          <div style={{ display: 'flex', gap: 10 }}>
-            {unreadCount > 0 && <button className="mv-secondary-button" onClick={markAllRead}><CheckIcon size={16} style={{ marginRight: 6 }} />Mark All Read</button>}
-            <button className="mv-secondary-button"><RefreshIcon size={16} style={{ marginRight: 6 }} />Refresh</button>
+          <div style={{ display: 'flex', gap: '0.625rem' }}>
+            {unreadCount > 0 && <button className="mv-secondary-button" onClick={markAllRead}><CheckIcon size={16} style={{ marginRight: '0.375rem' }} />Mark All Read</button>}
+            <button className="mv-secondary-button"><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />Refresh</button>
           </div>
         )}
       </PageHeader>
 
-      <div className="mv-segmented" style={{ marginBottom: 20 }}>
+      <div className="mv-segmented" style={{ marginBottom: '1.25rem' }}>
         <button className={`mv-segmented-btn${activeTab === 'alerts' ? ' is-active' : ''}`} onClick={() => setActiveTab('alerts')}><BellIcon size={15} />Alerts</button>
         <button className={`mv-segmented-btn${activeTab === 'recipients' ? ' is-active' : ''}`} onClick={() => setActiveTab('recipients')}><UsersIcon size={15} />Recipients</button>
         <button className={`mv-segmented-btn${activeTab === 'settings' ? ' is-active' : ''}`} onClick={() => setActiveTab('settings')}><SettingsIcon size={15} />Settings</button>
@@ -84,33 +84,33 @@ export function SmartAlertsPage() {
         <SettingsPanel />
       ) : (
         <>
-          <div className="mv-meta-line" style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 16 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ClockIcon size={14} />Last alert: <strong>{new Date(MOCK_ALERT_STATS.lastDetectedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong></span>
+          <div className="mv-meta-line" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}><ClockIcon size={14} />Last alert: <strong>{new Date(MOCK_ALERT_STATS.lastDetectedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong></span>
             <span>Ignored this month: <strong>{MOCK_ALERT_STATS.ignoredThisMonth}</strong></span>
             <span>Threshold adjustments: <strong>{MOCK_ALERT_STATS.feedbackAdjustments}</strong></span>
             <span style={{ marginLeft: 'auto' }}>Detection runs daily at <strong>02:30 AM</strong></span>
           </div>
 
-          <div className="mv-kpi-row-4" style={{ marginBottom: 16 }}>
+          <div className="mv-kpi-row-4" style={{ marginBottom: '1rem' }}>
             <article className="mv-kpi"><span className="mv-kpi-label">Total Active</span><strong className="mv-kpi-value">{visible.length}</strong></article>
             <article className="mv-kpi"><span className="mv-kpi-label">Unread</span><strong className="mv-kpi-value">{unreadCount}</strong></article>
             <article className="mv-kpi"><span className="mv-kpi-label">Critical</span><strong className="mv-kpi-value" style={{ color: 'var(--mv-danger)' }}>{criticalCount}</strong></article>
             <article className="mv-kpi"><span className="mv-kpi-label">New Resources</span><strong className="mv-kpi-value">{resourceCount}</strong></article>
           </div>
 
-          <section className="mv-panel mv-alert-filter-bar" style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center' }}>
+          <section className="mv-panel mv-alert-filter-bar" style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
             <FilterIcon size={16} />
-            <div className="mv-filter-group" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span className="mv-muted" style={{ fontSize: 12, fontWeight: 500 }}>Status</span>
+            <div className="mv-filter-group" style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+              <span className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Status</span>
               {STATUS_FILTERS.map((f) => (
-                <button key={f.key} className={`mv-segmented-btn${statusFilter === f.key ? ' is-active' : ''}`} style={{ minHeight: 30, padding: '0 10px' }} onClick={() => setStatusFilter(f.key)}>{f.label}</button>
+                <button key={f.key} className={`mv-segmented-btn${statusFilter === f.key ? ' is-active' : ''}`} style={{ minHeight: '1.875rem', padding: '0 0.625rem' }} onClick={() => setStatusFilter(f.key)}>{f.label}</button>
               ))}
             </div>
             <div className="mv-filter-divider" />
-            <div className="mv-filter-group" style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span className="mv-muted" style={{ fontSize: 12, fontWeight: 500 }}>Type</span>
+            <div className="mv-filter-group" style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <span className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Type</span>
               {TYPE_FILTERS.map((f) => (
-                <button key={f.key} className={`mv-segmented-btn${typeFilter === f.key ? ' is-active' : ''}`} style={{ minHeight: 30, padding: '0 10px' }} onClick={() => setTypeFilter(f.key)}>{f.label}</button>
+                <button key={f.key} className={`mv-segmented-btn${typeFilter === f.key ? ' is-active' : ''}`} style={{ minHeight: '1.875rem', padding: '0 0.625rem' }} onClick={() => setTypeFilter(f.key)}>{f.label}</button>
               ))}
             </div>
           </section>
@@ -129,14 +129,14 @@ export function SmartAlertsPage() {
                   <tbody>
                     {filtered.map((alert) => (
                       <tr key={alert.id} onClick={() => viewAlert(alert)} style={{ cursor: 'pointer' }}>
-                        <td>{alert.status === 'unread' && <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mv-primary)', display: 'inline-block' }} />}</td>
+                        <td>{alert.status === 'unread' && <span aria-hidden style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--mv-primary)', display: 'inline-block' }} />}</td>
                         <td style={{ fontWeight: alert.status === 'unread' ? 600 : 400 }}>{TYPE_LABELS[alert.alert_type]}</td>
                         <td><span className={`mv-status mv-status--${SEVERITY_TONE[alert.severity]}`}>{SEVERITY_LABELS[alert.severity]}</span></td>
                         <td>{alert.provider !== 'all' ? <span className="mv-status mv-status--neutral">{({ azure: 'Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'Google Cloud' } as Record<string, string>)[alert.provider] ?? alert.provider}</span> : <span className="mv-muted">—</span>}</td>
-                        <td style={{ maxWidth: 320 }}><p className="mv-muted" style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{alert.message}</p></td>
+                        <td style={{ maxWidth: '20rem' }}><p className="mv-muted" style={{ margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{alert.message}</p></td>
                         <td className="mv-muted" style={{ whiteSpace: 'nowrap' }}>{new Date(alert.detected_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
                         <td onClick={(e) => e.stopPropagation()}>
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.25rem' }}>
                             <button className="mv-icon-button" aria-label="View" onClick={() => viewAlert(alert)}><EyeIcon size={15} /></button>
                             <button className="mv-icon-button" aria-label="Resolve" onClick={() => resolveAlert(alert.id)}><CheckIcon size={15} /></button>
                             <Tooltip content="Ignore and widen threshold for this account">
@@ -164,12 +164,12 @@ export function SmartAlertsPage() {
               </div>
               <button className="mv-icon-button" aria-label="Close" onClick={() => setSelectedAlert(null)}><CloseIcon size={18} /></button>
             </div>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
               <span className={`mv-status mv-status--${SEVERITY_TONE[selectedAlert.severity]}`}>{SEVERITY_LABELS[selectedAlert.severity]}</span>
               {selectedAlert.provider !== 'all' && <span className="mv-status mv-status--neutral">{({ azure: 'Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'Google Cloud' } as Record<string, string>)[selectedAlert.provider] ?? selectedAlert.provider}</span>}
               <span className="mv-status mv-status--neutral" style={{ textTransform: 'capitalize' }}>{selectedAlert.status}</span>
             </div>
-            <p style={{ marginBottom: 16 }}>{selectedAlert.message}</p>
+            <p style={{ marginBottom: '1rem' }}>{selectedAlert.message}</p>
             <div className="mv-key-value">
               <DetailRow label="Account" value={selectedAlert.account_id} />
               <DetailRow label="Detected at" value={new Date(selectedAlert.detected_at).toLocaleString()} />
@@ -214,28 +214,28 @@ function SettingsPanel() {
 
   return (
     <div>
-      <div className="mv-notice" style={{ marginBottom: 16 }}>
+      <div className="mv-notice" style={{ marginBottom: '1rem' }}>
         These settings tune how sensitive anomaly detection is for your organisation. Changes take effect on the next daily detection run at <strong>02:30 AM</strong>. Ignoring an alert automatically widens the sensitivity for that account.
       </div>
-      {saved && <div className="mv-notice" style={{ marginBottom: 16 }}><CheckIcon size={14} style={{ marginRight: 6, verticalAlign: -2 }} />Settings saved successfully.</div>}
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      {saved && <div className="mv-notice" style={{ marginBottom: '1rem' }}><CheckIcon size={14} style={{ marginRight: '0.375rem', verticalAlign: -2 }} />Settings saved successfully.</div>}
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         {SETTINGS_FIELDS.map((field) => (
-          <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 0', borderBottom: '1px solid var(--mv-divider)' }}>
+          <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 0', borderBottom: '1px solid var(--mv-divider)' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontWeight: 600 }}>{field.label}</p>
               <p className="mv-muted" style={{ margin: '2px 0 0' }}>{field.desc}</p>
             </div>
-            <input type="range" min={field.min} max={field.max} step={field.step} value={form[field.key] as number} onChange={(e) => setForm({ ...form, [field.key]: parseFloat(e.target.value) })} style={{ width: 140 }} />
-            <strong style={{ width: 48, textAlign: 'right' }}>{form[field.key] as number}</strong>
+            <input type="range" min={field.min} max={field.max} step={field.step} value={form[field.key] as number} onChange={(e) => setForm({ ...form, [field.key]: parseFloat(e.target.value) })} style={{ width: '8.75rem' }} />
+            <strong style={{ width: '3rem', textAlign: 'right' }}>{form[field.key] as number}</strong>
           </div>
         ))}
       </section>
       {Object.keys(form.account_feedback).length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
-          <p className="mv-panel-title" style={{ marginBottom: 8 }}>Threshold Widening by Account</p>
-          <p className="mv-muted" style={{ marginBottom: 12 }}>Each time you ignore an alert, the detection band widens for that account (+0.3σ per ignore, max +1.2σ).</p>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
+          <p className="mv-panel-title" style={{ marginBottom: '0.5rem' }}>Threshold Widening by Account</p>
+          <p className="mv-muted" style={{ marginBottom: '0.75rem' }}>Each time you ignore an alert, the detection band widens for that account (+0.3σ per ignore, max +1.2σ).</p>
           {Object.entries(form.account_feedback).map(([accountId, count]) => (
-            <div key={accountId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '4px 0' }}>
+            <div key={accountId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', padding: '0.25rem 0' }}>
               <span className="mv-code">{accountId}</span>
               <strong style={{ color: 'var(--mv-warning)' }}>+{Math.min(count * 0.3, 1.2).toFixed(1)}σ ({count} ignore{count !== 1 ? 's' : ''})</strong>
             </div>
@@ -243,7 +243,7 @@ function SettingsPanel() {
         </section>
       )}
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button className="mv-primary-button" onClick={save}><CheckIcon size={16} style={{ marginRight: 6 }} />Save Settings</button>
+        <button className="mv-primary-button" onClick={save}><CheckIcon size={16} style={{ marginRight: '0.375rem' }} />Save Settings</button>
       </div>
     </div>
   );
@@ -273,10 +273,10 @@ function RecipientsPanel() {
 
   return (
     <div>
-      <div className="mv-notice" style={{ marginBottom: 16 }}>
-        <MailIcon size={14} style={{ marginRight: 6, verticalAlign: -2 }} />By default, all organisation members receive alert emails. Configure custom recipients below.
+      <div className="mv-notice" style={{ marginBottom: '1rem' }}>
+        <MailIcon size={14} style={{ marginRight: '0.375rem', verticalAlign: -2 }} />By default, all organisation members receive alert emails. Configure custom recipients below.
       </div>
-      <div style={{ display: 'grid', gap: 16 }}>
+      <div style={{ display: 'grid', gap: '1rem' }}>
         {alertTypes.map((type) => {
           const recipients = getRecipients(type);
           const hasCustom = configs.some((c) => c.alert_type === type);
@@ -290,18 +290,18 @@ function RecipientsPanel() {
                 {hasCustom && <button className="mv-icon-button" aria-label="Reset" onClick={() => resetConfig(type)}><TrashIcon size={16} /></button>}
               </div>
               {recipients.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.625rem' }}>
                   {recipients.map((email) => (
-                    <span key={email} className="mv-status mv-status--info" style={{ gap: 6 }}>
+                    <span key={email} className="mv-status mv-status--info" style={{ gap: '0.375rem' }}>
                       {email}
                       <button type="button" onClick={() => removeEmail(type, email)} aria-label={`Remove ${email}`} style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', display: 'inline-flex' }}><CloseIcon size={12} /></button>
                     </span>
                   ))}
                 </div>
               )}
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input value={inputs[type] ?? ''} onChange={(e) => setInputs({ ...inputs, [type]: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEmail(type); } }} placeholder="user@example.com — press Enter to add" style={{ flex: 1, height: 40, padding: '0 12px', border: '1px solid var(--mv-border)', borderRadius: 8, background: 'var(--mv-surface)', color: 'var(--mv-text)' }} />
-                <button className="mv-secondary-button" onClick={() => addEmail(type)}><PlusIcon size={14} style={{ marginRight: 4 }} />Add</button>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input value={inputs[type] ?? ''} onChange={(e) => setInputs({ ...inputs, [type]: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEmail(type); } }} placeholder="user@example.com — press Enter to add" style={{ flex: 1, height: '2.5rem', padding: '0 0.75rem', border: '1px solid var(--mv-border)', borderRadius: '0.5rem', background: 'var(--mv-surface)', color: 'var(--mv-text)' }} />
+                <button className="mv-secondary-button" onClick={() => addEmail(type)}><PlusIcon size={14} style={{ marginRight: '0.25rem' }} />Add</button>
               </div>
             </section>
           );

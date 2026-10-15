@@ -104,14 +104,14 @@ export function CostAnalyticsPage() {
         <article className="mv-kpi"><span className="mv-kpi-label">Monthly average</span><strong className="mv-kpi-value">{formatMoney(rangeTotal / Math.max(1, months.length), currency, { compact: true })}</strong></article>
       </div>
 
-      <section className="mv-panel" aria-labelledby="trend-title" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" aria-labelledby="trend-title" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <div><h2 className="mv-panel-title" id="trend-title">Monthly cost by provider</h2><p className="mv-muted">{currency}, last {range} months</p></div>
         </div>
         {providers.some((p) => data.providersWithoutHistory.includes(p)) && (
           <p className="mv-muted">Google Cloud only has the current month synced, so it shows as a single point.</p>
         )}
-        <div role="img" aria-label={`Monthly cost by provider, ${currency}`} style={{ height: 260 }}>
+        <div role="img" aria-label={`Monthly cost by provider, ${currency}`} style={{ height: '16.25rem' }}>
           <ResponsiveContainer>
             <LineChart data={trend}>
               <CartesianGrid stroke={colors.grid} vertical={false} />

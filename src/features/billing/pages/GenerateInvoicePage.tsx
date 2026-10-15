@@ -104,19 +104,19 @@ export function GenerateInvoicePage() {
           <div className="mv-panel-header"><h2 className="mv-panel-title">Invoice Details</h2></div>
           <Select
             label="Customer"
-            style={{ height: 44 }}
+            style={{ height: '2.75rem' }}
             value={customerId}
             onChange={setCustomerId}
             options={activeCustomers.map((c) => ({ value: c.id, label: `${c.name}${c.discountPct > 0 ? ` (${c.discountPct}% discount)` : ''}` }))}
           />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(8.75rem, 1fr))', gap: '1rem' }}>
             <label className="mv-field">Invoice Date<input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></label>
             <label className="mv-field">Serial Number<input value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} /></label>
             <label className="mv-field">PO Number<input value={poNumber} onChange={(e) => setPoNumber(e.target.value)} /></label>
           </div>
           <Select
             label="Payment Term"
-            style={{ height: 44 }}
+            style={{ height: '2.75rem' }}
             value={paymentTermId}
             onChange={setPaymentTermId}
             options={terms.map((t) => ({ value: t.id, label: t.name }))}
@@ -134,25 +134,25 @@ export function GenerateInvoicePage() {
           />
 
           <div className="mv-panel" style={{ background: 'var(--mv-surface-subtle)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}><span className="mv-muted">Line Items Subtotal</span><strong>{formatCurrency(totals.lineSubtotal)}</strong></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span className="mv-muted">Line Items Subtotal</span><strong>{formatCurrency(totals.lineSubtotal)}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span className="mv-muted">Summary Adjustment %</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input className="mv-select" type="number" step="0.1" style={{ width: 80, textAlign: 'right' }} value={overallAdjustmentPct} onChange={(e) => setOverallAdjustmentPct(Number(e.target.value))} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input className="mv-select" type="number" step="0.1" style={{ width: '5rem', textAlign: 'right' }} value={overallAdjustmentPct} onChange={(e) => setOverallAdjustmentPct(Number(e.target.value))} />
                 <strong>{formatCurrency(totals.overallAdjustmentAmount)}</strong>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span className="mv-muted">Tax %</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input className="mv-select" type="number" min={0} step="0.1" style={{ width: 80, textAlign: 'right' }} value={taxPct} onChange={(e) => setTaxPct(Number(e.target.value))} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input className="mv-select" type="number" min={0} step="0.1" style={{ width: '5rem', textAlign: 'right' }} value={taxPct} onChange={(e) => setTaxPct(Number(e.target.value))} />
                 <strong>{formatCurrency(totals.tax)}</strong>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--mv-divider)' }}><strong>Total Due</strong><strong style={{ fontSize: 16 }}>{formatCurrency(totals.totalDue)}</strong></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid var(--mv-divider)' }}><strong>Total Due</strong><strong style={{ fontSize: '1rem' }}>{formatCurrency(totals.totalDue)}</strong></div>
           </div>
 
-          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
             <button className="mv-primary-button" disabled={!canSend} onClick={() => setConfirming(true)}>Send Invoice</button>
           </div>
         </section>

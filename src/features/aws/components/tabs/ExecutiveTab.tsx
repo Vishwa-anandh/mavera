@@ -116,11 +116,11 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
         </article>
       </div>
 
-      <section className="mv-panel" id="exec-annual-trend" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" id="exec-annual-trend" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Financial Snapshot</h2>
         </div>
-        <div className="mv-service-tile-grid mv-service-tile-grid--5" style={{ marginBottom: 20 }}>
+        <div className="mv-service-tile-grid mv-service-tile-grid--5" style={{ marginBottom: '1.25rem' }}>
           <div className="mv-service-tile">
             <span className="mv-service-tile-name">Last Month</span>
             <strong>{previousEntry ? formatCurrency(previousEntry.totalCost) : '—'}</strong>
@@ -151,9 +151,9 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
       </section>
 
       {aiInsights.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
               <h2 className="mv-panel-title">AI Executive Summary</h2>
               <span className="mv-status mv-status--info">{aiInsights.length} insights</span>
             </div>
@@ -162,11 +162,11 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
             </button>
           </div>
           {summaryOpen && (
-            <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
+            <div style={{ display: 'grid', gap: '0.625rem', gridTemplateColumns: 'repeat(auto-fit, minmax(16.25rem, 1fr))' }}>
               {aiInsights.map((insight, i) => (
                 <div key={i} className={`mv-inline-error mv-ai-insight mv-ai-insight--${insight.type}`}>
                   <span className={`mv-status mv-status--${insight.type}`}>{insightTypeLabel(insight.type)}</span>
-                  <p style={{ margin: '6px 0 0', fontWeight: 600, color: 'var(--mv-text)' }}>{insight.title}</p>
+                  <p style={{ margin: '0.375rem 0 0', fontWeight: 600, color: 'var(--mv-text)' }}>{insight.title}</p>
                   <p className="mv-muted" style={{ margin: '2px 0 0' }}>{insight.detail}</p>
                 </div>
               ))}
@@ -212,11 +212,11 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
           <div className="mv-panel-header">
             <h2 className="mv-panel-title">Attention Center</h2>
           </div>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gap: '0.625rem' }}>
             {attentionItems.map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: 12, border: '1px solid var(--mv-divider)', borderRadius: 8 }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', padding: '0.75rem', border: '1px solid var(--mv-divider)', borderRadius: '0.5rem' }}>
                 <span className={`mv-status mv-status--${item.tone}`}>{attentionToneLabel(item.tone)}</span>
-                <p style={{ margin: 0, fontSize: 13 }}>{item.label}</p>
+                <p style={{ margin: 0, fontSize: '0.8125rem' }}>{item.label}</p>
               </div>
             ))}
           </div>
@@ -224,10 +224,10 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
             <div
               className="mv-inline-error"
               style={{
-                marginTop: 16,
+                marginTop: '1rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
+                gap: '0.75rem',
                 borderColor: 'var(--mv-success)',
                 background: 'color-mix(in srgb, var(--mv-success) 7%, transparent)',
                 color: 'var(--mv-text)',

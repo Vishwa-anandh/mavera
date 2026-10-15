@@ -21,10 +21,10 @@ export function SuperAdminOrganizationsPage() {
   return (
     <div className="mv-sa-content">
       <PageHeader title="Organizations" subtitle="Each customer's modules, seats, cloud access and subscription period. Only super admins can change these.">
-        <Link className="mv-primary-button" to="/admin/organizations/new"><PlusIcon size={16} style={{ marginRight: 6 }} />New organization</Link>
+        <Link className="mv-primary-button" to="/admin/organizations/new"><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />New organization</Link>
       </PageHeader>
 
-      <div className="mv-kpi-row-4" style={{ marginBottom: 24 }}>
+      <div className="mv-kpi-row-4" style={{ marginBottom: '1.5rem' }}>
         <article className="mv-kpi"><span className="mv-kpi-label">Organizations</span><strong className="mv-kpi-value">{totalOrgs}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Seats granted (capped orgs)</span><strong className="mv-kpi-value">{totalSeatsGranted.toLocaleString()}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Expiring within 30 days</span><strong className="mv-kpi-value">{expiringSoon}</strong></article>
@@ -33,7 +33,7 @@ export function SuperAdminOrganizationsPage() {
 
       <section className="mv-panel">
         <div className="mv-panel-header">
-          <h2 className="mv-panel-title"><BuildingIcon size={16} style={{ verticalAlign: -3, marginRight: 6 }} />All organizations</h2>
+          <h2 className="mv-panel-title"><BuildingIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />All organizations</h2>
         </div>
         <div className="mv-table-wrap">
           <table className="mv-table mv-table--stack">

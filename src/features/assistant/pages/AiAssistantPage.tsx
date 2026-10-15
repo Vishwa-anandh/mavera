@@ -5,7 +5,7 @@ import { PageHeader } from '../../../shared/ui/PageHeader';
 
 export function AiAssistantPage() {
   const { modules } = useAuth();
-  const { messages, draft, setDraft, send } = useAssistantConversation();
+  const { messages, draft, setDraft, send } = useAssistantConversation(undefined, modules);
   const introLabel = assistantIntroLabel(modules);
 
   return (

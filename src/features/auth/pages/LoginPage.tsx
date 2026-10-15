@@ -182,7 +182,7 @@ export function LoginPage() {
           {!accountLocked && step === 'email' && (
             <div className="mv-notice">
               Demo credentials: <strong>{DEMO_EMAIL}</strong> / <strong>{DEMO_PASSWORD}</strong>
-              <button type="button" className="mv-quiet-button" style={{ marginLeft: 10 }} onClick={useDemoCredentials}>
+              <button type="button" className="mv-quiet-button" style={{ marginLeft: '0.625rem' }} onClick={useDemoCredentials}>
                 Use demo credentials
               </button>
             </div>
@@ -191,7 +191,7 @@ export function LoginPage() {
           {!accountLocked && step === 'email' && (
             <div className="mv-notice">
               Super Admin portal: <strong>{SA_DEMO_USERNAME}</strong> / <strong>{SA_DEMO_PASSWORD}</strong>
-              <button type="button" className="mv-quiet-button" style={{ marginLeft: 10 }} onClick={useSuperAdminDemoCredentials}>
+              <button type="button" className="mv-quiet-button" style={{ marginLeft: '0.625rem' }} onClick={useSuperAdminDemoCredentials}>
                 Use Super Admin credentials
               </button>
             </div>

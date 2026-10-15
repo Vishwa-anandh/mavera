@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useAssistantConversation } from '../model/useAssistantConversation';
@@ -19,7 +19,8 @@ describe('AssistantConversation', () => {
     await user.click(chip);
 
     expect(screen.getByText('System health')).toBeInTheDocument();
-    expect(screen.getByText(/no live model connected yet/)).toBeInTheDocument();
+    expect(screen.getByText(/SAP systems: 3 healthy, 1 warning, 1 critical/)).toBeInTheDocument();
+    expect(screen.getByText(/Sample data/)).toBeInTheDocument();
   });
 
   it('sends a typed question and clears the input', async () => {
@@ -27,10 +28,11 @@ describe('AssistantConversation', () => {
     render(<Harness />);
 
     const input = screen.getByLabelText('Ask the AI Assistant');
-    await user.type(input, 'Show me failed IDocs today');
+    await user.type(input, 'Tell me a joke about clouds');
     await user.click(screen.getByRole('button', { name: 'Send' }));
 
-    expect(screen.getByText('Show me failed IDocs today')).toBeInTheDocument();
+    expect(screen.getByText('Tell me a joke about clouds')).toBeInTheDocument();
+    expect(screen.getByText(/no live model connected yet/)).toBeInTheDocument();
     expect(input).toHaveValue('');
   });
 
@@ -48,5 +50,27 @@ describe('AssistantConversation', () => {
   it('shows no flow-guide offer on a page without one', () => {
     render(<Harness pathname="/dashboard" />);
     expect(screen.queryByText(/Need a hand/)).not.toBeInTheDocument();
+  });
+
+  it('lists the page’s task tours and starts the one clicked', async () => {
+    const user = userEvent.setup();
+    const onStartFlow = vi.fn();
+    const Page = () => {
+      const { messages, draft, setDraft, send, flowGuide } = useAssistantConversation('/users');
+      return <AssistantConversation messages={messages} draft={draft} onDraftChange={setDraft} onSend={send} flowGuide={flowGuide} onStartFlow={onStartFlow} />;
+    };
+    render(<Page />);
+    await user.click(screen.getByRole('button', { name: 'Add a user' }));
+    expect(onStartFlow).toHaveBeenCalledWith(expect.objectContaining({ key: 'add-user' }));
+  });
+
+  it('hides the "New here?" prompt for returning users but keeps the task tours', () => {
+    const Page = () => {
+      const { messages, draft, setDraft, send, flowGuide } = useAssistantConversation('/users');
+      return <AssistantConversation messages={messages} draft={draft} onDraftChange={setDraft} onSend={send} flowGuide={flowGuide} hideFlowPrompt onStartFlow={() => {}} />;
+    };
+    render(<Page />);
+    expect(screen.queryByRole('button', { name: 'Help me manage users' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Deactivate or reactivate a user' })).toBeInTheDocument();
   });
 });

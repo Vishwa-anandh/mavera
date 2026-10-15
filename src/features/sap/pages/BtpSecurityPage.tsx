@@ -21,37 +21,37 @@ export function BtpSecurityPage() {
   return (
     <div>
       <PageHeader title="BTP Security Assessment" subtitle={<>Users, role collections & roles for the connected destination.</>}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <DestinationSwitcher />
-          <button className="mv-secondary-button"><RefreshIcon size={14} style={{ marginRight: 6 }} />Refresh</button>
+          <button className="mv-secondary-button"><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
         </div>
       </PageHeader>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.625rem' }}>
         <div className="mv-segmented">
           {TABS.map(({ key, label, icon: Icon }) => (
-            <button key={key} className={`mv-segmented-btn${tab === key ? ' is-active' : ''}`} onClick={() => setTab(key)}><Icon size={14} style={{ marginRight: 6 }} />{label}</button>
+            <button key={key} className={`mv-segmented-btn${tab === key ? ' is-active' : ''}`} onClick={() => setTab(key)}><Icon size={14} style={{ marginRight: '0.375rem' }} />{label}</button>
           ))}
         </div>
         {tab === 'users' && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
             <div style={{ position: 'relative' }}>
               <SearchIcon size={15} style={{ position: 'absolute', left: 10, top: 12, color: 'var(--mv-text-muted)' }} />
-              <input className="mv-select" style={{ paddingLeft: 32, width: 'min(260px, 100%)' }} placeholder="Search by name, email, or username" />
+              <input className="mv-select" style={{ paddingLeft: '2rem', width: 'min(16.25rem, 100%)' }} placeholder="Search by name, email, or username" />
             </div>
-            <Select label="Status" hideLabel value={statusFilter} onChange={setStatusFilter} options={['All', 'Active', 'Inactive'].map((v) => ({ value: v, label: v === 'All' ? 'All Status' : v }))} style={{ width: 150 }} />
+            <Select label="Status" hideLabel value={statusFilter} onChange={setStatusFilter} options={['All', 'Active', 'Inactive'].map((v) => ({ value: v, label: v === 'All' ? 'All Status' : v }))} style={{ width: '9.375rem' }} />
           </div>
         )}
       </div>
 
       {tab === 'users' && (
         <section className="mv-panel">
-          <p className="mv-muted" style={{ marginBottom: 12 }}>{MOCK_BTP_USERS.length} of {MOCK_BTP_USERS.length} users</p>
+          <p className="mv-muted" style={{ marginBottom: '0.75rem' }}>{MOCK_BTP_USERS.length} of {MOCK_BTP_USERS.length} users</p>
           <div className="mv-table-wrap">
             <table className="mv-table">
               <thead><tr><th>Full Name</th><th>Username / Email</th><th>Groups</th><th>Status</th><th>Verified</th><th>Last Login</th><th>Created At</th></tr></thead>
               <tbody>
-                {MOCK_BTP_USERS.length === 0 && <tr><td colSpan={7} className="mv-muted" style={{ textAlign: 'center', padding: 20 }}>No Users Found</td></tr>}
+                {MOCK_BTP_USERS.length === 0 && <tr><td colSpan={7} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No Users Found</td></tr>}
               </tbody>
             </table>
           </div>
@@ -63,7 +63,7 @@ export function BtpSecurityPage() {
             <table className="mv-table">
               <thead><tr><th>Role Collection</th><th className="mv-num">Roles</th><th className="mv-num">Assigned Users</th></tr></thead>
               <tbody>
-                {MOCK_BTP_ROLE_COLLECTIONS.length === 0 && <tr><td colSpan={3} className="mv-muted" style={{ textAlign: 'center', padding: 20 }}>No role collections found</td></tr>}
+                {MOCK_BTP_ROLE_COLLECTIONS.length === 0 && <tr><td colSpan={3} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No role collections found</td></tr>}
               </tbody>
             </table>
           </div>
@@ -75,7 +75,7 @@ export function BtpSecurityPage() {
             <table className="mv-table">
               <thead><tr><th>Role</th><th>Description</th><th>Scope</th></tr></thead>
               <tbody>
-                {MOCK_BTP_ROLES.length === 0 && <tr><td colSpan={3} className="mv-muted" style={{ textAlign: 'center', padding: 20 }}>No roles found</td></tr>}
+                {MOCK_BTP_ROLES.length === 0 && <tr><td colSpan={3} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No roles found</td></tr>}
               </tbody>
             </table>
           </div>

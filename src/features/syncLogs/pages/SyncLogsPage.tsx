@@ -67,7 +67,7 @@ export function SyncLogsPage() {
     <div>
       <PageHeader title="Sync Audit Logs" subtitle="Every cloud data fetch — scheduled and user-triggered." updatedAt={LATEST_SYNC}>
         <button className="mv-secondary-button" disabled={refreshing} onClick={handleRefresh}>
-          <RefreshIcon size={16} style={{ marginRight: 6 }} />
+          <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </button>
       </PageHeader>
@@ -119,17 +119,17 @@ export function SyncLogsPage() {
                   <tr key={log.id}>
                     <td>
                       <button type="button" className="mv-link-button" onClick={() => setOpenId(log.id)} aria-label={`View sync details for ${log.accountName}`}>{log.accountName}</button>
-                      {log.errorMessage && <Tooltip content={log.errorMessage}><p className="mv-muted" style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--mv-danger)', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.errorMessage}</p></Tooltip>}
+                      {log.errorMessage && <Tooltip content={log.errorMessage}><p className="mv-muted" style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--mv-danger)', maxWidth: '20rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.errorMessage}</p></Tooltip>}
                     </td>
                     <td><span className="mv-status mv-status--neutral">{PROVIDER_LABELS[log.provider]}</span></td>
                     <td>
-                      <span className="mv-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                      <span className="mv-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem' }}>
                         {log.triggeredBy === 'system' ? <><ServerIcon size={13} />System</> : <><UserIcon size={13} />{log.triggeredBy}</>}
                       </span>
                     </td>
-                    <td className="mv-muted mv-date" style={{ fontSize: 12 }}>{formatTimestamp(log.startedAt)}</td>
+                    <td className="mv-muted mv-date" style={{ fontSize: '0.75rem' }}>{formatTimestamp(log.startedAt)}</td>
                     <td><span className={`mv-status mv-status--${STATUS_TONE[log.status]}`}>{STATUS_LABELS[log.status]}</span></td>
-                    <td className="mv-muted" style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>{formatDuration(log.startedAt, log.completedAt)}</td>
+                    <td className="mv-muted" style={{ fontSize: '0.75rem', fontVariantNumeric: 'tabular-nums' }}>{formatDuration(log.startedAt, log.completedAt)}</td>
                   </tr>
                 ))}
               </tbody>

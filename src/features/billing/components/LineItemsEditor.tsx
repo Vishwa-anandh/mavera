@@ -77,12 +77,12 @@ export function LineItemsEditor({ lines, columns, onChange, discountAvailable = 
   const showBillingPeriod = billingPeriodAvailable;
 
   return (
-    <div style={{ marginBottom: 18 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <p className="mv-muted" style={{ fontSize: 12, fontWeight: 600 }}>Line Items</p>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="mv-quiet-button" onClick={addColumn}><PlusIcon size={14} style={{ marginRight: 4 }} />Add Column</button>
-          <button type="button" className="mv-quiet-button" onClick={addLine}><PlusIcon size={14} style={{ marginRight: 4 }} />Add Row</button>
+    <div style={{ marginBottom: '1.125rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <p className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Line Items</p>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button type="button" className="mv-quiet-button" onClick={addColumn}><PlusIcon size={14} style={{ marginRight: '0.25rem' }} />Add Column</button>
+          <button type="button" className="mv-quiet-button" onClick={addLine}><PlusIcon size={14} style={{ marginRight: '0.25rem' }} />Add Row</button>
         </div>
       </div>
 
@@ -95,7 +95,7 @@ export function LineItemsEditor({ lines, columns, onChange, discountAvailable = 
               <th className="mv-num">Unit Price</th>
               {discountAvailable && (
                 <th className="mv-num">
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 400 }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: 400 }}>
                     <input type="checkbox" checked={allDiscounted} onChange={toggleAllDiscount} />Discount %
                   </label>
                 </th>
@@ -104,11 +104,11 @@ export function LineItemsEditor({ lines, columns, onChange, discountAvailable = 
               {showBillingPeriod && <th>Billing End</th>}
               {columns.map((col, i) => (
                 <th key={col.id}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     {col.label}
-                    <button type="button" className="mv-icon-button" aria-label={`Move ${col.label} left`} disabled={i === 0} onClick={() => moveColumn(i, -1)} style={{ width: 20, height: 20 }}><ChevronLeftIcon size={12} /></button>
-                    <button type="button" className="mv-icon-button" aria-label={`Move ${col.label} right`} disabled={i === columns.length - 1} onClick={() => moveColumn(i, 1)} style={{ width: 20, height: 20 }}><ChevronRightIcon size={12} /></button>
-                    <button type="button" className="mv-icon-button" aria-label={`Remove ${col.label}`} onClick={() => removeColumn(col.id)} style={{ width: 20, height: 20 }}><TrashIcon size={12} /></button>
+                    <button type="button" className="mv-icon-button" aria-label={`Move ${col.label} left`} disabled={i === 0} onClick={() => moveColumn(i, -1)} style={{ width: '1.25rem', height: '1.25rem' }}><ChevronLeftIcon size={12} /></button>
+                    <button type="button" className="mv-icon-button" aria-label={`Move ${col.label} right`} disabled={i === columns.length - 1} onClick={() => moveColumn(i, 1)} style={{ width: '1.25rem', height: '1.25rem' }}><ChevronRightIcon size={12} /></button>
+                    <button type="button" className="mv-icon-button" aria-label={`Remove ${col.label}`} onClick={() => removeColumn(col.id)} style={{ width: '1.25rem', height: '1.25rem' }}><TrashIcon size={12} /></button>
                   </div>
                 </th>
               ))}
@@ -120,12 +120,12 @@ export function LineItemsEditor({ lines, columns, onChange, discountAvailable = 
             {lines.map((line) => (
               <tr key={line.id}>
                 <td><input className="mv-select" style={{ width: '100%' }} value={line.description} onChange={(e) => updateLine(line.id, { description: e.target.value })} placeholder="Item description" /></td>
-                <td className="mv-num"><input className="mv-select" type="number" min={0} step="1" style={{ width: 72, textAlign: 'right' }} value={line.quantity} onChange={(e) => updateLine(line.id, { quantity: Number(e.target.value) })} /></td>
-                <td className="mv-num"><input className="mv-select" type="number" min={0} step="0.01" style={{ width: 100, textAlign: 'right' }} value={line.vendorUnitPrice} onChange={(e) => updateLine(line.id, { vendorUnitPrice: Number(e.target.value) })} /></td>
+                <td className="mv-num"><input className="mv-select" type="number" min={0} step="1" style={{ width: '4.5rem', textAlign: 'right' }} value={line.quantity} onChange={(e) => updateLine(line.id, { quantity: Number(e.target.value) })} /></td>
+                <td className="mv-num"><input className="mv-select" type="number" min={0} step="0.01" style={{ width: '6.25rem', textAlign: 'right' }} value={line.vendorUnitPrice} onChange={(e) => updateLine(line.id, { vendorUnitPrice: Number(e.target.value) })} /></td>
                 {discountAvailable && (
                   <td className="mv-num">
                     <input type="checkbox" checked={line.discountPctApplied > 0} onChange={(e) => toggleDiscount(line.id, e.target.checked)} />
-                    {line.discountPctApplied > 0 && <span className="mv-muted" style={{ marginLeft: 6, fontSize: 12 }}>{line.discountPctApplied}%</span>}
+                    {line.discountPctApplied > 0 && <span className="mv-muted" style={{ marginLeft: '0.375rem', fontSize: '0.75rem' }}>{line.discountPctApplied}%</span>}
                   </td>
                 )}
                 {showBillingPeriod && <td><input className="mv-select" type="date" value={line.billingPeriodStart?.slice(0, 10) ?? ''} onChange={(e) => updateLine(line.id, { billingPeriodStart: e.target.value })} /></td>}
@@ -138,7 +138,7 @@ export function LineItemsEditor({ lines, columns, onChange, discountAvailable = 
               </tr>
             ))}
             {lines.length === 0 && (
-              <tr><td colSpan={20} className="mv-muted" style={{ textAlign: 'center', padding: 20 }}>No line items yet — click "Add Row" to start.</td></tr>
+              <tr><td colSpan={20} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No line items yet — click "Add Row" to start.</td></tr>
             )}
           </tbody>
         </table>

@@ -22,33 +22,33 @@ export function TechnicalTab(props: GcpCostTabProps) {
 
   return (
     <div>
-      <section className="mv-panel" id="gcp-daily-trend" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" id="gcp-daily-trend" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Daily Cost Trend</h2></div>
         {dailyTrend.length === 0 ? (
           <p className="mv-muted">No daily data — sync the account to populate daily cost trends.</p>
         ) : (
           <>
-            <p className="mv-muted" style={{ marginBottom: 12 }}>Average daily spend: <strong style={{ color: 'var(--mv-text)' }}>{formatCurrency(dailyAvg)}</strong></p>
+            <p className="mv-muted" style={{ marginBottom: '0.75rem' }}>Average daily spend: <strong style={{ color: 'var(--mv-text)' }}>{formatCurrency(dailyAvg)}</strong></p>
             <SpendTrendChart title="Daily cost trend" data={dailyTrend} />
           </>
         )}
       </section>
 
       {sortedLocations.length > 0 && (
-        <section className="mv-panel" id="gcp-region" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" id="gcp-region" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Regions &amp; Zones ({sortedLocations.length})</h2></div>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gap: '0.625rem' }}>
             {sortedLocations.slice(0, 12).map((loc) => {
               const pct = data.totalCost > 0 ? (loc.cost / data.totalCost) * 100 : 0;
               const max = Math.max(...sortedLocations.map((l) => l.cost), 1);
               return (
                 <div key={loc.name} style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4, fontSize: 13, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.8125rem', minWidth: 0 }}>
                     <span className="mv-muted">{loc.name}</span>
-                    <span style={{ display: 'flex', gap: 8 }}><strong>{formatCurrency(loc.cost)}</strong><span className="mv-muted">{pct.toFixed(1)}%</span></span>
+                    <span style={{ display: 'flex', gap: '0.5rem' }}><strong>{formatCurrency(loc.cost)}</strong><span className="mv-muted">{pct.toFixed(1)}%</span></span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 999, width: `${(loc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
+                  <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(loc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
                   </div>
                 </div>
               );
@@ -58,7 +58,7 @@ export function TechnicalTab(props: GcpCostTabProps) {
       )}
 
       {sortedResourceTypes.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Resource Types ({sortedResourceTypes.length})</h2></div>
           <div className="mv-table-wrap">
             <table className="mv-table">
@@ -78,7 +78,7 @@ export function TechnicalTab(props: GcpCostTabProps) {
       )}
 
       {data.forecastData.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header">
             <h2 className="mv-panel-title">3-Month Cost Forecast</h2>
             <span className="mv-status mv-status--info">EOM: {formatCurrency(data.forecastData[0].projected_cost)}</span>

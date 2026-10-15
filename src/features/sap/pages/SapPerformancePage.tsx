@@ -27,15 +27,15 @@ function PercentKpi({ label, value }: { label: string; value: number | null }) {
 function DiskBar({ mount }: { mount: (typeof SAP_DISK_USAGE)[number] }) {
   const tone = mount.percent >= 90 ? 'danger' : mount.percent >= 75 ? 'warning' : 'success';
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+    <div style={{ marginBottom: '0.875rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
         <strong>{mount.path}</strong>
         <span className={`mv-status mv-status--${tone}`}>{mount.percent}%</span>
       </div>
-      <div style={{ height: 6, borderRadius: 999, background: 'var(--mv-surface-subtle)', overflow: 'hidden' }}>
+      <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-surface-subtle)', overflow: 'hidden' }}>
         <div style={{ width: `${mount.percent}%`, height: '100%', background: tone === 'danger' ? 'var(--mv-danger)' : tone === 'warning' ? 'var(--mv-warning)' : 'var(--mv-success)' }} />
       </div>
-      <p className="mv-muted" style={{ margin: '3px 0 0', fontSize: 11 }}>Used {mount.usedMb.toFixed(1)} MB · Free {mount.freeMb.toFixed(1)} MB · Total {mount.totalMb.toFixed(1)} MB</p>
+      <p className="mv-muted" style={{ margin: '0.1875rem 0 0', fontSize: '0.6875rem' }}>Used {mount.usedMb.toFixed(1)} MB · Free {mount.freeMb.toFixed(1)} MB · Total {mount.totalMb.toFixed(1)} MB</p>
     </div>
   );
 }
@@ -53,19 +53,19 @@ export function SapPerformancePage() {
         <DestinationSwitcher />
       </PageHeader>
 
-      <section className="mv-panel mv-panel--flat" style={{ marginBottom: 12 }}>
+      <section className="mv-panel mv-panel--flat" style={{ marginBottom: '0.75rem' }}>
         <div className="mv-panel-header">
-          <h2 className="mv-panel-title"><TrendUpIcon size={16} style={{ verticalAlign: -3, marginRight: 6 }} />SAP Performance <span className="mv-muted" style={{ fontWeight: 400 }}>{p.system}</span></h2>
-          <button className="mv-quiet-button"><RefreshIcon size={14} style={{ marginRight: 6 }} />Refresh</button>
+          <h2 className="mv-panel-title"><TrendUpIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />SAP Performance <span className="mv-muted" style={{ fontWeight: 400 }}>{p.system}</span></h2>
+          <button className="mv-quiet-button"><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
         </div>
-        <div style={{ display: 'flex', gap: 20, fontSize: 13 }}>
+        <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.8125rem' }}>
           <span className="mv-status mv-status--success">{p.status}</span>
           <span className="mv-muted">Last fetched <strong style={{ color: 'var(--mv-text)' }}>{p.lastFetched}</strong></span>
           <span className="mv-muted">Next sync <strong style={{ color: 'var(--mv-text)' }}>{p.nextSyncMinutes}m</strong></span>
         </div>
       </section>
 
-      <div className="mv-kpi-row-8" style={{ marginBottom: 20 }}>
+      <div className="mv-kpi-row-8" style={{ marginBottom: '1.25rem' }}>
         <article className="mv-kpi"><span className="mv-kpi-label">Response Time</span><strong className="mv-kpi-value">{p.responseTimeMs}ms</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Active Users</span><strong className="mv-kpi-value">{p.activeUsers}</strong></article>
         <PercentKpi label="DB Hit Ratio" value={p.dbHitRatioPercent} />
@@ -76,7 +76,7 @@ export function SapPerformancePage() {
         <article className="mv-kpi"><span className="mv-kpi-label">System Locks</span><strong className="mv-kpi-value">{p.systemLocks}</strong></article>
       </div>
 
-      <div className="mv-columns-16-8" style={{ marginBottom: 20 }}>
+      <div className="mv-columns-16-8" style={{ marginBottom: '1.25rem' }}>
         <div className="mv-column-stack">
           <section className="mv-panel">
             <div className="mv-panel-header">

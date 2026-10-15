@@ -21,7 +21,7 @@ export function DestinationSwitcher() {
       value={value}
       onChange={setValue}
       options={DESTINATIONS.map((d) => ({ value: d, label: d }))}
-      style={{ width: 130 }}
+      style={{ width: '8.125rem' }}
     />
   );
 }

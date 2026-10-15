@@ -135,12 +135,12 @@ export function AzureCostPage() {
         <div className="mv-cost-header-title">
           <button className="mv-icon-button" aria-label="Back to Azure overview" onClick={() => navigate('/azure')}><ChevronLeftIcon size={20} /></button>
           <span className="mv-status mv-status--info">Azure</span>
-          <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: 20 }}>{account.name}</h1></Tooltip>
+          <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: '1.25rem' }}>{account.name}</h1></Tooltip>
         </div>
         <div className="mv-cost-header-controls">
           {MOCK_AZURE_ACCOUNTS.length > 1 && (
             <div style={{ position: 'relative' }} ref={switchRef}>
-              <button className="mv-secondary-button" onClick={() => setSwitchOpen((v) => !v)} aria-haspopup="menu" aria-expanded={switchOpen}>Switch account<ChevronDownIcon size={14} style={{ marginLeft: 6 }} /></button>
+              <button className="mv-secondary-button" onClick={() => setSwitchOpen((v) => !v)} aria-haspopup="menu" aria-expanded={switchOpen}>Switch account<ChevronDownIcon size={14} style={{ marginLeft: '0.375rem' }} /></button>
               {switchOpen && (
                 <div className="mv-nav-dropdown" role="menu" style={{ right: 0, left: 'auto' }}>
                   {MOCK_AZURE_ACCOUNTS.map((a) => (
@@ -154,10 +154,10 @@ export function AzureCostPage() {
           )}
           <div style={{ position: 'relative' }} ref={monthRef}>
             <button className="mv-secondary-button" onClick={() => setMonthOpen((v) => !v)} aria-haspopup="menu" aria-expanded={monthOpen}>
-              {isCurrentMonth ? 'Month-to-Date' : `${MONTH_LABELS[selectedMonth!.month - 1]} ${selectedMonth!.year}`}<ChevronDownIcon size={14} style={{ marginLeft: 6 }} />
+              {isCurrentMonth ? 'Month-to-Date' : `${MONTH_LABELS[selectedMonth!.month - 1]} ${selectedMonth!.year}`}<ChevronDownIcon size={14} style={{ marginLeft: '0.375rem' }} />
             </button>
             {monthOpen && (
-              <div className="mv-nav-dropdown" role="menu" style={{ right: 0, left: 'auto', maxHeight: 320 }}>
+              <div className="mv-nav-dropdown" role="menu" style={{ right: 0, left: 'auto', maxHeight: '20rem' }}>
                 {[...MOCK_AZURE_YEARLY].reverse().map((m) => {
                   const isCur = m.year === currentYearly.year && m.month === currentYearly.month;
                   return (
@@ -170,11 +170,11 @@ export function AzureCostPage() {
             )}
           </div>
           <div style={{ position: 'relative' }} ref={aiRef}>
-            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} style={{ marginRight: 6 }} />AI Insights</button>
+            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} style={{ marginRight: '0.375rem' }} />AI Insights</button>
             {aiOpen && (
-              <div className="mv-nav-dropdown" style={{ right: 0, left: 'auto', width: 340, padding: 14 }}>
-                <p className="mv-panel-title" style={{ marginBottom: 10 }}>AI Insights</p>
-                <div style={{ display: 'grid', gap: 8 }}>
+              <div className="mv-nav-dropdown" style={{ right: 0, left: 'auto', width: '21.25rem', padding: '0.875rem' }}>
+                <p className="mv-panel-title" style={{ marginBottom: '0.625rem' }}>AI Insights</p>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
                   {aiInsights.map((insight, i) => (
                     <div key={i} className={`mv-inline-error mv-ai-insight mv-ai-insight--${insight.type}`}>
                       <strong>{insight.title}</strong>
@@ -185,7 +185,7 @@ export function AzureCostPage() {
               </div>
             )}
           </div>
-          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} style={{ marginRight: 6 }} />{syncing ? 'Syncing…' : 'Sync'}</button>
+          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{syncing ? 'Syncing…' : 'Sync'}</button>
         </div>
       </div>
 
@@ -199,7 +199,7 @@ export function AzureCostPage() {
       </nav>
 
       {!isCurrentMonth && (
-        <div className="mv-notice" style={{ marginBottom: 16 }}>
+        <div className="mv-notice" style={{ marginBottom: '1rem' }}>
           Viewing {MONTH_LABELS[selectedMonth!.month - 1]} {selectedMonth!.year} — historical data.{' '}
           <button className="mv-quiet-button" style={{ padding: 0, minHeight: 'auto' }} onClick={() => setSelectedMonth(null)}>Back to current</button>
         </div>

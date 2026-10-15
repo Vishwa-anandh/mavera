@@ -34,20 +34,20 @@ export function PublicInvoicePage() {
   const canPay = invoice.status === 'Sent' || invoice.status === 'Overdue';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--mv-surface-subtle)', padding: '32px 20px' }}>
-      <div className="mv-split-panel" style={{ maxWidth: 1100, margin: '0 auto', ...cssVars({ '--mv-cols': '2fr 1fr' }) }}>
+    <div style={{ minHeight: '100vh', background: 'var(--mv-surface-subtle)', padding: '2rem 1.25rem' }}>
+      <div className="mv-split-panel" style={{ maxWidth: '68.75rem', margin: '0 auto', ...cssVars({ '--mv-cols': '2fr 1fr' }) }}>
         <InvoiceDocument invoice={invoice} customer={customer} />
         <section className="mv-panel" style={{ position: 'sticky', top: 24 }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Payment Summary</h2><StatusPill status={invoice.status} /></div>
-          <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="mv-muted">Subtotal</span><span>{formatCurrency(invoice.lineSubtotal)}</span></div>
             {invoice.overallAdjustmentAmount !== 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="mv-muted">Summary Adjustment</span><span>{formatCurrency(invoice.overallAdjustmentAmount)}</span></div>}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="mv-muted">Tax</span><span>{formatCurrency(invoice.tax)}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--mv-divider)' }}><strong>Total Due</strong><strong style={{ fontSize: 18 }}>{formatCurrency(invoice.totalDue)}</strong></div>
-            <p className="mv-muted" style={{ fontSize: 12 }}>Due {formatDate(invoice.dueDate)}</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid var(--mv-divider)' }}><strong>Total Due</strong><strong style={{ fontSize: '1.125rem' }}>{formatCurrency(invoice.totalDue)}</strong></div>
+            <p className="mv-muted" style={{ fontSize: '0.75rem' }}>Due {formatDate(invoice.dueDate)}</p>
           </div>
           {invoice.status === 'Paid' ? (
-            <div className="mv-notice" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><CheckIcon size={18} style={{ color: 'var(--mv-success)' }} /><strong>Paid — thank you!</strong></div>
+            <div className="mv-notice" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckIcon size={18} style={{ color: 'var(--mv-success)' }} /><strong>Paid — thank you!</strong></div>
           ) : canPay ? (
             <button className="mv-primary-button" style={{ width: '100%' }} onClick={() => payInvoice(invoice.id)}>Pay Now</button>
           ) : null}

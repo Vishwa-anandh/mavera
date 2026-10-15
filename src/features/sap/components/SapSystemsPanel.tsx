@@ -17,7 +17,7 @@ export function SapHealthSummary() {
   const SAP_PERFORMANCE = sapRepository.getPerformance();
   const unreadAlerts = sapRepository.listAlerts().filter((a) => !a.read).length;
   return (
-    <div className="mv-kpi-row-4" style={{ marginBottom: 16 }}>
+    <div className="mv-kpi-row-4" style={{ marginBottom: '1rem' }}>
       <article className="mv-kpi"><span className="mv-kpi-label">HANA Memory</span><strong className="mv-kpi-value">{HANA_SYSTEM.memory.percent}%</strong><span className="mv-status mv-status--success">Healthy</span></article>
       <article className="mv-kpi"><span className="mv-kpi-label">ABAP Response Time</span><strong className="mv-kpi-value">{SAP_PERFORMANCE.responseTimeMs}ms</strong><span className="mv-status mv-status--success">{SAP_PERFORMANCE.status}</span></article>
       <article className="mv-kpi"><span className="mv-kpi-label">Work Processes</span><strong className="mv-kpi-value">{SAP_PERFORMANCE.workProcessesUsed}/{SAP_PERFORMANCE.workProcessesTotal}</strong></article>

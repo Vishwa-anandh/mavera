@@ -84,17 +84,17 @@ export function GcpAccountManager() {
   return (
     <div>
       <div className="mv-page-heading">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="mv-avatar" style={{ background: '#3b82f6', borderRadius: 10 }}><CloudIcon size={18} /></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="mv-avatar" style={{ background: '#3b82f6', borderRadius: '0.625rem' }}><CloudIcon size={18} /></span>
           <div>
-            <h1 className="mv-title" style={{ fontSize: 22 }}>GCP Account Manager</h1>
+            <h1 className="mv-title" style={{ fontSize: '1.375rem' }}>GCP Account Manager</h1>
             <p className="mv-subtitle">Connect your Google Cloud projects for cost monitoring.</p>
           </div>
         </div>
       </div>
 
       {accounts.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Connected Projects</h2></div>
           <ul className="mv-account-list">
             {accounts.map((account) => (
@@ -132,9 +132,9 @@ export function GcpAccountManager() {
           <div className="mv-notice">
             In GCP Console → IAM &amp; Admin → Service Accounts, create a service account and grant it the <strong>Billing Account Viewer</strong> role. Download the JSON key and paste it below. Credentials are encrypted before storage.
           </div>
-          {errors.general && <div className="mv-inline-error" role="alert" style={{ marginTop: 12 }}>{errors.general}</div>}
-          {success && <div className="mv-notice" style={{ marginTop: 12 }}>{success}</div>}
-          <form onSubmit={submit} style={{ marginTop: 16 }}>
+          {errors.general && <div className="mv-inline-error" role="alert" style={{ marginTop: '0.75rem' }}>{errors.general}</div>}
+          {success && <div className="mv-notice" style={{ marginTop: '0.75rem' }}>{success}</div>}
+          <form onSubmit={submit} style={{ marginTop: '1rem' }}>
             <div className="mv-sa-field-grid">
               <label className="mv-field">
                 Display Name
@@ -160,7 +160,7 @@ export function GcpAccountManager() {
               <span className="mv-field-help">Paste the full downloaded JSON key file content.</span>
             </label>
             <button className="mv-primary-button" type="submit" disabled={saving}>
-              <PlusIcon size={16} style={{ marginRight: 6 }} />{saving ? 'Connecting…' : 'Connect Project'}
+              <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />{saving ? 'Connecting…' : 'Connect Project'}
             </button>
           </form>
         </section>

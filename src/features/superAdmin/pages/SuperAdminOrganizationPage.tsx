@@ -182,7 +182,7 @@ function OrganizationEditor({ orgId }: { orgId?: string }) {
                 })}
               </div>
             </fieldset>
-            <div className="mv-sa-field-grid" style={{ marginTop: 14 }}>
+            <div className="mv-sa-field-grid" style={{ marginTop: '0.875rem' }}>
               <Select
                 label="Max users"
                 value={draft.maxUsers}
@@ -210,7 +210,7 @@ function OrganizationEditor({ orgId }: { orgId?: string }) {
                 ))}
               </div>
             </fieldset>
-            <label className="mv-choice" style={{ marginTop: 10 }}>
+            <label className="mv-choice" style={{ marginTop: '0.625rem' }}>
               <input type="checkbox" checked={draft.invoiceOnly} onChange={(e) => set({ invoiceOnly: e.target.checked })} />
               Invoice only (no live cloud API connection)
             </label>

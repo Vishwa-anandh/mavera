@@ -40,7 +40,7 @@ export function ModuleCard({ title, icon: Icon, subscribed, metrics = [], meter,
         <h3><Icon size={16} />{title}</h3>
         {!subscribed && (
           <span className="mv-status mv-status--neutral">
-            <LockIcon size={12} style={{ marginRight: 4, verticalAlign: -1 }} />
+            <LockIcon size={12} style={{ marginRight: '0.25rem', verticalAlign: -1 }} />
             Available to add
           </span>
         )}

@@ -59,14 +59,14 @@ export function TechnicalTab(props: AwsCostTabProps) {
 
   return (
     <div>
-      <section className="mv-panel" id="aws-daily-trend" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" id="aws-daily-trend" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Monthly Spend by Service</h2>
         </div>
         {yearlyData.length === 0 || stackedKeys.length === 0 ? (
           <p className="mv-muted">No 12-month service history is stored for this account yet.</p>
         ) : (
-          <div role="img" aria-label="Monthly spend by service, last 12 months" style={{ width: '100%', height: 220 }}>
+          <div role="img" aria-label="Monthly spend by service, last 12 months" style={{ width: '100%', height: '13.75rem' }}>
             <ResponsiveContainer>
               <BarChart data={stackedRows} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke={chartColors.grid} vertical={false} />
@@ -83,19 +83,19 @@ export function TechnicalTab(props: AwsCostTabProps) {
         )}
       </section>
 
-      <section className="mv-panel" id="aws-annual-trend" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" id="aws-annual-trend" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Annual Cost Trend — {yearlyData[yearlyData.length - 1]?.year ?? '—'}</h2>
         </div>
-        <div className="mv-kpi-row-4" style={{ marginBottom: 16 }}>
+        <div className="mv-kpi-row-4" style={{ marginBottom: '1rem' }}>
           <article className="mv-kpi"><span className="mv-kpi-label">Yearly Total</span><strong className="mv-kpi-value">{formatCurrency(yearlyTotal)}</strong></article>
           <article className="mv-kpi"><span className="mv-kpi-label">Avg per Month</span><strong className="mv-kpi-value">{formatCurrency(yearlyAvg)}</strong></article>
-          <article className="mv-kpi"><span className="mv-kpi-label">Peak Month</span><strong className="mv-kpi-value" style={{ fontSize: 18 }}>{peakMonth ? monthLabel(peakMonth.year, peakMonth.month) : '—'}</strong>{peakMonth && <span className="mv-muted">{formatCurrency(peakMonth.totalCost)}</span>}</article>
+          <article className="mv-kpi"><span className="mv-kpi-label">Peak Month</span><strong className="mv-kpi-value" style={{ fontSize: '1.125rem' }}>{peakMonth ? monthLabel(peakMonth.year, peakMonth.month) : '—'}</strong>{peakMonth && <span className="mv-muted">{formatCurrency(peakMonth.totalCost)}</span>}</article>
         </div>
         <SpendTrendChart title="Annual cost trend" data={trendData} />
       </section>
 
-      <div className="mv-row-3col" style={{ marginBottom: 16 }}>
+      <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Daily Cost Trend</h2></div>
           <SpendTrendChart title="Daily cost trend" data={dailyTrend} />
@@ -106,28 +106,28 @@ export function TechnicalTab(props: AwsCostTabProps) {
         </section>
       </div>
 
-      <section className="mv-panel" id="aws-top-services" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" id="aws-top-services" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Top Services by Spend</h2>
         </div>
         {top6.length === 0 ? (
           <p className="mv-muted">No service data available.</p>
         ) : (
-          <div style={{ display: 'grid', gap: 12 }}>
+          <div style={{ display: 'grid', gap: '0.75rem' }}>
             {top6.map((svc) => {
               const savings = top6Total > 0 ? (svc.cost / top6Total) * cspSavingsTotal : 0;
               const max = Math.max(...top6.map((s) => s.cost), 1);
               return (
                 <div key={svc.name} style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4, fontSize: 13, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.8125rem', minWidth: 0 }}>
                     <UiTooltip content={svc.name}><span className="mv-muted">{svc.name}</span></UiTooltip>
-                    <span style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
                       <strong>{formatCurrency(svc.cost)}</strong>
-                      {savings > 0 && <span style={{ color: 'var(--mv-success)', fontSize: 11 }}>-{formatCurrency(savings)}</span>}
+                      {savings > 0 && <span style={{ color: 'var(--mv-success)', fontSize: '0.6875rem' }}>-{formatCurrency(savings)}</span>}
                     </span>
                   </div>
-                  <div style={{ height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 999, width: `${(svc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
+                  <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(svc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
                   </div>
                 </div>
               );
@@ -137,31 +137,31 @@ export function TechnicalTab(props: AwsCostTabProps) {
       </section>
 
       {data.regions.length > 0 && (
-        <section className="mv-panel" id="aws-region" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" id="aws-region" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Cost by Region</h2></div>
           <DonutChart title="Cost by region" totalLabel="Spend" data={regionSlices} />
         </section>
       )}
 
       {cspRecommendations.length > 0 && (
-        <section className="mv-panel" id="aws-csp-savings" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" id="aws-csp-savings" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Maitsys CSP Savings Opportunities</h2></div>
-          <div className="mv-inline-error" style={{ marginBottom: 16, borderColor: 'var(--mv-success)', background: 'color-mix(in srgb, var(--mv-success) 7%, transparent)', color: 'var(--mv-text)' }}>
+          <div className="mv-inline-error" style={{ marginBottom: '1rem', borderColor: 'var(--mv-success)', background: 'color-mix(in srgb, var(--mv-success) 7%, transparent)', color: 'var(--mv-text)' }}>
             <strong style={{ color: 'var(--mv-success)' }}>Maitsys CSP saves you {formatCurrency(data.totalCost * mspRate)}/month</strong>
-            <p className="mv-muted" style={{ margin: '4px 0 0' }}>{(mspRate * 100).toFixed(1)}% MSP pricing advantage on {formatCurrency(data.totalCost)} spend.</p>
+            <p className="mv-muted" style={{ margin: '0.25rem 0 0' }}>{(mspRate * 100).toFixed(1)}% MSP pricing advantage on {formatCurrency(data.totalCost)} spend.</p>
           </div>
           <RecommendationsList recommendations={cspRecommendations.slice(0, 20)} />
         </section>
       )}
 
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Cost Movers</h2></div>
         {movers.length === 0 ? (
           <p className="mv-muted">No service-level cost data available.</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(15rem, 1fr))', gap: '0.625rem' }}>
             {movers.map((mover) => (
-              <div key={mover.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--mv-surface-subtle)' }}>
+              <div key={mover.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.625rem', padding: '0.625rem 0.75rem', borderRadius: '0.5rem', background: 'var(--mv-surface-subtle)' }}>
                 <div style={{ minWidth: 0 }}>
                   <UiTooltip content={mover.name}><p style={{ margin: 0, fontWeight: 500 }}>{mover.name}</p></UiTooltip>
                   <p className="mv-muted" style={{ margin: 0 }}>{formatCurrency(mover.current)}</p>
@@ -176,7 +176,7 @@ export function TechnicalTab(props: AwsCostTabProps) {
       </section>
 
       {data.details.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Detailed Cost Breakdown</h2></div>
           <div className="mv-table-wrap">
             <table className="mv-table">
@@ -197,7 +197,7 @@ export function TechnicalTab(props: AwsCostTabProps) {
       )}
 
       {instances.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">EC2 Instances</h2></div>
           <InstancesTable instances={instances} />
         </section>
@@ -270,16 +270,16 @@ function humanize(value: string): string {
 
 function RecommendationsList({ recommendations }: { recommendations: CspRecommendation[] }) {
   return (
-    <div style={{ display: 'grid', gap: 10 }}>
+    <div style={{ display: 'grid', gap: '0.625rem' }}>
       {recommendations.map((rec) => (
-        <div key={rec.id} style={{ padding: 12, border: '1px solid var(--mv-divider)', borderRadius: 8 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+        <div key={rec.id} style={{ padding: '0.75rem', border: '1px solid var(--mv-divider)', borderRadius: '0.5rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', marginBottom: '0.375rem' }}>
             <span className="mv-status mv-status--neutral">{humanize(rec.resource_type)}</span>
             {rec.action && <span className="mv-status mv-status--info">{humanize(rec.action)}</span>}
             <span className="mv-muted" style={{ marginLeft: 'auto' }}>{isAccountWide(rec.resource_id) ? 'Account-wide' : rec.resource_name}</span>
           </div>
-          <p style={{ margin: '0 0 6px' }}>{rec.description}</p>
-          <div className="mv-muted" style={{ display: 'flex', gap: 16 }}>
+          <p style={{ margin: '0 0 0.375rem' }}>{rec.description}</p>
+          <div className="mv-muted" style={{ display: 'flex', gap: '1rem' }}>
             <span>Current: {formatCurrency(rec.current_monthly_cost)}/mo</span>
             <span>After: {formatCurrency(Math.max(0, rec.current_monthly_cost - rec.estimated_savings))}/mo</span>
             <strong style={{ color: 'var(--mv-success)', marginLeft: 'auto' }}>-{formatCurrency(rec.estimated_savings)}/mo</strong>
@@ -322,16 +322,16 @@ function BudgetCard({ budget }: { budget: { BudgetName: string; ActualSpend: num
   const tone = budgetTone(pct, over);
   return (
     <article className="mv-panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, gap: 8 }}>
-        <UiTooltip content={budget.BudgetName}><h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{budget.BudgetName}</h3></UiTooltip>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.625rem', gap: '0.5rem' }}>
+        <UiTooltip content={budget.BudgetName}><h3 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>{budget.BudgetName}</h3></UiTooltip>
         <span className={`mv-status mv-status--${tone}`}>{pct.toFixed(0)}%</span>
       </div>
-      <div className="mv-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+      <div className="mv-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
         <span>Spent: <strong style={{ color: 'var(--mv-text)' }}>{formatCurrency(budget.ActualSpend)}</strong></span>
         <span>Cap: <strong style={{ color: 'var(--mv-text)' }}>{formatCurrency(budget.BudgetLimit)}</strong></span>
       </div>
-      <div style={{ height: 8, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 999, width: `${pct}%`, background: `var(--mv-${tone})` }} />
+      <div style={{ height: '0.5rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${pct}%`, background: `var(--mv-${tone})` }} />
       </div>
     </article>
   );

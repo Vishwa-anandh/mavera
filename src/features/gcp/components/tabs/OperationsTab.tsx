@@ -20,7 +20,7 @@ export function OperationsTab(props: GcpCostTabProps) {
 
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Service Cost Breakdown</h2></div>
         {chartData.length === 0 ? (
           <p className="mv-muted">No service data — sync to load service breakdown.</p>
@@ -40,7 +40,7 @@ export function OperationsTab(props: GcpCostTabProps) {
       </section>
 
       {sortedServices.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">All Services ({sortedServices.length})</h2></div>
           <div className="mv-table-wrap">
             <table className="mv-table">
@@ -52,9 +52,9 @@ export function OperationsTab(props: GcpCostTabProps) {
                     <td>{svc.name}</td>
                     <td className="mv-num">{formatCurrency(svc.cost)}</td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ flex: 1, height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden', minWidth: 60 }}>
-                          <div style={{ height: '100%', borderRadius: 999, width: `${Math.min(svc.percent, 100)}%`, background: 'var(--mv-primary)' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ flex: 1, height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', minWidth: '3.75rem' }}>
+                          <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${Math.min(svc.percent, 100)}%`, background: 'var(--mv-primary)' }} />
                         </div>
                         <span className="mv-muted" style={{ flex: 'none' }}>{svc.percent.toFixed(1)}%</span>
                       </div>

@@ -35,43 +35,43 @@ export function HanaMonitoringPage() {
         <DestinationSwitcher />
       </PageHeader>
 
-      <section className="mv-panel" style={{ marginBottom: 20 }}>
+      <section className="mv-panel" style={{ marginBottom: '1.25rem' }}>
         <div className="mv-panel-header">
-          <h2 className="mv-panel-title"><ServerIcon size={16} style={{ verticalAlign: -3, marginRight: 6 }} />{HANA_SYSTEM.name} <span className="mv-muted" style={{ fontWeight: 400 }}>{HANA_SYSTEM.type}</span></h2>
-          <button className="mv-quiet-button" onClick={() => setRefreshedAt(new Date().toLocaleTimeString())}><RefreshIcon size={14} style={{ marginRight: 6 }} />Refresh</button>
+          <h2 className="mv-panel-title"><ServerIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />{HANA_SYSTEM.name} <span className="mv-muted" style={{ fontWeight: 400 }}>{HANA_SYSTEM.type}</span></h2>
+          <button className="mv-quiet-button" onClick={() => setRefreshedAt(new Date().toLocaleTimeString())}><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
         </div>
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 13 }}>
+        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', fontSize: '0.8125rem' }}>
           <span className="mv-muted">Host <strong style={{ color: 'var(--mv-text)' }}>{HANA_SYSTEM.host}</strong></span>
           <span className="mv-muted">Version <strong style={{ color: 'var(--mv-text)' }}>{HANA_SYSTEM.version}</strong></span>
-          <span className="mv-muted"><ClockIcon size={12} style={{ verticalAlign: -1, marginRight: 3 }} />Last fetched <strong style={{ color: 'var(--mv-text)' }}>{refreshedAt}</strong></span>
+          <span className="mv-muted"><ClockIcon size={12} style={{ verticalAlign: -1, marginRight: '0.1875rem' }} />Last fetched <strong style={{ color: 'var(--mv-text)' }}>{refreshedAt}</strong></span>
           <span className="mv-muted">Next sync <strong style={{ color: 'var(--mv-text)' }}>{HANA_SYSTEM.nextSyncMinutes}m</strong></span>
         </div>
       </section>
 
-      <div className="mv-kpi-row-4" style={{ marginBottom: 20 }}>
+      <div className="mv-kpi-row-4" style={{ marginBottom: '1.25rem' }}>
         <article className="mv-kpi">
-          <span className="mv-kpi-label">Memory <span className={`mv-status mv-status--${tone(HANA_SYSTEM.memory.condition)}`} style={{ marginLeft: 6 }}>{HANA_SYSTEM.memory.condition === 'healthy' ? 'Healthy' : HANA_SYSTEM.memory.condition}</span></span>
+          <span className="mv-kpi-label">Memory <span className={`mv-status mv-status--${tone(HANA_SYSTEM.memory.condition)}`} style={{ marginLeft: '0.375rem' }}>{HANA_SYSTEM.memory.condition === 'healthy' ? 'Healthy' : HANA_SYSTEM.memory.condition}</span></span>
           <strong className="mv-kpi-value">{HANA_SYSTEM.memory.percent}%</strong>
           <span className="mv-muted">Used {HANA_SYSTEM.memory.usedGb} GB · Total {HANA_SYSTEM.memory.totalGb} GB · Free {HANA_SYSTEM.memory.freeGb} GB</span>
         </article>
         <article className="mv-kpi">
-          <span className="mv-kpi-label">CPU <span className="mv-status mv-status--success" style={{ marginLeft: 6 }}>Stable</span></span>
+          <span className="mv-kpi-label">CPU <span className="mv-status mv-status--success" style={{ marginLeft: '0.375rem' }}>Stable</span></span>
           <strong className="mv-kpi-value">{HANA_SYSTEM.cpu.loadPercent}%</strong>
           <span className="mv-muted">Swap {HANA_SYSTEM.cpu.swapUsedGb} GB · Services {HANA_SYSTEM.cpu.services} · Peak 24H {HANA_SYSTEM.cpu.peak24h}%</span>
         </article>
         <article className="mv-kpi">
-          <span className="mv-kpi-label">Alerts <span className="mv-status mv-status--danger" style={{ marginLeft: 6 }}>Active</span></span>
+          <span className="mv-kpi-label">Alerts <span className="mv-status mv-status--danger" style={{ marginLeft: '0.375rem' }}>Active</span></span>
           <strong className="mv-kpi-value">{HANA_SYSTEM.alerts.active}</strong>
           <span className="mv-muted">Critical {HANA_SYSTEM.alerts.critical} · High {HANA_SYSTEM.alerts.high} · Medium {HANA_SYSTEM.alerts.medium} · Low {HANA_SYSTEM.alerts.low}</span>
         </article>
         <article className="mv-kpi">
-          <span className="mv-kpi-label">Sessions <span className="mv-status mv-status--success" style={{ marginLeft: 6 }}>Live</span></span>
+          <span className="mv-kpi-label">Sessions <span className="mv-status mv-status--success" style={{ marginLeft: '0.375rem' }}>Live</span></span>
           <strong className="mv-kpi-value">{HANA_SYSTEM.sessions.active}</strong>
           <span className="mv-muted">{HANA_SYSTEM.sessions.uniqueUsers} unique user{HANA_SYSTEM.sessions.uniqueUsers === 1 ? '' : 's'}</span>
         </article>
       </div>
 
-      <section className="mv-panel" aria-labelledby="hana-insights-title" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" aria-labelledby="hana-insights-title" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <div>
             <h2 id="hana-insights-title" className="mv-panel-title">Last 24 hours</h2>
@@ -81,7 +81,7 @@ export function HanaMonitoringPage() {
         <InsightList items={insights} label="HANA findings for the last 24 hours" />
       </section>
 
-      <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr', marginBottom: 16 } as React.CSSProperties}>
+      <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr', marginBottom: '1rem' } as React.CSSProperties}>
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">System Vitals Timeline</h2><p className="mv-muted" style={{ margin: 0 }}>CPU &amp; memory over 24 hours · CPU peaked at {facts.peakCpu.percent}% around {facts.peakCpu.time}</p></div>
           <HanaVitalsChart data={HANA_VITALS_TIMELINE} />

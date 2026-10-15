@@ -34,13 +34,13 @@ export function PaymentTermsTab({ terms, onChange }: PaymentTermsTabProps) {
         <form onSubmit={addTerm}>
           <label className="mv-field">Name<input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Net 45" /></label>
           <label className="mv-field">Days<input required type="number" min={1} value={days} onChange={(e) => setDays(e.target.value)} /></label>
-          <button className="mv-primary-button" type="submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: 6 }} />Add Term</button>
+          <button className="mv-primary-button" type="submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Term</button>
         </form>
       </section>
-      <div style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
+      <div style={{ display: 'grid', gap: '0.75rem', alignContent: 'start' }}>
         {terms.map((t) => (
           <section className="mv-panel" key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div><h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{t.name}</h3><p className="mv-muted" style={{ margin: '4px 0 0' }}>{t.days} days from invoice date</p></div>
+            <div><h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{t.name}</h3><p className="mv-muted" style={{ margin: '0.25rem 0 0' }}>{t.days} days from invoice date</p></div>
             <button className="mv-icon-button" aria-label={`Delete ${t.name}`} onClick={() => removeTerm(t.id)}><TrashIcon size={18} /></button>
           </section>
         ))}

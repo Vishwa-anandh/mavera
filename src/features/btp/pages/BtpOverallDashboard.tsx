@@ -42,28 +42,28 @@ export function BtpOverallDashboard() {
   return (
     <div>
       <div className="mv-page-heading">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="mv-avatar" style={{ background: '#0070f2', borderRadius: 10 }}><CloudIcon size={18} /></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="mv-avatar" style={{ background: '#0070f2', borderRadius: '0.625rem' }}><CloudIcon size={18} /></span>
           <div>
-            <h1 className="mv-title" style={{ fontSize: 22 }}>SAP BTP Overview</h1>
+            <h1 className="mv-title" style={{ fontSize: '1.375rem' }}>SAP BTP Overview</h1>
             <p className="mv-subtitle">{accounts.length} account{accounts.length === 1 ? '' : 's'} monitored.</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button className="mv-secondary-button" onClick={refresh} disabled={refreshing}><RefreshIcon size={16} style={{ marginRight: 6 }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}</button>
-          <button className="mv-primary-button" onClick={() => navigate('/btp/accounts')}><PlusIcon size={16} style={{ marginRight: 6 }} />Add Account</button>
+        <div style={{ display: 'flex', gap: '0.625rem' }}>
+          <button className="mv-secondary-button" onClick={refresh} disabled={refreshing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}</button>
+          <button className="mv-primary-button" onClick={() => navigate('/btp/accounts')}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Account</button>
         </div>
       </div>
 
       <div className="mv-kpi-row-5">
         <article className="mv-kpi"><span className="mv-kpi-label">Total Month-to-Date Spend</span><strong className="mv-kpi-value">{formatCurrency(totalCost)}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">BTP Accounts</span><strong className="mv-kpi-value">{accounts.length}</strong><span className="mv-muted">Active global accounts</span></article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Top Service</span><strong className="mv-kpi-value" style={{ fontSize: 18 }}>{topService?.name ?? '—'}</strong>{topService && <span className="mv-muted">{formatCurrency(topService.cost)}</span>}</article>
+        <article className="mv-kpi"><span className="mv-kpi-label">Top Service</span><strong className="mv-kpi-value" style={{ fontSize: '1.125rem' }}>{topService?.name ?? '—'}</strong>{topService && <span className="mv-muted">{formatCurrency(topService.cost)}</span>}</article>
         <article className="mv-kpi"><span className="mv-kpi-label">Avg per Account</span><strong className="mv-kpi-value">{formatCurrency(avgPerAccount)}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Total Services</span><strong className="mv-kpi-value">{topServices.length}</strong><span className="mv-muted">{topServices.length} services tracked</span></article>
       </div>
 
-      <div className="mv-columns-16-8" style={{ marginBottom: 16 }}>
+      <div className="mv-columns-16-8" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">BTP Accounts</h2><button className="mv-quiet-button" onClick={() => navigate('/btp/accounts')}>Manage →</button></div>
           {accounts.length === 0 ? (
@@ -84,10 +84,10 @@ export function BtpOverallDashboard() {
                         <span className="mv-muted">{account.region ?? 'eu10'} · {summary?.currency ?? 'EUR'} · Synced {summary?.snapshotTime ? new Date(summary.snapshotTime).toLocaleString() : 'never'}</span>
                       </span>
                     </span>
-                    <span className="mv-account-row-actions" style={{ gap: 10 }}>
+                    <span className="mv-account-row-actions" style={{ gap: '0.625rem' }}>
                       <div style={{ textAlign: 'right' }}>
                         <strong>{summary ? formatCurrency(summary.totalCost, summary.currency) : '—'}</strong>
-                        <div className="mv-muted" style={{ fontSize: 11 }}>Month-to-Date Spend</div>
+                        <div className="mv-muted" style={{ fontSize: '0.6875rem' }}>Month-to-Date Spend</div>
                       </div>
                       <ChevronRightIcon size={16} />
                     </span>
@@ -118,9 +118,9 @@ export function BtpOverallDashboard() {
                       <td>{svc.name}</td>
                       <td className="mv-num">{formatCurrency(svc.cost)}</td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1, height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden', minWidth: 60 }}>
-                            <div style={{ height: '100%', borderRadius: 999, width: `${pct}%`, background: 'var(--mv-primary)' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ flex: 1, height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', minWidth: '3.75rem' }}>
+                            <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${pct}%`, background: 'var(--mv-primary)' }} />
                           </div>
                           <span className="mv-muted">{pct.toFixed(1)}%</span>
                         </div>

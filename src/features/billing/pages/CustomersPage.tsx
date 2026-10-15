@@ -49,31 +49,31 @@ export function CustomersPage() {
             <label className="mv-field">Customer Name<input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Northwind Traders" /></label>
             <label className="mv-field">Primary Contact Email<input required type="email" value={form.primaryContactEmail} onChange={(e) => setForm({ ...form, primaryContactEmail: e.target.value })} placeholder="ap@company.com" /></label>
             <label className="mv-field">Billing Address<textarea rows={3} value={form.billingAddress} onChange={(e) => setForm({ ...form, billingAddress: e.target.value })} placeholder={'Street\nCity, State ZIP'} /></label>
-            <label className="mv-field" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <label className="mv-field" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
               <input type="checkbox" checked={form.sameAsBilling} onChange={(e) => setForm({ ...form, sameAsBilling: e.target.checked })} style={{ width: 'auto' }} />
               Shipping address same as billing
             </label>
             {!form.sameAsBilling && <label className="mv-field">Shipping Address<textarea rows={3} value={form.shippingAddress} onChange={(e) => setForm({ ...form, shippingAddress: e.target.value })} /></label>}
             <label className="mv-field">Standard Discount %<input type="number" min={0} max={100} value={form.discountPct} onChange={(e) => setForm({ ...form, discountPct: e.target.value })} /></label>
-            <button className="mv-primary-button" type="submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: 6 }} />Add Customer</button>
+            <button className="mv-primary-button" type="submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Customer</button>
           </form>
         </section>
 
-        <div style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
+        <div style={{ display: 'grid', gap: '0.75rem', alignContent: 'start' }}>
           {customers.map((c) => (
             <section className="mv-panel" key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
                 <BuildingIcon size={20} style={{ marginTop: 2, flex: 'none' }} />
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{c.name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{c.name}</h3>
                     <span className={`mv-status ${c.active ? 'mv-status--success' : 'mv-status--neutral'}`}>{c.active ? 'Active' : 'Inactive'}</span>
                   </div>
-                  <p className="mv-muted" style={{ margin: '4px 0 0' }}>{c.primaryContactEmail}{c.discountPct > 0 ? ` · ${c.discountPct}% standard discount` : ''}</p>
-                  <p className="mv-muted" style={{ margin: '2px 0 0', whiteSpace: 'pre-line', fontSize: 12 }}>{c.billingAddress}</p>
+                  <p className="mv-muted" style={{ margin: '0.25rem 0 0' }}>{c.primaryContactEmail}{c.discountPct > 0 ? ` · ${c.discountPct}% standard discount` : ''}</p>
+                  <p className="mv-muted" style={{ margin: '2px 0 0', whiteSpace: 'pre-line', fontSize: '0.75rem' }}>{c.billingAddress}</p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button className="mv-secondary-button" onClick={() => toggleActive(c.id)}>{c.active ? 'Deactivate' : 'Activate'}</button>
                 <button className="mv-icon-button" aria-label={`Delete ${c.name}`} onClick={() => removeCustomer(c.id)}><TrashIcon size={18} /></button>
               </div>

@@ -58,9 +58,9 @@ export function InvoicesTab({ invoices, customers }: InvoicesTabProps) {
   return (
     <div className="mv-split-panel" style={cssVars({ '--mv-cols': 'minmax(0, 1.1fr) minmax(0, 1fr)' })}>
       <section className="mv-panel">
-        <div className="mv-panel-header"><h2 className="mv-panel-title" style={{ fontSize: 15 }}>Invoices</h2><span className="mv-status mv-status--neutral">{filtered.length}</span></div>
+        <div className="mv-panel-header"><h2 className="mv-panel-title" style={{ fontSize: '0.9375rem' }}>Invoices</h2><span className="mv-status mv-status--neutral">{filtered.length}</span></div>
         <label className="mv-field">Search<input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Invoice # or customer name" /></label>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.875rem' }}>
           <Select
             label="Status"
             hideLabel
@@ -93,7 +93,7 @@ export function InvoicesTab({ invoices, customers }: InvoicesTabProps) {
                 {filtered.map((inv) => (
                   <tr key={inv.id} onClick={() => { setSelectedId(inv.id); setShowDocument(false); }} style={{ cursor: 'pointer', background: selectedId === inv.id ? 'var(--mv-selected)' : undefined }}>
                     <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{inv.invoiceNumber}</td>
-                    <td>{customerName(inv.customerId)}{customers.find((c) => c.id === inv.customerId)?.discountPct ? <span className="mv-status mv-status--neutral" style={{ marginLeft: 6, fontSize: 10 }}>{customers.find((c) => c.id === inv.customerId)?.discountPct}%</span> : null}</td>
+                    <td>{customerName(inv.customerId)}{customers.find((c) => c.id === inv.customerId)?.discountPct ? <span className="mv-status mv-status--neutral" style={{ marginLeft: '0.375rem', fontSize: '0.625rem' }}>{customers.find((c) => c.id === inv.customerId)?.discountPct}%</span> : null}</td>
                     <td className="mv-muted mv-nowrap">{shortDate(inv.invoiceDate)}</td>
                     <td className="mv-muted mv-nowrap">{shortDate(inv.dueDate)}</td>
                     <td><StatusPill status={inv.status} /></td>
@@ -108,7 +108,7 @@ export function InvoicesTab({ invoices, customers }: InvoicesTabProps) {
 
       {selected ? (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.75rem' }}>
             <button className="mv-secondary-button" onClick={() => setShowDocument((v) => !v)}>{showDocument ? 'View Summary' : 'View Invoice'}</button>
           </div>
           {showDocument ? <InvoiceDocument invoice={selected} customer={selectedCustomer} /> : <CustomerInvoiceDetail invoice={selected} customer={selectedCustomer} />}

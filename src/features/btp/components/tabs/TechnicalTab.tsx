@@ -29,16 +29,16 @@ export function TechnicalTab(props: BtpCostTabProps) {
 
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Monthly Cost Trend</h2></div>
         <SpendTrendChart title="Month-by-month BTP cost accumulation" data={trendData} />
       </section>
 
-      <div className="mv-columns-16-8" style={{ marginBottom: 16 }}>
+      <div className="mv-columns-16-8" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">All Services ({sortedServices.length})</h2></div>
           {sortedServices.length === 0 ? <p className="mv-muted">No service data available.</p> : (
-            <div className="mv-table-wrap" style={{ maxHeight: 320, overflowY: 'auto' }}>
+            <div className="mv-table-wrap" style={{ maxHeight: '20rem', overflowY: 'auto' }}>
               <table className="mv-table">
                 <thead><tr><th>#</th><th>Service</th><th className="mv-num">Cost</th><th className="mv-num">Share</th></tr></thead>
                 <tbody>
@@ -64,11 +64,11 @@ export function TechnicalTab(props: BtpCostTabProps) {
           <section className="mv-panel">
             <div className="mv-panel-header"><h2 className="mv-panel-title">Cost Forecast</h2></div>
             {data.forecastData.length === 0 ? <p className="mv-muted">Insufficient data for forecast.</p> : (
-              <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'grid', gap: '0.625rem' }}>
                 {data.forecastData.map((f, i) => (
-                  <div key={f.month} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i < data.forecastData.length - 1 ? '1px solid var(--mv-divider)' : undefined }}>
+                  <div key={f.month} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: i < data.forecastData.length - 1 ? '1px solid var(--mv-divider)' : undefined }}>
                     <div>
-                      <p style={{ margin: 0, fontWeight: 500 }}>{f.month}{i === 0 && <span className="mv-status mv-status--info" style={{ marginLeft: 8 }}>Current</span>}</p>
+                      <p style={{ margin: 0, fontWeight: 500 }}>{f.month}{i === 0 && <span className="mv-status mv-status--info" style={{ marginLeft: '0.5rem' }}>Current</span>}</p>
                       <p className="mv-muted" style={{ margin: 0 }}>{FORECAST_SUB_LABELS[i] ?? ''}</p>
                     </div>
                     <strong>{formatCurrency(f.projected_cost, currency)}</strong>
@@ -80,7 +80,7 @@ export function TechnicalTab(props: BtpCostTabProps) {
 
           <section className="mv-panel">
             <div className="mv-panel-header"><h2 className="mv-panel-title">Snapshot &amp; API Metrics</h2></div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 13 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem', fontSize: '0.8125rem' }}>
               <span className="mv-muted">COST_API</span><strong style={{ color: 'var(--mv-success)' }}>{account.targetUrl ? 'Connected' : '—'}</strong>
               <span className="mv-muted">CIS_Central</span><strong style={{ color: data.cisSucceeded ? 'var(--mv-success)' : 'var(--mv-warning)' }}>{data.cisSucceeded ? 'Connected' : 'Not configured'}</strong>
               <span className="mv-muted">Subaccounts w/ Services</span><strong>{data.servicesBySubaccount.length}</strong>
@@ -100,22 +100,22 @@ export function TechnicalTab(props: BtpCostTabProps) {
       {data.servicesBySubaccount.length > 0 && (
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Cost by Subaccount × Service ({data.servicesBySubaccount.length} subaccounts)</h2></div>
-          <p className="mv-muted" style={{ marginTop: -8, marginBottom: 16 }}>COST_API service rows grouped per subaccount — plan names and usage included.</p>
-          <div style={{ display: 'grid', gap: 14, maxHeight: 600, overflowY: 'auto' }}>
+          <p className="mv-muted" style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>COST_API service rows grouped per subaccount — plan names and usage included.</p>
+          <div style={{ display: 'grid', gap: '0.875rem', maxHeight: '37.5rem', overflowY: 'auto' }}>
             {data.servicesBySubaccount.map((sa) => {
               const pct = grandTotal > 0 ? (sa.totalCost / grandTotal) * 100 : 0;
               const visible = sa.services.slice(0, 6);
               return (
-                <div key={sa.subaccountGuid} style={{ border: '1px solid var(--mv-divider)', borderRadius: 8, padding: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                    <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--mv-primary)', flexShrink: 0 }} />
+                <div key={sa.subaccountGuid} style={{ border: '1px solid var(--mv-divider)', borderRadius: '0.5rem', padding: '0.875rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.625rem' }}>
+                    <span aria-hidden style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: 'var(--mv-primary)', flexShrink: 0 }} />
                     <Tooltip content={sa.subaccountName}><strong style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sa.subaccountName}</strong></Tooltip>
                     <span className="mv-code mv-muted">{sa.subaccountGuid}</span>
                     <span className="mv-muted">{pct.toFixed(1)}%</span>
                     <strong>{formatCurrency(sa.totalCost, currency)}</strong>
                   </div>
-                  <div style={{ height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden', marginBottom: 12 }}>
-                    <div style={{ height: '100%', borderRadius: 999, width: `${pct}%`, background: 'var(--mv-primary)' }} />
+                  <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', marginBottom: '0.75rem' }}>
+                    <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${pct}%`, background: 'var(--mv-primary)' }} />
                   </div>
                   <div className="mv-table-wrap">
                     <table className="mv-table">
@@ -123,7 +123,7 @@ export function TechnicalTab(props: BtpCostTabProps) {
                       <tbody>
                         {visible.map((svc) => (
                           <tr key={svc.name}>
-                            <td>{svc.name}{svc.planName && <span className="mv-code mv-muted" style={{ marginLeft: 8 }}>{svc.planName}</span>}</td>
+                            <td>{svc.name}{svc.planName && <span className="mv-code mv-muted" style={{ marginLeft: '0.5rem' }}>{svc.planName}</span>}</td>
                             <td className="mv-muted">{svc.usage.toLocaleString()}{svc.unit ? ` ${svc.unit}` : ''}</td>
                             <td className="mv-num">{formatCurrency(svc.cost, currency)}</td>
                             <td className="mv-num">{sa.totalCost > 0 ? `${((svc.cost / sa.totalCost) * 100).toFixed(1)}%` : '—'}</td>

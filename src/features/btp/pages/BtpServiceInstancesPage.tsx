@@ -23,17 +23,17 @@ export function BtpServiceInstancesPage() {
   return (
     <div>
       <div className="mv-page-heading">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <button className="mv-icon-button" aria-label="Back" onClick={() => navigate(-1)}><ChevronLeftIcon size={20} /></button>
           <div>
-            <h1 className="mv-title" style={{ fontSize: 20 }}>Service Instances</h1>
+            <h1 className="mv-title" style={{ fontSize: '1.25rem' }}>Service Instances</h1>
             <p className="mv-subtitle">{subaccount?.displayName ?? subaccountId} · {account?.name}</p>
           </div>
         </div>
-        <button className="mv-secondary-button"><RefreshIcon size={16} style={{ marginRight: 6 }} />Refresh</button>
+        <button className="mv-secondary-button"><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />Refresh</button>
       </div>
 
-      <p className="mv-muted" style={{ marginBottom: 16 }}>
+      <p className="mv-muted" style={{ marginBottom: '1rem' }}>
         {config?.lastSyncedAt ? `Last synced ${new Date(config.lastSyncedAt).toLocaleString()}` : 'Not yet synced — click Refresh to discover instances.'}
       </p>
 

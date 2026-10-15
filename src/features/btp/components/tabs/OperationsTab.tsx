@@ -37,7 +37,7 @@ export function OperationsTab(props: BtpCostTabProps) {
 
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Month-Over-Month Comparison</h2></div>
         <div className="mv-kpi-row-4">
           <article className="mv-kpi"><span className="mv-kpi-label">Current Month-to-Date</span><strong className="mv-kpi-value">{formatCurrency(data.totalCost, currency)}</strong><span className="mv-muted">Day {dayOfMonth}/30</span></article>
@@ -55,30 +55,30 @@ export function OperationsTab(props: BtpCostTabProps) {
         </div>
       </section>
 
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Monthly Cost Trend</h2></div>
         <SpendTrendChart title="Monthly cost trend" data={trendData} />
       </section>
 
-      <div className="mv-row-3col" style={{ marginBottom: 16 }}>
+      <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Service Cost Allocation</h2></div>
           {top8.length === 0 ? <p className="mv-muted">No service data available.</p> : (
             <>
-              <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'grid', gap: '0.625rem' }}>
                 {top8.map((svc) => (
                   <div key={svc.name} style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4, fontSize: 13, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.8125rem', minWidth: 0 }}>
                       <Tooltip content={svc.name}><span className="mv-muted">{svc.name}</span></Tooltip>
-                      <span style={{ display: 'flex', gap: 8 }}><strong>{formatCurrency(svc.cost, currency)}</strong><span className="mv-muted">{data.totalCost > 0 ? `${((svc.cost / data.totalCost) * 100).toFixed(1)}%` : ''}</span></span>
+                      <span style={{ display: 'flex', gap: '0.5rem' }}><strong>{formatCurrency(svc.cost, currency)}</strong><span className="mv-muted">{data.totalCost > 0 ? `${((svc.cost / data.totalCost) * 100).toFixed(1)}%` : ''}</span></span>
                     </div>
-                    <div style={{ height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 999, width: `${(svc.cost / maxServiceCost) * 100}%`, background: 'var(--mv-primary)' }} />
+                    <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(svc.cost / maxServiceCost) * 100}%`, background: 'var(--mv-primary)' }} />
                     </div>
                   </div>
                 ))}
               </div>
-              {sortedServices.length > 8 && <p className="mv-muted" style={{ marginTop: 12 }}>+{sortedServices.length - 8} more — see Technical tab</p>}
+              {sortedServices.length > 8 && <p className="mv-muted" style={{ marginTop: '0.75rem' }}>+{sortedServices.length - 8} more — see Technical tab</p>}
             </>
           )}
         </section>
@@ -102,9 +102,9 @@ export function OperationsTab(props: BtpCostTabProps) {
                       <td>{sub.name}</td>
                       <td className="mv-num">{formatCurrency(sub.cost, currency)}</td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1, height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden', minWidth: 60 }}>
-                            <div style={{ height: '100%', borderRadius: 999, width: `${pct}%`, background: 'var(--mv-primary)' }} />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <div style={{ flex: 1, height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', minWidth: '3.75rem' }}>
+                            <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${pct}%`, background: 'var(--mv-primary)' }} />
                           </div>
                           <span className="mv-muted">{pct.toFixed(1)}%</span>
                         </div>

@@ -52,7 +52,7 @@ export function SavingsOverviewSection() {
   const view = buildRecommendationsView(providerFilter);
 
   return (
-    <section id="savings" aria-labelledby="savings-overview-title" style={{ marginBottom: 24 }}>
+    <section id="savings" aria-labelledby="savings-overview-title" style={{ marginBottom: '1.5rem' }}>
       <div className="mv-section-head">
         <div>
           <h2 id="savings-overview-title" className="mv-section-title">Savings overview</h2>
@@ -67,12 +67,12 @@ export function SavingsOverviewSection() {
             options={availableProviders.map((p) => ({ value: p, label: PROVIDER_LABELS[p] }))}
           />
           <button type="button" className="mv-secondary-button" onClick={recalculate} disabled={recalculating}>
-            <RefreshIcon size={16} style={{ marginRight: 6 }} />{recalculating ? 'Recalculating…' : 'Recalculate'}
+            <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{recalculating ? 'Recalculating…' : 'Recalculate'}
           </button>
         </div>
       </div>
 
-      <div className="mv-kpi-row-4" style={{ marginBottom: 16 }}>
+      <div className="mv-kpi-row-4" style={{ marginBottom: '1rem' }}>
         <article className="mv-kpi"><span className="mv-kpi-label">Total Amount</span><strong className="mv-kpi-value">{formatCurrency(view.totalCurrent)}</strong><span className="mv-muted">USD, Month-to-Date</span></article>
         {view.showTaxCards ? (
           <>
@@ -122,12 +122,12 @@ export function SavingsOverviewSection() {
           <DetailList items={[{ label: 'Maitsys savings', value: <strong style={{ color: 'var(--mv-success)' }}>{formatCurrency(selectedCategory.amount)}</strong> }]} />
           <h3 className="mv-detail-heading">Affected resources ({selectedCategory.recommendations.length})</h3>
           {selectedCategory.recommendations.length > 0 ? (
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gap: '0.625rem' }}>
               {selectedCategory.recommendations.map((rec) => (
-                <div key={rec.id} style={{ border: '1px solid var(--mv-divider)', borderRadius: 12, padding: 12, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                <div key={rec.id} style={{ border: '1px solid var(--mv-divider)', borderRadius: '0.75rem', padding: '0.75rem', display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
                   <div>
-                    <p style={{ margin: 0, fontWeight: 600 }}>{rec.action || 'Optimize'} <span className="mv-status mv-status--neutral" style={{ marginLeft: 6, textTransform: 'uppercase' }}>{rec.provider}</span></p>
-                    <p className="mv-muted" style={{ margin: '4px 0 0' }}>{rec.description}</p>
+                    <p style={{ margin: 0, fontWeight: 600 }}>{rec.action || 'Optimize'} <span className="mv-status mv-status--neutral" style={{ marginLeft: '0.375rem', textTransform: 'uppercase' }}>{rec.provider}</span></p>
+                    <p className="mv-muted" style={{ margin: '0.25rem 0 0' }}>{rec.description}</p>
                   </div>
                   <strong style={{ color: 'var(--mv-success)', flex: 'none' }}>+{formatCurrency(rec.estimated_savings)}</strong>
                 </div>
@@ -153,19 +153,19 @@ function CategoryCard({ title, amount, subtitle, categories, onSelect }: { title
         <h3 className="mv-panel-title">{title}</h3>
         <strong style={{ color: 'var(--mv-success)' }}>{formatCurrency(amount)}</strong>
       </div>
-      <p className="mv-muted" style={{ marginTop: -8, marginBottom: 16 }}>{subtitle}</p>
+      <p className="mv-muted" style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>{subtitle}</p>
       {categories.length === 0 ? (
         <p className="mv-muted">No categories to show for this selection.</p>
       ) : (
-        <div style={{ display: 'grid', gap: 4 }}>
+        <div style={{ display: 'grid', gap: '0.25rem' }}>
           {categories.map((c) => (
             <button key={c.key} type="button" className="mv-account-row-body" style={{ width: '100%' }} onClick={() => onSelect(c)}>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                  <strong style={{ fontSize: 13 }}>{c.label}</strong>
+                <span style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
+                  <strong style={{ fontSize: '0.8125rem' }}>{c.label}</strong>
                   <strong style={{ color: 'var(--mv-success)', flex: 'none' }}>{formatCurrency(c.amount)}</strong>
                 </span>
-                <span className="mv-muted" style={{ display: 'block', margin: '2px 0 0', fontSize: 12 }}>{c.description}</span>
+                <span className="mv-muted" style={{ display: 'block', margin: '2px 0 0', fontSize: '0.75rem' }}>{c.description}</span>
               </span>
               <TrendUpIcon size={16} style={{ color: 'var(--mv-text-muted)', flexShrink: 0 }} />
             </button>

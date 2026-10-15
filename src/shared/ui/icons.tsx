@@ -8,8 +8,8 @@ type IconProps = Omit<SVGProps<SVGSVGElement>, 'name'> & { size?: number };
 function MaveraIcon({ name, size = 20, ...props }: IconProps & { name: FintoryIconName }) {
   return (
     <svg
-      width={size}
-      height={size}
+      width={`${size / 16}rem`}
+      height={`${size / 16}rem`}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

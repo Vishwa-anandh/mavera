@@ -243,7 +243,7 @@ export function HomePage() {
               <Link className="mv-quiet-button" to="/alerts">All alerts</Link>
             </div>
             <InsightList items={attention.slice(0, 6)} label="Items that need attention" empty="Nothing needs attention right now." />
-            {attention.length > 6 && <p className="mv-muted" style={{ margin: '8px 0 0' }}>+{attention.length - 6} more on their module pages.</p>}
+            {attention.length > 6 && <p className="mv-muted" style={{ margin: '0.5rem 0 0' }}>+{attention.length - 6} more on their module pages.</p>}
           </section>
 
           <div className="mv-row-3col">

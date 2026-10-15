@@ -95,15 +95,15 @@ export function GcpCostPage() {
         <div className="mv-cost-header-title">
           <button className="mv-icon-button" aria-label="Back to GCP overview" onClick={() => navigate('/gcp')}><ChevronLeftIcon size={20} /></button>
           <span className="mv-status mv-status--info">GCP</span>
-          <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: 20 }}>{account.name}</h1></Tooltip>
+          <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: '1.25rem' }}>{account.name}</h1></Tooltip>
         </div>
         <div className="mv-cost-header-controls">
           <div style={{ position: 'relative' }} ref={aiRef}>
-            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} style={{ marginRight: 6 }} />AI Insights</button>
+            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} style={{ marginRight: '0.375rem' }} />AI Insights</button>
             {aiOpen && (
-              <div className="mv-nav-dropdown" style={{ right: 0, left: 'auto', width: 340, padding: 14 }}>
-                <p className="mv-panel-title" style={{ marginBottom: 10 }}>AI Cost Insights</p>
-                <div style={{ display: 'grid', gap: 8 }}>
+              <div className="mv-nav-dropdown" style={{ right: 0, left: 'auto', width: '21.25rem', padding: '0.875rem' }}>
+                <p className="mv-panel-title" style={{ marginBottom: '0.625rem' }}>AI Cost Insights</p>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
                   {aiInsights.length === 0 ? (
                     <p className="mv-muted">Not enough data for insights yet.</p>
                   ) : aiInsights.map((insight, i) => (
@@ -113,11 +113,11 @@ export function GcpCostPage() {
                     </div>
                   ))}
                 </div>
-                <p className="mv-muted" style={{ marginTop: 10 }}>Based on current month-to-date data · Auto-generated</p>
+                <p className="mv-muted" style={{ marginTop: '0.625rem' }}>Based on current month-to-date data · Auto-generated</p>
               </div>
             )}
           </div>
-          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} style={{ marginRight: 6 }} />{syncing ? 'Syncing…' : 'Sync'}</button>
+          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{syncing ? 'Syncing…' : 'Sync'}</button>
         </div>
       </div>
 
@@ -134,7 +134,7 @@ export function GcpCostPage() {
         <article className="mv-kpi"><span className="mv-kpi-label">Month-to-Date Spend</span><strong className="mv-kpi-value">{formatCurrency(data.totalCost)}</strong><span className="mv-muted">Total GCP cost this month</span></article>
         <article className="mv-kpi"><span className="mv-kpi-label">EOM Forecast</span><strong className="mv-kpi-value">{eomForecast !== null ? formatCurrency(eomForecast) : '—'}</strong><span className="mv-muted">End-of-month projection</span></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Daily Average</span><strong className="mv-kpi-value">{formatCurrency(dailyAvg)}</strong><span className="mv-muted">Avg per day (MTD)</span></article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Top Service</span><strong className="mv-kpi-value" style={{ fontSize: 20 }}>{topService?.name ?? 'N/A'}</strong>{topService && <span className="mv-muted">{formatCurrency(topService.cost)}</span>}</article>
+        <article className="mv-kpi"><span className="mv-kpi-label">Top Service</span><strong className="mv-kpi-value" style={{ fontSize: '1.25rem' }}>{topService?.name ?? 'N/A'}</strong>{topService && <span className="mv-muted">{formatCurrency(topService.cost)}</span>}</article>
         <article className="mv-kpi"><span className="mv-kpi-label">Maitsys CSP Savings</span><strong className="mv-kpi-value" style={{ color: 'var(--mv-success)' }}>{mspSavings > 0 ? formatCurrency(mspSavings) : '—'}</strong><span className="mv-muted">{(GCP_MSP_RATE * 100).toFixed(1)}% MSP pricing advantage</span></article>
       </div>
 

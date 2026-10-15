@@ -56,19 +56,19 @@ export function AzureOverallDashboard({ onSelectAccount, onManageAccounts }: Azu
   return (
     <div>
       <div className="mv-page-heading">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="mv-avatar" style={{ background: '#0078d4', borderRadius: 10 }}><CloudIcon size={18} /></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="mv-avatar" style={{ background: '#0078d4', borderRadius: '0.625rem' }}><CloudIcon size={18} /></span>
           <div>
-            <h1 className="mv-title" style={{ fontSize: 22 }}>Azure Accounts Overview</h1>
+            <h1 className="mv-title" style={{ fontSize: '1.375rem' }}>Azure Accounts Overview</h1>
             <p className="mv-subtitle">Aggregated insights across {accounts.length} Azure subscription{accounts.length === 1 ? '' : 's'}.</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: '0.625rem' }}>
           <button className="mv-secondary-button" onClick={refresh} disabled={refreshing}>
-            <RefreshIcon size={16} style={{ marginRight: 6 }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}
+            <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}
           </button>
           <button className="mv-primary-button" onClick={onManageAccounts}>
-            <PlusIcon size={16} style={{ marginRight: 6 }} />Manage Accounts
+            <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Manage Accounts
           </button>
         </div>
       </div>
@@ -80,7 +80,7 @@ export function AzureOverallDashboard({ onSelectAccount, onManageAccounts }: Azu
         <article className="mv-kpi"><span className="mv-kpi-label">Provider</span><strong className="mv-kpi-value" style={{ color: '#0078d4' }}>Azure</strong></article>
       </div>
 
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Environments</h2></div>
         <div className="mv-table-wrap">
           <table className="mv-table">
@@ -94,7 +94,7 @@ export function AzureOverallDashboard({ onSelectAccount, onManageAccounts }: Azu
                   <td>{account.name}</td>
                   <td className="mv-num">{formatCurrency(account.totalCost)}</td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Sparkline values={account.sparkline} />
                       <span className={`mv-status mv-status--${budgetTone(account.budgetStatus?.pct ?? null)}`}>
                         {account.budgetStatus ? `${account.budgetStatus.pct}% used` : 'No budget'}

@@ -20,17 +20,17 @@ export function SuperAdminBillingPage() {
   return (
     <div className="mv-sa-content">
       <PageHeader title="Billing" subtitle="Invoice organizations and manage payment terms — sent invoices appear in that organization's own Billing page.">
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="mv-secondary-button" onClick={() => navigate('/admin/billing/customers')}>
-            <UsersIcon size={16} style={{ marginRight: 6 }} />Manage Customers
+            <UsersIcon size={16} style={{ marginRight: '0.375rem' }} />Manage Customers
           </button>
           <button className="mv-primary-button" onClick={() => navigate('/admin/billing/generate')}>
-            <PlusIcon size={16} style={{ marginRight: 6 }} />New Invoice
+            <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />New Invoice
           </button>
         </div>
       </PageHeader>
 
-      <div className="mv-segmented" style={{ marginBottom: 20 }}>
+      <div className="mv-segmented" style={{ marginBottom: '1.25rem' }}>
         <button className={`mv-segmented-btn${tab === 'invoices' ? ' is-active' : ''}`} onClick={() => setTab('invoices')}>Invoices</button>
         <button className={`mv-segmented-btn${tab === 'terms' ? ' is-active' : ''}`} onClick={() => setTab('terms')}>Payment Terms</button>
       </div>

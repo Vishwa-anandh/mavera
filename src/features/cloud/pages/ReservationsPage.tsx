@@ -91,7 +91,7 @@ export function ReservationsPage() {
           {selected && (
             <section className="mv-panel" aria-labelledby="util-title">
               <div className="mv-panel-header"><div><h2 className="mv-panel-title" id="util-title">{selected.name}</h2><p className="mv-muted">Daily utilisation — {selected.utilizationBasis}</p></div></div>
-              <div role="img" aria-label={`Daily utilisation of ${selected.name}`} style={{ height: 220 }}>
+              <div role="img" aria-label={`Daily utilisation of ${selected.name}`} style={{ height: '13.75rem' }}>
                 <ResponsiveContainer>
                   <LineChart data={selected.trend}>
                     <CartesianGrid stroke={colors.grid} vertical={false} />
@@ -109,7 +109,7 @@ export function ReservationsPage() {
         </div>
       )}
 
-      <section className="mv-panel" aria-labelledby="commit-recs-title" style={{ marginTop: 16 }}>
+      <section className="mv-panel" aria-labelledby="commit-recs-title" style={{ marginTop: '1rem' }}>
         <div className="mv-panel-header">
           <div><h2 className="mv-panel-title" id="commit-recs-title">Commitment recommendations</h2><p className="mv-muted">Estimates supplied by the provider or Maitsys analysis. Not a purchase — review terms before committing.</p></div>
           <Link className="mv-quiet-button" to="/cloud/optimization">All opportunities</Link>

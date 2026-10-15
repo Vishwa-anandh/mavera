@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { flowGuideForPath, type FlowGuide } from './flowGuides';
+import { answerFromDemoData, answerableTopics } from './assistantAnswers';
 
 export interface AssistantMessage {
   id: string;
@@ -7,7 +8,7 @@ export interface AssistantMessage {
   text: string;
 }
 
-export const ASSISTANT_SUGGESTIONS = ['System health', 'Cost optimization', 'Generate report'];
+export const ASSISTANT_SUGGESTIONS = ['What is our cloud spend this month?', 'System health', 'Top savings', 'Generate report'];
 
 interface AssistantModules {
   cloudCost: boolean;
@@ -18,8 +19,10 @@ interface AssistantModules {
  * report" stays, since Reports isn't gated by a module entitlement. */
 export function assistantSuggestions(modules: AssistantModules): string[] {
   return [
+    modules.cloudCost && 'What is our cloud spend this month?',
     modules.sapMonitoring && 'System health',
-    modules.cloudCost && 'Cost optimization',
+    modules.cloudCost && 'Top savings',
+    modules.sapMonitoring && 'Unread SAP alerts',
     'Generate report',
   ].filter((item): item is string => Boolean(item));
 }
@@ -35,18 +38,20 @@ export function assistantIntroLabel(modules: AssistantModules): string {
   return `Ask anything about your ${topics.join(', ').replace(/, ([^,]*)$/, ' or $1')}.`;
 }
 
-const NO_MODEL_REPLY = 'This prototype build has no live model connected yet, so I can’t answer that from real data. Once connected, answers here will cite the specific systems or costs behind them.';
+/** Reply for a question the sample-data answers don't cover; says what can be asked instead. */
+function noModelReply(modules: AssistantModules): string {
+  const topics = answerableTopics(modules);
+  return `This prototype build has no live model connected yet, so I can only answer from sample data.${topics.length ? ` Try asking about: ${topics.join('; ')}.` : ''} For how a page works, use the help button at the top of the chat.`;
+}
 
 /**
- * Shared behind the AI Assistant drawer, its dedicated nav page, and the
- * dashboard's embedded widget. No live model is connected in this
- * prototype, so every free-form question gets a canned, honest reply rather
- * than a fabricated answer (MAVERA_DESIGN_SYSTEM.md §11.8). The one
- * exception is a page's own flow-guide chip (see flowGuides.ts): that's
- * authored walkthrough content Mavera owns, not a claim about live data, so
- * it gets a real, useful reply.
+ * Shared behind the AI Assistant drawer, its dedicated nav page, and the dashboard's embedded widget.
+ * No live model is connected in this prototype, so free-form questions are answered from the prototype's
+ * sample data when they match a topic (see assistantAnswers.ts), labelled as sample data, and otherwise get
+ * an honest "not connected" reply that says what can be asked (MAVERA_DESIGN_SYSTEM.md §11.8). A page's own
+ * help chip (see flowGuides.ts) gets its authored walkthrough; the widget also starts the on-page tour.
  */
-export function useAssistantConversation(pathname?: string) {
+export function useAssistantConversation(pathname?: string, modules: AssistantModules = { cloudCost: true, sapMonitoring: true }) {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [draft, setDraft] = useState('');
   const flowGuide: FlowGuide | undefined = pathname ? flowGuideForPath(pathname) : undefined;
@@ -66,7 +71,9 @@ export function useAssistantConversation(pathname?: string) {
   const send = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    const reply = flowGuide && trimmed === flowGuide.chipLabel ? flowGuide.reply : NO_MODEL_REPLY;
+    const reply = flowGuide && trimmed === flowGuide.chipLabel
+      ? flowGuide.reply
+      : answerFromDemoData(trimmed, modules) ?? noModelReply(modules);
     setMessages((current) => [
       ...current,
       { id: `u-${current.length}`, role: 'user', text: trimmed },

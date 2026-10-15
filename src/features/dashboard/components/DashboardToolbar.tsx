@@ -54,7 +54,7 @@ export function DashboardToolbar({ onRefresh }: DashboardToolbarProps) {
         <Select label="Environment" hideLabel value={environment} onChange={setEnvironment} options={ENVIRONMENT_OPTIONS} />
         <Select label="System" hideLabel value={system} onChange={setSystem} options={SYSTEM_OPTIONS} />
         <button type="button" className="mv-primary-button" onClick={handleRefresh} disabled={refreshing}>
-          <RefreshIcon size={16} style={{ marginRight: 6 }} />
+          <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />
           {refreshing ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>

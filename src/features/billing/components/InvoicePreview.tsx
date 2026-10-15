@@ -43,91 +43,91 @@ export function InvoicePreview({ invoiceNumber, invoiceDate, dueDate, serialNumb
 
   return (
     <div className="mv-panel" style={{ background: '#fff', color: '#1a1a1a' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
         <div>
-          <strong style={{ fontSize: 20, fontFamily: 'var(--mv-font-heading)' }}>Maitsys</strong>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#666' }}>AI Cloud Intelligence Platform</p>
+          <strong style={{ fontSize: '1.25rem', fontFamily: 'var(--mv-font-heading)' }}>Maitsys</strong>
+          <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#666' }}>AI Cloud Intelligence Platform</p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <h2 style={{ margin: 0, fontSize: 26, letterSpacing: '.04em' }}>INVOICE</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 13, color: '#666' }}>{invoiceNumber}</p>
+          <h2 style={{ margin: 0, fontSize: '1.625rem', letterSpacing: '.04em' }}>INVOICE</h2>
+          <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#666' }}>{invoiceNumber}</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: showShipTo ? 'repeat(auto-fit, minmax(200px, 1fr))' : '1fr', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: showShipTo ? 'repeat(auto-fit, minmax(12.5rem, 1fr))' : '1fr', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#999', letterSpacing: '.04em' }}>BILL TO</p>
-          <p style={{ margin: '4px 0 0', fontWeight: 600 }}>{billTo.name}</p>
-          <p style={{ margin: '2px 0 0', fontSize: 13, color: '#444', whiteSpace: 'pre-line' }}>{billTo.address}</p>
+          <p style={{ margin: 0, fontSize: '0.625rem', fontWeight: 700, color: '#999', letterSpacing: '.04em' }}>BILL TO</p>
+          <p style={{ margin: '0.25rem 0 0', fontWeight: 600 }}>{billTo.name}</p>
+          <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#444', whiteSpace: 'pre-line' }}>{billTo.address}</p>
         </div>
         {showShipTo && (
           <div>
-            <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#999', letterSpacing: '.04em' }}>SHIP TO</p>
-            <p style={{ margin: '4px 0 0', fontWeight: 600 }}>{shipTo!.name}</p>
-            <p style={{ margin: '2px 0 0', fontSize: 13, color: '#444', whiteSpace: 'pre-line' }}>{shipTo!.address}</p>
+            <p style={{ margin: 0, fontSize: '0.625rem', fontWeight: 700, color: '#999', letterSpacing: '.04em' }}>SHIP TO</p>
+            <p style={{ margin: '0.25rem 0 0', fontWeight: 600 }}>{shipTo!.name}</p>
+            <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#444', whiteSpace: 'pre-line' }}>{shipTo!.address}</p>
           </div>
         )}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20, padding: 14, borderRadius: 10, background: '#f7f8fa' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12, flex: 1 }}>
-          <div><p style={{ margin: 0, fontSize: 10, color: '#999' }}>INVOICE DATE</p><p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600 }}>{formatDate(invoiceDate)}</p></div>
-          {serialNumber && <div><p style={{ margin: 0, fontSize: 10, color: '#999' }}>SERIAL #</p><p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600 }}>{serialNumber}</p></div>}
-          {poNumber && <div><p style={{ margin: 0, fontSize: 10, color: '#999' }}>PO #</p><p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600 }}>{poNumber}</p></div>}
-          {paymentTermName && <div><p style={{ margin: 0, fontSize: 10, color: '#999' }}>PAYMENT TERM</p><p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600 }}>{paymentTermName}</p></div>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.25rem', padding: '0.875rem', borderRadius: '0.625rem', background: '#f7f8fa' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(7.5rem, 1fr))', gap: '0.75rem', flex: 1 }}>
+          <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>INVOICE DATE</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 600 }}>{formatDate(invoiceDate)}</p></div>
+          {serialNumber && <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>SERIAL #</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 600 }}>{serialNumber}</p></div>}
+          {poNumber && <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>PO #</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 600 }}>{poNumber}</p></div>}
+          {paymentTermName && <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>PAYMENT TERM</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 600 }}>{paymentTermName}</p></div>}
           {customFields.filter((f) => f.label).map((f) => (
-            <div key={f.id}><p style={{ margin: 0, fontSize: 10, color: '#999' }}>{f.label.toUpperCase()}</p><p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600 }}>{f.value}</p></div>
+            <div key={f.id}><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>{f.label.toUpperCase()}</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 600 }}>{f.value}</p></div>
           ))}
         </div>
         <div style={{ textAlign: 'right', flex: 'none' }}>
-          <p style={{ margin: 0, fontSize: 10, color: '#999' }}>TOTAL DUE</p>
-          <strong style={{ fontSize: 22 }}>{formatCurrency(totals.totalDue)}</strong>
-          {dueDate && <p style={{ margin: '2px 0 0', fontSize: 11, color: '#999' }}>Due {formatDate(dueDate)}</p>}
+          <p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>TOTAL DUE</p>
+          <strong style={{ fontSize: '1.375rem' }}>{formatCurrency(totals.totalDue)}</strong>
+          {dueDate && <p style={{ margin: '2px 0 0', fontSize: '0.6875rem', color: '#999' }}>Due {formatDate(dueDate)}</p>}
         </div>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20, fontSize: 13 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '1.25rem', fontSize: '0.8125rem' }}>
         <thead>
           <tr style={{ borderBottom: '2px solid #e2e2e2', textAlign: 'left' }}>
-            <th style={{ padding: '6px 8px' }}>Description</th>
-            <th style={{ padding: '6px 8px', textAlign: 'right' }}>Qty</th>
-            <th style={{ padding: '6px 8px', textAlign: 'right' }}>Unit Price</th>
-            {showDiscountColumn && <th style={{ padding: '6px 8px', textAlign: 'right' }}>Discount %</th>}
-            {showBillingPeriod && <th style={{ padding: '6px 8px' }}>Billing Period</th>}
-            {columns.map((c) => <th key={c.id} style={{ padding: '6px 8px' }}>{c.label}</th>)}
-            <th style={{ padding: '6px 8px', textAlign: 'right' }}>Amount</th>
+            <th style={{ padding: '0.375rem 0.5rem' }}>Description</th>
+            <th style={{ padding: '0.375rem 0.5rem', textAlign: 'right' }}>Qty</th>
+            <th style={{ padding: '0.375rem 0.5rem', textAlign: 'right' }}>Unit Price</th>
+            {showDiscountColumn && <th style={{ padding: '0.375rem 0.5rem', textAlign: 'right' }}>Discount %</th>}
+            {showBillingPeriod && <th style={{ padding: '0.375rem 0.5rem' }}>Billing Period</th>}
+            {columns.map((c) => <th key={c.id} style={{ padding: '0.375rem 0.5rem' }}>{c.label}</th>)}
+            <th style={{ padding: '0.375rem 0.5rem', textAlign: 'right' }}>Amount</th>
           </tr>
         </thead>
         <tbody>
           {lines.map((line) => (
             <tr key={line.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-              <td style={{ padding: '6px 8px' }}>{line.description || '—'}</td>
-              <td style={{ padding: '6px 8px', textAlign: 'right' }}>{line.quantity}</td>
-              <td style={{ padding: '6px 8px', textAlign: 'right' }}>{formatCurrency(line.vendorUnitPrice)}</td>
-              {showDiscountColumn && <td style={{ padding: '6px 8px', textAlign: 'right' }}>{line.discountPctApplied > 0 ? `${line.discountPctApplied}%` : '—'}</td>}
-              {showBillingPeriod && <td style={{ padding: '6px 8px' }}>{line.billingPeriodStart || line.billingPeriodEnd ? `${formatDate(line.billingPeriodStart)} – ${formatDate(line.billingPeriodEnd)}` : '—'}</td>}
-              {columns.map((c) => <td key={c.id} style={{ padding: '6px 8px' }}>{line.extra[c.id] || '—'}</td>)}
-              <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(line.finalLineAmount)}</td>
+              <td style={{ padding: '0.375rem 0.5rem' }}>{line.description || '—'}</td>
+              <td style={{ padding: '0.375rem 0.5rem', textAlign: 'right' }}>{line.quantity}</td>
+              <td style={{ padding: '0.375rem 0.5rem', textAlign: 'right' }}>{formatCurrency(line.vendorUnitPrice)}</td>
+              {showDiscountColumn && <td style={{ padding: '0.375rem 0.5rem', textAlign: 'right' }}>{line.discountPctApplied > 0 ? `${line.discountPctApplied}%` : '—'}</td>}
+              {showBillingPeriod && <td style={{ padding: '0.375rem 0.5rem' }}>{line.billingPeriodStart || line.billingPeriodEnd ? `${formatDate(line.billingPeriodStart)} – ${formatDate(line.billingPeriodEnd)}` : '—'}</td>}
+              {columns.map((c) => <td key={c.id} style={{ padding: '0.375rem 0.5rem' }}>{line.extra[c.id] || '—'}</td>)}
+              <td style={{ padding: '0.375rem 0.5rem', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(line.finalLineAmount)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <div style={{ width: 260, display: 'grid', gap: 6 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span>Subtotal</span><span>{formatCurrency(totals.lineSubtotal)}</span></div>
+        <div style={{ width: '16.25rem', display: 'grid', gap: '0.375rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}><span>Subtotal</span><span>{formatCurrency(totals.lineSubtotal)}</span></div>
           {totals.overallAdjustmentAmount !== 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span>Summary Adjustment ({overallAdjustmentPct}%)</span><span>{formatCurrency(totals.overallAdjustmentAmount)}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}><span>Summary Adjustment ({overallAdjustmentPct}%)</span><span>{formatCurrency(totals.overallAdjustmentAmount)}</span></div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span>Tax ({taxPct}%)</span><span>{formatCurrency(totals.tax)}</span></div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, borderTop: '2px solid #e2e2e2', paddingTop: 6, marginTop: 4 }}><span>Total Due</span><span>{formatCurrency(totals.totalDue)}</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}><span>Tax ({taxPct}%)</span><span>{formatCurrency(totals.tax)}</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9375rem', fontWeight: 700, borderTop: '2px solid #e2e2e2', paddingTop: '0.375rem', marginTop: '0.25rem' }}><span>Total Due</span><span>{formatCurrency(totals.totalDue)}</span></div>
         </div>
       </div>
 
       {notes && (
-        <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid #f0f0f0' }}>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#999' }}>NOTES</p>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: '#444' }}>{notes}</p>
+        <div style={{ marginTop: '1.25rem', paddingTop: '0.875rem', borderTop: '1px solid #f0f0f0' }}>
+          <p style={{ margin: 0, fontSize: '0.625rem', fontWeight: 700, color: '#999' }}>NOTES</p>
+          <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#444' }}>{notes}</p>
         </div>
       )}
     </div>

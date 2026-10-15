@@ -30,7 +30,7 @@ export function CustomerBillingView({ invoices, customer, onPay }: CustomerBilli
   return (
     <div className="mv-split-panel" style={cssVars({ '--mv-cols': '2fr 3fr' })}>
       <section className="mv-panel">
-        <div className="mv-panel-header"><h2 className="mv-panel-title" style={{ fontSize: 15 }}>Your Invoices</h2><span className="mv-status mv-status--neutral">{visible.length}</span></div>
+        <div className="mv-panel-header"><h2 className="mv-panel-title" style={{ fontSize: '0.9375rem' }}>Your Invoices</h2><span className="mv-status mv-status--neutral">{visible.length}</span></div>
         {visible.length === 0 ? (
           <div className="mv-empty" style={{ margin: 0 }}>
             <div className="mv-empty-icon" aria-hidden><FileTextIcon size={28} /></div>
@@ -38,21 +38,21 @@ export function CustomerBillingView({ invoices, customer, onPay }: CustomerBilli
             <p>Invoices from Maitsys will appear here.</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
             {visible.map((inv) => (
               <button
                 key={inv.id}
                 onClick={() => setSelectedId(inv.id)}
-                style={{ textAlign: 'left', border: `1px solid ${selectedId === inv.id ? 'var(--mv-primary)' : 'var(--mv-border)'}`, borderRadius: 10, padding: 12, background: selectedId === inv.id ? 'var(--mv-selected)' : 'transparent', cursor: 'pointer' }}
+                style={{ textAlign: 'left', border: `1px solid ${selectedId === inv.id ? 'var(--mv-primary)' : 'var(--mv-border)'}`, borderRadius: '0.625rem', padding: '0.75rem', background: selectedId === inv.id ? 'var(--mv-selected)' : 'transparent', cursor: 'pointer' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <strong style={{ fontSize: 13 }}>{inv.invoiceNumber}</strong>
-                    <p className="mv-muted" style={{ margin: '3px 0 0', fontSize: 11 }}>{formatDate(inv.invoiceDate)} · Due {formatDate(inv.dueDate)}</p>
+                    <strong style={{ fontSize: '0.8125rem' }}>{inv.invoiceNumber}</strong>
+                    <p className="mv-muted" style={{ margin: '0.1875rem 0 0', fontSize: '0.6875rem' }}>{formatDate(inv.invoiceDate)} · Due {formatDate(inv.dueDate)}</p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <strong style={{ fontSize: 14 }}>{formatCurrency(inv.totalDue)}</strong>
-                    <div style={{ marginTop: 4 }}><StatusPill status={inv.status} /></div>
+                    <strong style={{ fontSize: '0.875rem' }}>{formatCurrency(inv.totalDue)}</strong>
+                    <div style={{ marginTop: '0.25rem' }}><StatusPill status={inv.status} /></div>
                   </div>
                 </div>
               </button>

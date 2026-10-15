@@ -16,7 +16,7 @@ export function SendInvoiceConfirmModal({ previewProps, onConfirm, onCancel, sen
     <div className="mv-dialog-backdrop" onClick={sending ? undefined : onCancel}>
       <section className="mv-dialog mv-dialog--wide" role="dialog" aria-modal="true" aria-label="Confirm and send invoice" onClick={(e) => e.stopPropagation()}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Confirm & Send Invoice</h2></div>
-        <p className="mv-subtitle" style={{ marginTop: -8, marginBottom: 16 }}>This is exactly what the customer will see. Sending marks the invoice as delivered.</p>
+        <p className="mv-subtitle" style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>This is exactly what the customer will see. Sending marks the invoice as delivered.</p>
         <InvoicePreview {...previewProps} />
         <div className="mv-dialog-actions">
           <button className="mv-secondary-button" disabled={sending} onClick={onCancel}>Back</button>

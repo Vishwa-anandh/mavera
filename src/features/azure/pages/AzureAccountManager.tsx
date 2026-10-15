@@ -65,21 +65,21 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
   return (
     <div>
       <div className="mv-page-heading">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {onBack && (
             <button className="mv-icon-button" aria-label="Back" onClick={onBack}>
               <ChevronLeftIcon size={20} />
             </button>
           )}
-          <span className="mv-avatar" style={{ background: 'var(--mv-primary)', borderRadius: 10 }}><CreditCardIcon size={18} /></span>
+          <span className="mv-avatar" style={{ background: 'var(--mv-primary)', borderRadius: '0.625rem' }}><CreditCardIcon size={18} /></span>
           <div>
-            <h1 className="mv-title" style={{ fontSize: 22 }}>Azure Account Manager</h1>
+            <h1 className="mv-title" style={{ fontSize: '1.375rem' }}>Azure Account Manager</h1>
             <p className="mv-subtitle">Connect your Azure subscriptions for cost monitoring.</p>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
           {isReadOnly && (
-            <span className="mv-status mv-status--neutral"><LockIcon size={12} style={{ marginRight: 4, verticalAlign: -1 }} />Read-only</span>
+            <span className="mv-status mv-status--neutral"><LockIcon size={12} style={{ marginRight: '0.25rem', verticalAlign: -1 }} />Read-only</span>
           )}
           <span className={`mv-status ${atLimit ? 'mv-status--danger' : 'mv-status--neutral'}`}>
             {accounts.length}/{maxAccounts > 0 ? maxAccounts : '∞'} accounts
@@ -88,7 +88,7 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
       </div>
 
       {accounts.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Connected Accounts</h2></div>
           <ul className="mv-account-list">
             {accounts.map((account) => (
@@ -154,8 +154,8 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
         ) : (
           <>
             <div className="mv-notice">Azure cost data syncs automatically — once connected, subscription costs, resource groups, and service breakdown pull within a few minutes. Refreshes every hour.</div>
-            <button className="mv-primary-button" style={{ marginTop: 16 }} onClick={() => setWizardOpen(true)}>
-              <PlusIcon size={16} style={{ marginRight: 6 }} />Connect Account
+            <button className="mv-primary-button" style={{ marginTop: '1rem' }} onClick={() => setWizardOpen(true)}>
+              <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Connect Account
             </button>
           </>
         )}

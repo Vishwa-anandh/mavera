@@ -113,7 +113,7 @@ export function SuperAdminOverviewPage() {
       <div className="mv-columns-16-8">
         <section className="mv-panel">
           <div className="mv-panel-header">
-            <h2 className="mv-panel-title"><CreditCardIcon size={16} style={{ verticalAlign: -3, marginRight: 6 }} />Recent Invoices</h2>
+            <h2 className="mv-panel-title"><CreditCardIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />Recent Invoices</h2>
             <button className="mv-quiet-button" onClick={() => navigate('/admin/billing')}>View all</button>
           </div>
           {recentInvoices.length === 0 ? (
@@ -136,20 +136,20 @@ export function SuperAdminOverviewPage() {
               </table>
             </div>
           )}
-          <div style={{ marginTop: 14 }}>
-            <button className="mv-primary-button" onClick={() => navigate('/admin/billing/generate')}><PlusIcon size={16} style={{ marginRight: 6 }} />New Invoice</button>
+          <div style={{ marginTop: '0.875rem' }}>
+            <button className="mv-primary-button" onClick={() => navigate('/admin/billing/generate')}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />New Invoice</button>
           </div>
         </section>
 
         <section className="mv-panel">
           <div className="mv-panel-header">
-            <h2 className="mv-panel-title"><ClockIcon size={16} style={{ verticalAlign: -3, marginRight: 6 }} />Expiring Soon</h2>
+            <h2 className="mv-panel-title"><ClockIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />Expiring Soon</h2>
             <button className="mv-quiet-button" onClick={() => navigate('/admin/organizations')}>View all</button>
           </div>
           {expiringOrgs.length === 0 ? (
             <p className="mv-muted">No organizations expiring in the next 30 days.</p>
           ) : (
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gap: '0.625rem' }}>
               {expiringOrgs.map(({ org, days }) => (
                 <div key={org.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div><strong>{org.name}</strong><div className="mv-muted">{org.memberCount} members</div></div>
@@ -158,8 +158,8 @@ export function SuperAdminOverviewPage() {
               ))}
             </div>
           )}
-          <div style={{ marginTop: 14 }}>
-            <button className="mv-secondary-button" onClick={() => navigate('/admin/organizations')}><BuildingIcon size={16} style={{ marginRight: 6 }} />Manage Organizations</button>
+          <div style={{ marginTop: '0.875rem' }}>
+            <button className="mv-secondary-button" onClick={() => navigate('/admin/organizations')}><BuildingIcon size={16} style={{ marginRight: '0.375rem' }} />Manage Organizations</button>
           </div>
         </section>
       </div>

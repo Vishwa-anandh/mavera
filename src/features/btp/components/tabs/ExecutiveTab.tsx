@@ -62,16 +62,16 @@ export function ExecutiveTab(props: BtpCostTabProps) {
 
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: 16, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'center', borderColor: `var(--mv-${health.color})`, borderWidth: 2 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center', borderColor: `var(--mv-${health.color})`, borderWidth: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <HealthGauge score={health.score} color={health.color} />
           <div>
             <p className="mv-muted" style={{ margin: 0 }}>Spend Health Score</p>
-            <strong style={{ fontSize: 20, color: `var(--mv-${health.color})` }}>{health.label}</strong>
-            <p className="mv-muted" style={{ margin: '4px 0 0', maxWidth: 220 }}>Based on MoM trend, concentration risk &amp; forecast</p>
+            <strong style={{ fontSize: '1.25rem', color: `var(--mv-${health.color})` }}>{health.label}</strong>
+            <p className="mv-muted" style={{ margin: '0.25rem 0 0', maxWidth: '13.75rem' }}>Based on MoM trend, concentration risk &amp; forecast</p>
           </div>
         </div>
-        <div className="mv-service-tile-grid" style={{ flex: 1, minWidth: 280 }}>
+        <div className="mv-service-tile-grid" style={{ flex: 1, minWidth: '17.5rem' }}>
           <div className="mv-service-tile">
             <span className="mv-service-tile-name">This Month</span>
             <strong>{formatCurrency(data.totalCost, currency)}</strong>
@@ -95,7 +95,7 @@ export function ExecutiveTab(props: BtpCostTabProps) {
         </div>
       </section>
 
-      <div className="mv-row-3col" style={{ marginBottom: 16 }}>
+      <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <article className="mv-kpi"><span className="mv-kpi-label">Annualised Run Rate</span><strong className="mv-kpi-value">{formatCurrency(annualRunRate, currency)}</strong><span className="mv-muted">Based on {formatCurrency(burnRate, currency)}/day burn rate</span></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Annual MSP Savings</span><strong className="mv-kpi-value" style={{ color: 'var(--mv-success)' }}>{formatCurrency(mspSavings * 12, currency)}</strong><span className="mv-muted">{(mspRate * 100).toFixed(1)}% CSP discount · {formatCurrency(mspSavings, currency)} this month</span></article>
         <article className="mv-kpi">
@@ -109,7 +109,7 @@ export function ExecutiveTab(props: BtpCostTabProps) {
         </article>
       </div>
 
-      <div className="mv-row-3col" style={{ marginBottom: 16 }}>
+      <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Service Cost Distribution</h2></div>
           {serviceSlices.length === 0 ? <p className="mv-muted">No service data — sync to populate.</p> : <DonutChart title="Service cost distribution" totalLabel="Spend" data={serviceSlices} />}
@@ -123,7 +123,7 @@ export function ExecutiveTab(props: BtpCostTabProps) {
       <section className="mv-panel">
         <div className="mv-panel-header"><h2 className="mv-panel-title">12-Month Spend Timeline</h2></div>
         {timelineData.length === 0 ? <p className="mv-muted">No history yet — sync to populate.</p> : (
-          <div role="img" aria-label="12-month spend timeline" style={{ width: '100%', height: 220 }}>
+          <div role="img" aria-label="12-month spend timeline" style={{ width: '100%', height: '13.75rem' }}>
             <ResponsiveContainer>
               <BarChart data={timelineData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid stroke={chartColors.grid} vertical={false} />

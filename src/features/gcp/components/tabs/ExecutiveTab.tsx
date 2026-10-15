@@ -44,37 +44,37 @@ export function ExecutiveTab(props: GcpCostTabProps & { aiInsights?: AiInsight[]
 
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Executive Summary</h2></div>
         <div className="mv-row-3col">
           <div>
-            <p className="mv-muted" style={{ marginBottom: 8, fontWeight: 500 }}>Cost at a glance</p>
-            <div style={{ display: 'grid', gap: 8 }}>
+            <p className="mv-muted" style={{ marginBottom: '0.5rem', fontWeight: 500 }}>Cost at a glance</p>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="mv-muted">MTD spend</span><strong>{formatCurrency(data.totalCost)}</strong></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="mv-muted">EOM forecast</span><strong>{eomForecast !== null ? formatCurrency(eomForecast) : '—'}</strong></div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="mv-muted">CSP savings</span><strong style={{ color: 'var(--mv-success)' }}>{mspSavings > 0 ? formatCurrency(mspSavings) : '—'}</strong></div>
             </div>
           </div>
           <div>
-            <p className="mv-muted" style={{ marginBottom: 8, fontWeight: 500 }}>Attention items</p>
-            <div style={{ display: 'grid', gap: 8 }}>
+            <p className="mv-muted" style={{ marginBottom: '0.5rem', fontWeight: 500 }}>Attention items</p>
+            <div style={{ display: 'grid', gap: '0.5rem' }}>
               {attentionItems.map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                   <span className={`mv-status mv-status--${item.tone}`} style={{ marginTop: 1 }}>●</span>
-                  <p style={{ margin: 0, fontSize: 13 }}>{item.label}</p>
+                  <p style={{ margin: 0, fontSize: '0.8125rem' }}>{item.label}</p>
                 </div>
               ))}
             </div>
           </div>
           <div>
-            <p className="mv-muted" style={{ marginBottom: 8, fontWeight: 500 }}>Top services</p>
+            <p className="mv-muted" style={{ marginBottom: '0.5rem', fontWeight: 500 }}>Top services</p>
             {sortedServices.length === 0 ? (
               <p className="mv-muted">No data — sync to populate</p>
             ) : (
-              <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
                 {sortedServices.slice(0, 4).map((svc, i) => (
-                  <div key={svc.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: [props.chartColors.primary, props.chartColors.secondary, props.chartColors.tertiary, props.chartColors.axis][i % 4], flexShrink: 0 }} />
+                  <div key={svc.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span aria-hidden style={{ width: '0.5rem', height: '0.5rem', borderRadius: '50%', background: [props.chartColors.primary, props.chartColors.secondary, props.chartColors.tertiary, props.chartColors.axis][i % 4], flexShrink: 0 }} />
                     <Tooltip content={svc.name}><span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{svc.name}</span></Tooltip>
                     <strong>{formatCurrency(svc.cost)}</strong>
                   </div>
@@ -92,7 +92,7 @@ export function ExecutiveTab(props: GcpCostTabProps & { aiInsights?: AiInsight[]
         </section>
         <section className="mv-panel" id="exec-csp-savings">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Maitsys CSP Savings</h2></div>
-          <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="mv-muted">CSP discount rate</span><strong>{(mspRate * 100).toFixed(1)}%</strong></div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="mv-muted">Monthly savings</span><strong style={{ color: 'var(--mv-success)' }}>{mspSavings > 0 ? formatCurrency(mspSavings) : '—'}</strong></div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span className="mv-muted">Annual projection</span><strong style={{ color: 'var(--mv-success)' }}>{mspSavings > 0 ? formatCurrency(mspSavings * 12) : '—'}</strong></div>

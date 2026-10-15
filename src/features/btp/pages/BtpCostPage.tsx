@@ -106,15 +106,15 @@ export function BtpCostPage() {
         <div className="mv-cost-header-title">
           <button className="mv-icon-button" aria-label="Back to BTP overview" onClick={() => navigate('/btp')}><ChevronLeftIcon size={20} /></button>
           <span className="mv-status mv-status--info">BTP</span>
-          <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: 20 }}>{account.name}</h1></Tooltip>
+          <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: '1.25rem' }}>{account.name}</h1></Tooltip>
         </div>
         <div className="mv-cost-header-controls">
           <div style={{ position: 'relative' }} ref={aiRef}>
-            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} style={{ marginRight: 6 }} />AI Insights</button>
+            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} style={{ marginRight: '0.375rem' }} />AI Insights</button>
             {aiOpen && (
-              <div className="mv-nav-dropdown" style={{ right: 0, left: 'auto', width: 340, padding: 14 }}>
-                <p className="mv-panel-title" style={{ marginBottom: 10 }}>AI Insights</p>
-                <div style={{ display: 'grid', gap: 8 }}>
+              <div className="mv-nav-dropdown" style={{ right: 0, left: 'auto', width: '21.25rem', padding: '0.875rem' }}>
+                <p className="mv-panel-title" style={{ marginBottom: '0.625rem' }}>AI Insights</p>
+                <div style={{ display: 'grid', gap: '0.5rem' }}>
                   {aiInsights.length === 0 ? <p className="mv-muted">Not enough data for insights yet.</p> : aiInsights.map((insight, i) => (
                     <div key={i} className={`mv-inline-error mv-ai-insight mv-ai-insight--${insight.type}`}>
                       <strong>{insight.title}</strong>
@@ -122,11 +122,11 @@ export function BtpCostPage() {
                     </div>
                   ))}
                 </div>
-                <p className="mv-muted" style={{ marginTop: 10 }}>Based on Month-to-Date data and monthly history · Auto-generated</p>
+                <p className="mv-muted" style={{ marginTop: '0.625rem' }}>Based on Month-to-Date data and monthly history · Auto-generated</p>
               </div>
             )}
           </div>
-          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} style={{ marginRight: 6 }} />{syncing ? 'Syncing…' : 'Sync'}</button>
+          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{syncing ? 'Syncing…' : 'Sync'}</button>
         </div>
       </div>
 
@@ -140,7 +140,7 @@ export function BtpCostPage() {
       </nav>
 
       {!data.cisSucceeded && (
-        <div className="mv-notice" style={{ marginBottom: 16 }}>
+        <div className="mv-notice" style={{ marginBottom: '1rem' }}>
           CIS_Central not configured — add CIS_Central credentials to enable directory and subaccount hierarchy. COST_API data is still shown below.
         </div>
       )}

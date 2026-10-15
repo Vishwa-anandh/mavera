@@ -36,7 +36,7 @@ export function SapJobsPage() {
       <div className="mv-columns-16-8" style={{ '--mv-cols': '5fr 2fr' } as React.CSSProperties}>
         <section className="mv-panel" id="jobs" aria-labelledby="sap-jobs-title">
           <div className="mv-panel-header">
-            <h2 id="sap-jobs-title" className="mv-panel-title"><ClockIcon size={16} style={{ verticalAlign: -3, marginRight: 6 }} />Background Jobs <span className="mv-muted" style={{ fontWeight: 400 }}>SM37</span></h2>
+            <h2 id="sap-jobs-title" className="mv-panel-title"><ClockIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />Background Jobs <span className="mv-muted" style={{ fontWeight: 400 }}>SM37</span></h2>
             <span className="mv-muted">{SAP_BACKGROUND_JOBS.length} jobs</span>
           </div>
           <div className="mv-table-wrap">
@@ -60,7 +60,7 @@ export function SapJobsPage() {
 
         <section className="mv-panel" id="dumps" aria-labelledby="sap-dumps-title">
           <div className="mv-panel-header">
-            <h2 id="sap-dumps-title" className="mv-panel-title"><AlertTriangleIcon size={16} style={{ verticalAlign: -3, marginRight: 6 }} />Short Dumps <span className="mv-muted" style={{ fontWeight: 400 }}>ST22</span></h2>
+            <h2 id="sap-dumps-title" className="mv-panel-title"><AlertTriangleIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />Short Dumps <span className="mv-muted" style={{ fontWeight: 400 }}>ST22</span></h2>
             <span className="mv-muted">{SAP_ABAP_RUNTIME_ERRORS.length} dumps</span>
           </div>
           {SAP_ABAP_RUNTIME_ERRORS.length === 0 ? (

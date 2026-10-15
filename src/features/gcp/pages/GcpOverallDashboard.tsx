@@ -50,26 +50,26 @@ export function GcpOverallDashboard() {
   return (
     <div>
       <div className="mv-page-heading">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="mv-avatar" style={{ background: '#3b82f6', borderRadius: 10 }}><CloudIcon size={18} /></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="mv-avatar" style={{ background: '#3b82f6', borderRadius: '0.625rem' }}><CloudIcon size={18} /></span>
           <div>
-            <h1 className="mv-title" style={{ fontSize: 22 }}>GCP Overview</h1>
+            <h1 className="mv-title" style={{ fontSize: '1.375rem' }}>GCP Overview</h1>
             <p className="mv-subtitle">{accounts.length} project{accounts.length === 1 ? '' : 's'} connected.</p>
           </div>
         </div>
         <button className="mv-secondary-button" onClick={() => navigate('/gcp/accounts')}>
-          <SettingsIcon size={16} style={{ marginRight: 6 }} />Manage
+          <SettingsIcon size={16} style={{ marginRight: '0.375rem' }} />Manage
         </button>
       </div>
 
       <div className="mv-kpi-row-4">
         <article className="mv-kpi"><span className="mv-kpi-label">Total Spend (MTD)</span><strong className="mv-kpi-value">{formatCurrency(totalCost)}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Projects</span><strong className="mv-kpi-value">{accounts.length}</strong><span className="mv-muted">connected</span></article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Top Service</span><strong className="mv-kpi-value" style={{ fontSize: 20 }}>{topService?.name ?? '—'}</strong></article>
+        <article className="mv-kpi"><span className="mv-kpi-label">Top Service</span><strong className="mv-kpi-value" style={{ fontSize: '1.25rem' }}>{topService?.name ?? '—'}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Top Service Cost</span><strong className="mv-kpi-value">{topService ? formatCurrency(topService.cost) : '—'}</strong></article>
       </div>
 
-      <div className="mv-columns-16-8" style={{ marginBottom: 16 }}>
+      <div className="mv-columns-16-8" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel" aria-labelledby="gcp-spend-title">
           <div className="mv-panel-header"><h2 id="gcp-spend-title" className="mv-panel-title">Spend by Project</h2></div>
           <SpendTrendChart title="Spend by project" data={summaries.map((s) => ({ date: s.name, amount: s.totalCost }))} />

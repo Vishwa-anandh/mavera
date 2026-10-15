@@ -7,11 +7,11 @@ const ALL_ON = { cloudCost: true, sapMonitoring: true };
 
 describe('assistantSuggestions', () => {
   it('shows every module suggestion plus Generate report when all 3 modules are enabled', () => {
-    expect(assistantSuggestions(ALL_ON)).toEqual(['System health', 'Cost optimization', 'Generate report']);
+    expect(assistantSuggestions(ALL_ON)).toEqual(['What is our cloud spend this month?', 'System health', 'Top savings', 'Unread SAP alerts', 'Generate report']);
   });
 
   it('drops a suggestion for a module the org is not subscribed to, keeping Generate report', () => {
-    expect(assistantSuggestions({ ...ALL_ON, sapMonitoring: false })).toEqual(['Cost optimization', 'Generate report']);
+    expect(assistantSuggestions({ ...ALL_ON, sapMonitoring: false })).toEqual(['What is our cloud spend this month?', 'Top savings', 'Generate report']);
   });
 
   it('keeps only Generate report when no module is enabled', () => {
@@ -53,7 +53,7 @@ describe('useAssistantConversation flow guides', () => {
 
   it('still gives the honest no-model reply for a free-form question on a guided page', () => {
     const { result } = renderHook(() => useAssistantConversation('/budgets'));
-    act(() => result.current.send('Why did my spend spike?'));
+    act(() => result.current.send('Tell me a joke about clouds'));
     expect(result.current.messages[1].text).toMatch(/no live model connected yet/);
   });
 

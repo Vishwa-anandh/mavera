@@ -47,9 +47,9 @@ export function HierarchyTab(props: BtpCostTabProps) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap' }}>
         {['Global Account', 'Directory', 'Subaccount', 'Services / Instances'].map((label, i) => (
-          <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span className={`mv-status ${i === level ? 'mv-status--info' : 'mv-status--neutral'}`}>{label}</span>
             {i < 3 && <span className="mv-muted">›</span>}
           </span>
@@ -57,10 +57,10 @@ export function HierarchyTab(props: BtpCostTabProps) {
       </div>
 
       {(drillDir || drillSub) && (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 16, fontSize: 13 }}>
-          <button className="mv-quiet-button" style={{ padding: '2px 8px' }} onClick={goRoot}>{data.globalAccount?.displayName ?? 'Global Account'}</button>
-          {drillDir && <><span className="mv-muted">/</span><button className="mv-quiet-button" style={{ padding: '2px 8px' }} onClick={() => goDir(drillDir.guid)}>{drillDir.displayName}</button></>}
-          {drillSub && <><span className="mv-muted">/</span><span className="mv-muted" style={{ padding: '2px 8px' }}>{drillSub.displayName}</span></>}
+        <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', marginBottom: '1rem', fontSize: '0.8125rem' }}>
+          <button className="mv-quiet-button" style={{ padding: '2px 0.5rem' }} onClick={goRoot}>{data.globalAccount?.displayName ?? 'Global Account'}</button>
+          {drillDir && <><span className="mv-muted">/</span><button className="mv-quiet-button" style={{ padding: '2px 0.5rem' }} onClick={() => goDir(drillDir.guid)}>{drillDir.displayName}</button></>}
+          {drillSub && <><span className="mv-muted">/</span><span className="mv-muted" style={{ padding: '2px 0.5rem' }}>{drillSub.displayName}</span></>}
         </div>
       )}
 
@@ -95,12 +95,12 @@ function GlobalAccountView({ data, dirs, orphans, onOpenDir, onOpenOrphanSub, ch
 
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <span className="mv-avatar" style={{ background: 'var(--mv-selected)', color: 'var(--mv-primary)' }}><BuildingIcon size={18} /></span>
           <div style={{ flex: 1 }}>
-            <strong style={{ fontSize: 16 }}>{data.globalAccount?.displayName ?? 'Global Account'}</strong>
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <strong style={{ fontSize: '1rem' }}>{data.globalAccount?.displayName ?? 'Global Account'}</strong>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
               {data.globalAccount?.commercialModel && <span className="mv-status mv-status--neutral">{data.globalAccount.commercialModel}</span>}
               {data.globalAccount?.licenseType && <span className="mv-status mv-status--neutral">{data.globalAccount.licenseType}</span>}
               {data.globalAccount?.contractStatus && <span className={`mv-status ${data.globalAccount.contractStatus === 'ACTIVE' ? 'mv-status--success' : 'mv-status--neutral'}`}>{data.globalAccount.contractStatus}</span>}
@@ -117,20 +117,20 @@ function GlobalAccountView({ data, dirs, orphans, onOpenDir, onOpenOrphanSub, ch
       </section>
 
       {dirs.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
-          <div className="mv-panel-header"><h2 className="mv-panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><HierarchyIcon size={18} />Directories</h2></div>
-          <div style={{ display: 'grid', gap: 10 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
+          <div className="mv-panel-header"><h2 className="mv-panel-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><HierarchyIcon size={18} />Directories</h2></div>
+          <div style={{ display: 'grid', gap: '0.625rem' }}>
             {dirs.map((dir) => {
               const pct = data.totalCost > 0 ? (dir.cost / data.totalCost) * 100 : 0;
               return (
-                <button key={dir.guid} type="button" className="mv-account-row-body" style={{ width: '100%', border: '1px solid var(--mv-divider)', borderRadius: 8, padding: 12 }} onClick={() => onOpenDir(dir.guid)}>
+                <button key={dir.guid} type="button" className="mv-account-row-body" style={{ width: '100%', border: '1px solid var(--mv-divider)', borderRadius: '0.5rem', padding: '0.75rem' }} onClick={() => onOpenDir(dir.guid)}>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <strong>{dir.displayName}<span className="mv-muted" style={{ marginLeft: 8, fontWeight: 400 }}>{dir.subaccounts.length} subaccts</span></strong>
-                      <span style={{ display: 'flex', gap: 10 }}><strong>{formatCurrency(dir.cost, currency)}</strong><span className="mv-muted">{pct.toFixed(1)}%</span></span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem' }}>
+                      <strong>{dir.displayName}<span className="mv-muted" style={{ marginLeft: '0.5rem', fontWeight: 400 }}>{dir.subaccounts.length} subaccts</span></strong>
+                      <span style={{ display: 'flex', gap: '0.625rem' }}><strong>{formatCurrency(dir.cost, currency)}</strong><span className="mv-muted">{pct.toFixed(1)}%</span></span>
                     </div>
-                    <div style={{ height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 999, width: `${(dir.cost / maxDirCost) * 100}%`, background: 'var(--mv-primary)' }} />
+                    <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(dir.cost / maxDirCost) * 100}%`, background: 'var(--mv-primary)' }} />
                     </div>
                   </span>
                 </button>
@@ -141,11 +141,11 @@ function GlobalAccountView({ data, dirs, orphans, onOpenDir, onOpenOrphanSub, ch
       )}
 
       {orphans.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Direct Sub-Accounts — No Directory</h2></div>
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
             {orphans.map((sub) => (
-              <button key={sub.guid} type="button" className="mv-account-row-body" style={{ width: '100%', border: '1px solid var(--mv-divider)', borderRadius: 8, padding: 10 }} onClick={() => onOpenOrphanSub(sub.guid)}>
+              <button key={sub.guid} type="button" className="mv-account-row-body" style={{ width: '100%', border: '1px solid var(--mv-divider)', borderRadius: '0.5rem', padding: '0.625rem' }} onClick={() => onOpenOrphanSub(sub.guid)}>
                 <span className="mv-account-row-meta" style={{ flex: 1 }}>
                   <strong>{sub.displayName}</strong>
                   <span className="mv-muted">{btpRegionLabel(sub.region)}</span>
@@ -158,18 +158,18 @@ function GlobalAccountView({ data, dirs, orphans, onOpenDir, onOpenOrphanSub, ch
       )}
 
       {!data.cisSucceeded && data.subaccounts.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Subaccounts (COST_API only)</h2></div>
-          <p className="mv-muted" style={{ marginTop: -8, marginBottom: 12 }}>Configure CIS_Central to unlock directory/subaccount drill-down.</p>
-          <div style={{ display: 'grid', gap: 8 }}>
+          <p className="mv-muted" style={{ marginTop: '-0.5rem', marginBottom: '0.75rem' }}>Configure CIS_Central to unlock directory/subaccount drill-down.</p>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
             {[...data.subaccounts].sort((a, b) => b.cost - a.cost).map((sub) => {
               const pct = data.totalCost > 0 ? (sub.cost / data.totalCost) * 100 : 0;
               return (
-                <div key={sub.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '8px 0' }}>
+                <div key={sub.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.625rem', padding: '0.5rem 0' }}>
                   <span>{sub.name}</span>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <div style={{ width: 120, height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 999, width: `${pct}%`, background: 'var(--mv-primary)' }} />
+                  <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
+                    <div style={{ width: '7.5rem', height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${pct}%`, background: 'var(--mv-primary)' }} />
                     </div>
                     <strong>{formatCurrency(sub.cost, currency)}</strong>
                   </div>
@@ -184,13 +184,13 @@ function GlobalAccountView({ data, dirs, orphans, onOpenDir, onOpenOrphanSub, ch
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Region Breakdown</h2></div>
           <div className="mv-row-3col">
-            <div style={{ display: 'grid', gap: 8, alignContent: 'start' }}>
+            <div style={{ display: 'grid', gap: '0.5rem', alignContent: 'start' }}>
               {regions.map((r) => {
                 const pct = data.totalCost > 0 ? (r.cost / data.totalCost) * 100 : 0;
                 return (
-                  <div key={r.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 13 }}>
+                  <div key={r.name} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', fontSize: '0.8125rem' }}>
                     <span>{btpRegionLabel(r.name)} <span className="mv-code mv-muted">{r.name}</span></span>
-                    <span style={{ display: 'flex', gap: 8 }}><strong>{formatCurrency(r.cost, currency)}</strong><span className="mv-muted">{pct.toFixed(1)}%</span></span>
+                    <span style={{ display: 'flex', gap: '0.5rem' }}><strong>{formatCurrency(r.cost, currency)}</strong><span className="mv-muted">{pct.toFixed(1)}%</span></span>
                   </div>
                 );
               })}
@@ -217,9 +217,9 @@ function DirectoryView({ dir, totalCost, currency, servicesBySubaccount, onOpenS
 
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          <strong style={{ fontSize: 16 }}>{dir.displayName}</strong>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <strong style={{ fontSize: '1rem' }}>{dir.displayName}</strong>
           <strong>{formatCurrency(dir.cost, currency)}</strong>
         </div>
         <div className="mv-kpi-row-4">
@@ -230,7 +230,7 @@ function DirectoryView({ dir, totalCost, currency, servicesBySubaccount, onOpenS
         </div>
       </section>
 
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Sub-Accounts</h2></div>
         <div className="mv-table-wrap">
           <table className="mv-table">
@@ -247,8 +247,8 @@ function DirectoryView({ dir, totalCost, currency, servicesBySubaccount, onOpenS
                     <td className="mv-num">{svcCount}</td>
                     <td className="mv-num">
                       {formatCurrency(sub.cost, currency)}
-                      <div style={{ height: 4, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden', marginTop: 4 }}>
-                        <div style={{ height: '100%', borderRadius: 999, width: `${(sub.cost / maxCost) * 100}%`, background: 'var(--mv-primary)' }} />
+                      <div style={{ height: '0.25rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', marginTop: '0.25rem' }}>
+                        <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(sub.cost / maxCost) * 100}%`, background: 'var(--mv-primary)' }} />
                       </div>
                     </td>
                     <td><button className="mv-quiet-button" onClick={() => onOpenSub(sub.guid)}>Open ›</button></td>
@@ -266,11 +266,11 @@ function DirectoryView({ dir, totalCost, currency, servicesBySubaccount, onOpenS
       {regions.size > 1 && (
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Regions In This Directory</h2></div>
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: 'grid', gap: '0.5rem' }}>
             {[...regions].map((region) => {
               const cost = dir.subaccounts.filter((s) => s.region === region).reduce((sum, s) => sum + s.cost, 0);
               return (
-                <div key={region} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <div key={region} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
                   <span>{btpRegionLabel(region)}</span>
                   <strong>{formatCurrency(cost, currency)}</strong>
                 </div>
@@ -298,20 +298,20 @@ function SubaccountView({ sub, dir, currency, servicesBySubaccount, globalServic
 
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.625rem' }}>
           <div>
-            <strong style={{ fontSize: 16 }}>{sub.displayName}</strong>
+            <strong style={{ fontSize: '1rem' }}>{sub.displayName}</strong>
             {sub.description && <p className="mv-muted" style={{ margin: '2px 0 0' }}>{sub.description}</p>}
           </div>
           <strong>{formatCurrency(sub.cost, currency)}</strong>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
           <span className="mv-status mv-status--success">{sub.state}</span>
           <span className="mv-status mv-status--neutral">{sub.licenseType}</span>
           <span className="mv-status mv-status--neutral">{sub.environmentType}</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12, fontSize: 13, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(7.5rem, 1fr))', gap: '0.75rem', fontSize: '0.8125rem', marginBottom: '0.75rem' }}>
           <div><span className="mv-muted">MTD Cost</span><br /><strong>{formatCurrency(sub.cost, currency)}</strong></div>
           <div><span className="mv-muted">Region</span><br /><strong>{btpRegionLabel(sub.region)}</strong></div>
           <div><span className="mv-muted">Directory</span><br /><strong>{dir.displayName}</strong></div>
@@ -324,7 +324,7 @@ function SubaccountView({ sub, dir, currency, servicesBySubaccount, globalServic
         <p className="mv-muted" style={{ margin: 0 }}>GUID: <span className="mv-code">{sub.guid}</span></p>
       </section>
 
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Services / Instances</h2></div>
         {ownServices ? (
           <div className="mv-table-wrap">
@@ -346,7 +346,7 @@ function SubaccountView({ sub, dir, currency, servicesBySubaccount, globalServic
           </div>
         ) : (
           <>
-            <div className="mv-notice" style={{ marginBottom: 12 }}>No per-subaccount service data in snapshot. Sync to reload — showing global services as reference.</div>
+            <div className="mv-notice" style={{ marginBottom: '0.75rem' }}>No per-subaccount service data in snapshot. Sync to reload — showing global services as reference.</div>
             <div className="mv-table-wrap">
               <table className="mv-table">
                 <thead><tr><th>Service</th><th className="mv-num">Cost</th><th className="mv-num">Share</th></tr></thead>
@@ -361,7 +361,7 @@ function SubaccountView({ sub, dir, currency, servicesBySubaccount, globalServic
         )}
       </section>
 
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Service Manager Instances</h2></div>
         {!smConfig ? (
           <div className="mv-empty" style={{ margin: 0 }}><h2>Service Manager not configured</h2><p>Configure Service Manager credentials for this subaccount to discover its service instances.</p></div>
@@ -390,7 +390,7 @@ function SubaccountView({ sub, dir, currency, servicesBySubaccount, globalServic
       {siblings.length > 0 && (
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Other Sub-Accounts In {dir.displayName}</h2></div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             {siblings.map((s) => (
               <button key={s.guid} type="button" className="mv-secondary-button" onClick={() => onSelectSibling(s.guid)}>{s.displayName}</button>
             ))}

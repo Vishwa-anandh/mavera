@@ -14,11 +14,11 @@ const SUB_TABS = ['Alerts', 'Recipients', 'Settings'] as const;
 function ThresholdCard({ config, onToggle, onThresholdChange }: { config: AlertThresholdConfig; onToggle: () => void; onThresholdChange: (value: number) => void }) {
   return (
     <article className="mv-panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <div><strong>{config.label}</strong><p className="mv-muted" style={{ margin: '2px 0 0', fontSize: 12 }}>{config.description}</p></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+        <div><strong>{config.label}</strong><p className="mv-muted" style={{ margin: '2px 0 0', fontSize: '0.75rem' }}>{config.description}</p></div>
         <button type="button" className="mv-toggle" role="switch" aria-checked={config.enabled} aria-label={`Enable ${config.label} alerting`} onClick={onToggle} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4, opacity: config.enabled ? 1 : 0.5 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem', opacity: config.enabled ? 1 : 0.5 }}>
         <span className="mv-muted">Trigger Threshold</span>
         <strong>{config.thresholdPercent} {config.unit}</strong>
       </div>
@@ -43,11 +43,11 @@ function ThresholdSettings({ title, thresholds, onSave }: { title: string; thres
   return (
     <section className="mv-panel">
       <div className="mv-panel-header">
-        <h2 className="mv-panel-title"><ServerIcon size={16} style={{ verticalAlign: -3, marginRight: 6 }} />{title}</h2>
-        <button className="mv-primary-button" onClick={() => onSave(drafts)}><CheckIcon size={14} style={{ marginRight: 6 }} />Save Changes</button>
+        <h2 className="mv-panel-title"><ServerIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />{title}</h2>
+        <button className="mv-primary-button" onClick={() => onSave(drafts)}><CheckIcon size={14} style={{ marginRight: '0.375rem' }} />Save Changes</button>
       </div>
-      <p className="mv-muted" style={{ fontSize: 12, marginBottom: 16 }}>Alerts are sent by email once a metric crosses its threshold.</p>
-      <div className="mv-card-grid" style={{ gap: 16 }}>
+      <p className="mv-muted" style={{ fontSize: '0.75rem', marginBottom: '1rem' }}>Alerts are sent by email once a metric crosses its threshold.</p>
+      <div className="mv-card-grid" style={{ gap: '1rem' }}>
         {drafts.map((c) => (
           <ThresholdCard key={c.key} config={c} onToggle={() => toggle(c.key)} onThresholdChange={(v) => setThreshold(c.key, v)} />
         ))}
@@ -58,10 +58,10 @@ function ThresholdSettings({ title, thresholds, onSave }: { title: string; thres
 
 function ComingSoon({ icon: Icon, label }: { icon: typeof UsersIcon; label: string }) {
   return (
-    <div style={{ display: 'grid', placeItems: 'center', padding: '60px 0', textAlign: 'center' }}>
-      <Icon size={32} style={{ color: 'var(--mv-text-muted)', marginBottom: 10 }} />
+    <div style={{ display: 'grid', placeItems: 'center', padding: '3.75rem 0', textAlign: 'center' }}>
+      <Icon size={32} style={{ color: 'var(--mv-text-muted)', marginBottom: '0.625rem' }} />
       <strong>{label}</strong>
-      <p className="mv-muted" style={{ margin: '4px 0 0', fontSize: 13 }}>Coming soon</p>
+      <p className="mv-muted" style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem' }}>Coming soon</p>
     </div>
   );
 }
@@ -97,20 +97,20 @@ export function SapAlertsPage() {
   return (
     <div>
       <PageHeader title={<>Alerts & Escalations</>} subtitle="Automated detection of threshold breaches across SAP HANA and ABAP monitoring metrics.">
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <DestinationSwitcher />
           {topTab === 'Alerts List' && (
             <>
-              <button className="mv-secondary-button" onClick={() => setAlerts((cur) => cur.map((a) => ({ ...a, read: true })))}><CheckIcon size={14} style={{ marginRight: 6 }} />Mark All Read</button>
-              <button className="mv-secondary-button"><RefreshIcon size={14} style={{ marginRight: 6 }} />Refresh</button>
+              <button className="mv-secondary-button" onClick={() => setAlerts((cur) => cur.map((a) => ({ ...a, read: true })))}><CheckIcon size={14} style={{ marginRight: '0.375rem' }} />Mark All Read</button>
+              <button className="mv-secondary-button"><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
             </>
           )}
         </div>
       </PageHeader>
 
-      <div className="mv-segmented" style={{ marginBottom: 20 }}>
+      <div className="mv-segmented" style={{ marginBottom: '1.25rem' }}>
         {TOP_TABS.map((t) => (
-          <button key={t} className={`mv-segmented-btn${topTab === t ? ' is-active' : ''}`} onClick={() => setTopTab(t)}>{t === 'Alerts List' && <BellIcon size={13} style={{ marginRight: 6 }} />}{t === 'HANA Monitoring' && <ServerIcon size={13} style={{ marginRight: 6 }} />}{t === 'SAP Monitoring' && <TrendUpIcon size={13} style={{ marginRight: 6 }} />}{t}</button>
+          <button key={t} className={`mv-segmented-btn${topTab === t ? ' is-active' : ''}`} onClick={() => setTopTab(t)}>{t === 'Alerts List' && <BellIcon size={13} style={{ marginRight: '0.375rem' }} />}{t === 'HANA Monitoring' && <ServerIcon size={13} style={{ marginRight: '0.375rem' }} />}{t === 'SAP Monitoring' && <TrendUpIcon size={13} style={{ marginRight: '0.375rem' }} />}{t}</button>
         ))}
       </div>
 
@@ -119,14 +119,14 @@ export function SapAlertsPage() {
 
       {topTab === 'Alerts List' && (
         <>
-          <div style={{ display: 'flex', gap: 24, fontSize: 12, marginBottom: 16 }} className="mv-muted">
+          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.75rem', marginBottom: '1rem' }} className="mv-muted">
             <span>Last alert <strong style={{ color: 'var(--mv-text)' }}>{SAP_ALERTS_META.lastAlert}</strong></span>
             <span>Ignored this month <strong style={{ color: 'var(--mv-text)' }}>{SAP_ALERTS_META.ignoredThisMonth}</strong></span>
             <span>Threshold adjustments <strong style={{ color: 'var(--mv-text)' }}>{SAP_ALERTS_META.thresholdAdjustments}</strong></span>
-            <span><BellIcon size={12} style={{ verticalAlign: -1, marginRight: 3 }} />Detection: <strong style={{ color: 'var(--mv-text)' }}>{SAP_ALERTS_META.detectionSchedule}</strong></span>
+            <span><BellIcon size={12} style={{ verticalAlign: -1, marginRight: '0.1875rem' }} />Detection: <strong style={{ color: 'var(--mv-text)' }}>{SAP_ALERTS_META.detectionSchedule}</strong></span>
           </div>
 
-          <div className="mv-kpi-row-4" style={{ marginBottom: 20 }}>
+          <div className="mv-kpi-row-4" style={{ marginBottom: '1.25rem' }}>
             <article className="mv-kpi"><span className="mv-kpi-label">Total Active</span><strong className="mv-kpi-value">{totalActive}</strong></article>
             <article className="mv-kpi"><span className="mv-kpi-label">Unread</span><strong className="mv-kpi-value">{unread}</strong></article>
             <article className="mv-kpi"><span className="mv-kpi-label">Critical</span><strong className="mv-kpi-value">{critical}</strong></article>
@@ -134,7 +134,7 @@ export function SapAlertsPage() {
           </div>
 
           <section className="mv-panel">
-            <div className="mv-segmented" style={{ marginBottom: 16 }}>
+            <div className="mv-segmented" style={{ marginBottom: '1rem' }}>
               {SUB_TABS.map((t) => <button key={t} className={`mv-segmented-btn${subTab === t ? ' is-active' : ''}`} onClick={() => setSubTab(t)}>{t}</button>)}
             </div>
 
@@ -142,7 +142,7 @@ export function SapAlertsPage() {
             {subTab === 'Settings' && <ComingSoon icon={RefreshIcon} label="Detection Settings" />}
             {subTab === 'Alerts' && (
               <>
-                <div style={{ display: 'flex', gap: 20, marginBottom: 16, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
                   <div className="mv-segmented">
                     {STATUS_FILTERS.map((s) => (
                       <button key={s} className={`mv-segmented-btn${statusFilter === s ? ' is-active' : ''}`} onClick={() => setStatusFilter(s)}>{s}</button>
@@ -167,9 +167,9 @@ export function SapAlertsPage() {
                             <td>{alert.type}</td>
                             <td><span className={`mv-status mv-status--${SEVERITY_TONE[alert.severity]}`}>{alert.severity}</span></td>
                             <td className="mv-muted">{alert.system}</td>
-                            <td style={{ maxWidth: 420 }}>{alert.message}</td>
+                            <td style={{ maxWidth: '26.25rem' }}>{alert.message}</td>
                             <td className="mv-muted">{alert.detectedAt}</td>
-                            <td><div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                            <td><div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end' }}>
                               {!alert.read && <button className="mv-quiet-button" onClick={() => markRead(alert.id)}>Read</button>}
                               <button className="mv-icon-button" aria-label={`Dismiss alert for ${alert.system}`} onClick={() => dismiss(alert.id)}><EyeSlashIcon size={15} /></button>
                             </div></td>

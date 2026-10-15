@@ -47,8 +47,8 @@ const rowStyle = { display: 'flex', justifyContent: 'space-between', alignItems:
 function Row({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
   return (
     <div style={rowStyle}>
-      <span className="mv-muted" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{icon}{label}</span>
-      <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>{value}</span>
+      <span className="mv-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{icon}{label}</span>
+      <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{value}</span>
     </div>
   );
 }
@@ -56,7 +56,7 @@ function Row({ icon, label, value }: { icon: ReactNode; label: string; value: Re
 function FeatureRow({ label, icon, enabled }: { label: string; icon: ReactNode; enabled: boolean }) {
   return (
     <div style={rowStyle}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{icon}{label}</span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{icon}{label}</span>
       <span className={enabled ? 'mv-status mv-status--success' : 'mv-status mv-status--neutral'}>{enabled ? 'Included' : 'Locked'}</span>
     </div>
   );
@@ -72,15 +72,15 @@ function ProviderToggleRow({ info, selected, onToggle }: { info: (typeof CLOUD_P
       onClick={onToggle}
       onKeyDown={interactive ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle?.(); } } : undefined}
       style={{
-        display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', marginBottom: 8,
-        border: '1px solid var(--mv-border)', borderRadius: 10,
+        display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.625rem 0.75rem', marginBottom: '0.5rem',
+        border: '1px solid var(--mv-border)', borderRadius: '0.625rem',
         cursor: interactive ? 'pointer' : 'default',
         background: selected ? 'var(--mv-selected)' : 'transparent',
       }}
     >
       {interactive && (
         <span aria-hidden style={{
-          width: 18, height: 18, borderRadius: 5, flex: 'none',
+          width: '1.125rem', height: '1.125rem', borderRadius: '0.3125rem', flex: 'none',
           border: `2px solid ${selected ? 'var(--mv-primary)' : 'var(--mv-border)'}`,
           background: selected ? 'var(--mv-primary)' : 'transparent',
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -89,11 +89,11 @@ function ProviderToggleRow({ info, selected, onToggle }: { info: (typeof CLOUD_P
         </span>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <strong style={{ fontSize: 13 }}>{info.label}</strong>
-          <span className="mv-status mv-status--neutral" style={{ fontSize: 10, minHeight: 20 }}>{MSP_BADGE[info.id]}</span>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <strong style={{ fontSize: '0.8125rem' }}>{info.label}</strong>
+          <span className="mv-status mv-status--neutral" style={{ fontSize: '0.625rem', minHeight: '1.25rem' }}>{MSP_BADGE[info.id]}</span>
         </div>
-        <p className="mv-muted" style={{ margin: '2px 0 0', fontSize: 12 }}>{info.tagline}</p>
+        <p className="mv-muted" style={{ margin: '2px 0 0', fontSize: '0.75rem' }}>{info.tagline}</p>
       </div>
       {!interactive && <span className={selected ? 'mv-status mv-status--success' : 'mv-status mv-status--neutral'}>{selected ? 'Enabled' : 'Off'}</span>}
     </div>
@@ -124,9 +124,9 @@ export function SubscriptionPage() {
       <PageHeader title="Subscription" subtitle="Your plan, modules and access. Maitsys manages these for your organisation." />
 
       {/* Current Plan */}
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <CreditCardIcon size={22} />
             <div>
               <p className="mv-eyebrow" style={{ marginBottom: 2 }}>Current Plan</p>
@@ -138,7 +138,7 @@ export function SubscriptionPage() {
 
         <div className="mv-columns-16-8" style={cssVars({ '--mv-cols': '1fr 1fr' })}>
           <div>
-            <p className="mv-muted" style={{ fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Plan details</p>
+            <p className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.25rem' }}>Plan details</p>
             <Row icon={<ClockIcon size={16} />} label="Started" value={formatDate(subscriptionStartsAt)} />
             <Row
               icon={<ClockIcon size={16} />}
@@ -153,34 +153,34 @@ export function SubscriptionPage() {
             />
           </div>
           <div>
-            <p className="mv-muted" style={{ fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Included with your plan</p>
+            <p className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.25rem' }}>Included with your plan</p>
             {includedFeatures.map((f) => <FeatureRow key={f.label} {...f} />)}
           </div>
         </div>
       </section>
 
       {/* Modules & cloud access — set by Maitsys from the Super Admin portal; read-only here. */}
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <CloudIcon size={20} />
             <div>
               <p className="mv-eyebrow" style={{ marginBottom: 2 }}>Modules &amp; cloud access</p>
               <h2 className="mv-panel-title">What your organisation is subscribed to</h2>
             </div>
           </div>
-          <span className="mv-status mv-status--neutral"><LockIcon size={12} style={{ marginRight: 4 }} />Managed by Maitsys</span>
+          <span className="mv-status mv-status--neutral"><LockIcon size={12} style={{ marginRight: '0.25rem' }} />Managed by Maitsys</span>
         </div>
 
         <div className="mv-columns-16-8" style={cssVars({ '--mv-cols': '1fr 1fr' })}>
           <div>
-            <p className="mv-muted" style={{ fontSize: 12, fontWeight: 500, marginBottom: 4 }}>Modules</p>
+            <p className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.25rem' }}>Modules</p>
             {MODULE_LABELS.map((m) => (
               <FeatureRow key={m.key} label={m.label} icon={m.icon} enabled={modules[m.key]} />
             ))}
           </div>
           <div>
-            <p className="mv-muted" style={{ fontSize: 12, fontWeight: 500, marginBottom: 8 }}>Cloud providers</p>
+            <p className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.5rem' }}>Cloud providers</p>
             {CLOUD_PROVIDER_INFO.map((info) => (
               <ProviderToggleRow key={info.id} info={info} selected={cloudAccess.includes(info.id)} />
             ))}
@@ -188,15 +188,15 @@ export function SubscriptionPage() {
           </div>
         </div>
 
-        <p className="mv-muted" style={{ margin: '16px 0 0', paddingTop: 16, borderTop: '1px solid var(--mv-divider)' }}>
+        <p className="mv-muted" style={{ margin: '1rem 0 0', paddingTop: '1rem', borderTop: '1px solid var(--mv-divider)' }}>
           Your plan, modules, seats and cloud access are set by Maitsys. To change them,{' '}
           <a href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">contact Maitsys</a>.
         </p>
       </section>
 
       {/* Available Plans */}
-      <section style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      <section style={{ marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
           <StarIcon size={16} />
           <h2 className="mv-panel-title" style={{ margin: 0 }}>Available Plans</h2>
         </div>
@@ -206,25 +206,25 @@ export function SubscriptionPage() {
             return (
               <article key={plan.id} className="mv-panel" style={{ display: 'flex', flexDirection: 'column', border: current ? '2px solid var(--mv-success)' : plan.badge === 'Most Popular' ? '2px solid var(--mv-primary)' : undefined }}>
                 {plan.badge && (
-                  <span className={`mv-status ${current ? 'mv-status--success' : 'mv-status--info'}`} style={{ alignSelf: 'flex-start', marginBottom: 8 }}>{plan.badge}</span>
+                  <span className={`mv-status ${current ? 'mv-status--success' : 'mv-status--info'}`} style={{ alignSelf: 'flex-start', marginBottom: '0.5rem' }}>{plan.badge}</span>
                 )}
                 {!plan.badge && current && (
-                  <span className="mv-status mv-status--success" style={{ alignSelf: 'flex-start', marginBottom: 8 }}>Current</span>
+                  <span className="mv-status mv-status--success" style={{ alignSelf: 'flex-start', marginBottom: '0.5rem' }}>Current</span>
                 )}
-                <h3 style={{ margin: '0 0 4px', fontSize: 18, fontFamily: 'var(--mv-font-heading)' }}>{plan.name}</h3>
-                <p className="mv-muted" style={{ marginBottom: 12 }}>{plan.tagline}</p>
-                <span className="mv-status mv-status--neutral" style={{ alignSelf: 'flex-start', marginBottom: 16 }}>Pricing coming soon</span>
-                <div style={{ flex: 1, marginBottom: 16 }}>
+                <h3 style={{ margin: '0 0 0.25rem', fontSize: '1.125rem', fontFamily: 'var(--mv-font-heading)' }}>{plan.name}</h3>
+                <p className="mv-muted" style={{ marginBottom: '0.75rem' }}>{plan.tagline}</p>
+                <span className="mv-status mv-status--neutral" style={{ alignSelf: 'flex-start', marginBottom: '1rem' }}>Pricing coming soon</span>
+                <div style={{ flex: 1, marginBottom: '1rem' }}>
                   {plan.features.map((f) => (
-                    <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                    <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                       <CheckIcon size={15} style={{ color: 'var(--mv-success)', flex: 'none', marginTop: 2 }} />
-                      <span style={{ fontSize: 13 }}>{f}</span>
+                      <span style={{ fontSize: '0.8125rem' }}>{f}</span>
                     </div>
                   ))}
                 </div>
                 {current ? (
                   <div className="mv-secondary-button" style={{ justifyContent: 'center', pointerEvents: 'none' }}>
-                    <CheckIcon size={16} style={{ marginRight: 6, color: 'var(--mv-success)' }} />Current Plan
+                    <CheckIcon size={16} style={{ marginRight: '0.375rem', color: 'var(--mv-success)' }} />Current Plan
                   </div>
                 ) : (
                   <a className="mv-secondary-button" style={{ justifyContent: 'center' }} href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">
@@ -235,7 +235,7 @@ export function SubscriptionPage() {
             );
           })}
         </div>
-        <p className="mv-muted" style={{ textAlign: 'center', marginTop: 16 }}>
+        <p className="mv-muted" style={{ textAlign: 'center', marginTop: '1rem' }}>
           All plans include full access to multi-cloud monitoring, invoice upload, budgets, and alerts. Contact{' '}
           <a href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">Maitsys</a> to upgrade.
         </p>
@@ -243,7 +243,7 @@ export function SubscriptionPage() {
 
       {/* Admin Note */}
       {subscriptionNotes && (
-        <div className="mv-notice" style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <div className="mv-notice" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
           <AlertTriangleIcon size={16} style={{ flex: 'none', marginTop: 2, color: 'var(--mv-warning)' }} />
           <div>
             <p style={{ margin: '0 0 2px', fontWeight: 600 }}>Note from Maitsys</p>

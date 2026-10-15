@@ -46,7 +46,7 @@ export function OperationsTab(props: AwsCostTabProps) {
 
   return (
     <div>
-      <section className="mv-panel" id="ops-monthly-spend" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" id="ops-monthly-spend" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Monthly Spend by Service</h2>
         </div>
@@ -56,7 +56,7 @@ export function OperationsTab(props: AwsCostTabProps) {
           <p className="mv-muted">No service breakdown available across the stored history.</p>
         ) : (
           <>
-            <div role="img" aria-label="Monthly spend by service, last 12 months" style={{ width: '100%', height: 220 }}>
+            <div role="img" aria-label="Monthly spend by service, last 12 months" style={{ width: '100%', height: '13.75rem' }}>
               <ResponsiveContainer>
                 <BarChart data={stackedRows} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid stroke={chartColors.grid} vertical={false} />
@@ -70,16 +70,16 @@ export function OperationsTab(props: AwsCostTabProps) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, marginTop: 12 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.875rem', marginTop: '0.75rem' }}>
               {stackedKeys.map((name, i) => (
-                <span key={name} className="mv-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span aria-hidden style={{ width: 10, height: 10, borderRadius: 2, background: stackedColors[i % stackedColors.length], display: 'inline-block' }} />
+                <span key={name} className="mv-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <span aria-hidden style={{ width: '0.625rem', height: '0.625rem', borderRadius: 2, background: stackedColors[i % stackedColors.length], display: 'inline-block' }} />
                   {name}
                 </span>
               ))}
               {hasOther && (
-                <span className="mv-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span aria-hidden style={{ width: 10, height: 10, borderRadius: 2, background: chartColors.axis, display: 'inline-block' }} />
+                <span className="mv-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <span aria-hidden style={{ width: '0.625rem', height: '0.625rem', borderRadius: 2, background: chartColors.axis, display: 'inline-block' }} />
                   Other
                 </span>
               )}
@@ -88,7 +88,7 @@ export function OperationsTab(props: AwsCostTabProps) {
         )}
       </section>
 
-      <section className="mv-panel" id="ops-top-services" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" id="ops-top-services" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Top Services by Spend</h2>
         </div>
@@ -96,27 +96,27 @@ export function OperationsTab(props: AwsCostTabProps) {
           <p className="mv-muted">No service data available.</p>
         ) : (
           <>
-            <div style={{ display: 'grid', gap: 12 }}>
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
               {top6.map((svc) => {
                 const savings = top6Total > 0 ? (svc.cost / top6Total) * cspSavingsTotal : 0;
                 const max = Math.max(...top6.map((s) => s.cost), 1);
                 return (
                   <div key={svc.name} style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 4, fontSize: 13, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.8125rem', minWidth: 0 }}>
                       <UiTooltip content={svc.name}><span className="mv-muted">{svc.name}</span></UiTooltip>
-                      <span style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+                      <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
                         <strong>{formatCurrency(svc.cost)}</strong>
-                        {savings > 0 && <span style={{ color: 'var(--mv-success)', fontSize: 11 }}>-{formatCurrency(savings)}</span>}
+                        {savings > 0 && <span style={{ color: 'var(--mv-success)', fontSize: '0.6875rem' }}>-{formatCurrency(savings)}</span>}
                       </span>
                     </div>
-                    <div style={{ height: 6, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: 999, width: `${(svc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
+                    <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(svc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
                     </div>
                   </div>
                 );
               })}
             </div>
-            <div className="mv-muted" style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--mv-divider)' }}>
+            <div className="mv-muted" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--mv-divider)' }}>
               <span>Total</span>
               <strong style={{ color: 'var(--mv-text)' }}>{formatCurrency(top6Total)}</strong>
             </div>
@@ -125,7 +125,7 @@ export function OperationsTab(props: AwsCostTabProps) {
       </section>
 
       {data.regions.length > 0 && (
-        <section className="mv-panel" id="ops-region" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" id="ops-region" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header">
             <h2 className="mv-panel-title">Cost by Region</h2>
           </div>
@@ -134,7 +134,7 @@ export function OperationsTab(props: AwsCostTabProps) {
       )}
 
       {isCurrentMonth && data.details.length > 0 && (
-        <section className="mv-panel" id="aws-service-breakdown" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" id="aws-service-breakdown" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header">
             <h2 className="mv-panel-title">Service Breakdown</h2>
           </div>
@@ -159,11 +159,11 @@ export function OperationsTab(props: AwsCostTabProps) {
       )}
 
       {instances.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header">
             <h2 className="mv-panel-title">EC2 Instances</h2>
           </div>
-          <div className="mv-kpi-row-4" style={{ marginBottom: 16 }}>
+          <div className="mv-kpi-row-4" style={{ marginBottom: '1rem' }}>
             <article className="mv-kpi"><span className="mv-kpi-label">Running</span><strong className="mv-kpi-value" style={{ color: 'var(--mv-success)' }}>{runningCount}</strong></article>
             <article className="mv-kpi"><span className="mv-kpi-label">Stopped</span><strong className="mv-kpi-value">{stoppedCount}</strong></article>
             <article className="mv-kpi"><span className="mv-kpi-label">Total</span><strong className="mv-kpi-value">{instances.length}</strong></article>
@@ -172,17 +172,17 @@ export function OperationsTab(props: AwsCostTabProps) {
         </section>
       )}
 
-      <section className="mv-panel" style={{ marginBottom: 16 }}>
+      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Cost Movers</h2>
         </div>
-        {!prevEntry && <div className="mv-notice" style={{ marginBottom: 12 }}>Month-over-month comparisons need at least one prior month of stored history.</div>}
+        {!prevEntry && <div className="mv-notice" style={{ marginBottom: '0.75rem' }}>Month-over-month comparisons need at least one prior month of stored history.</div>}
         {movers.length === 0 ? (
           <p className="mv-muted">No service-level cost data available.</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(15rem, 1fr))', gap: '0.625rem' }}>
             {movers.map((mover) => (
-              <div key={mover.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--mv-surface-subtle)' }}>
+              <div key={mover.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.625rem', padding: '0.625rem 0.75rem', borderRadius: '0.5rem', background: 'var(--mv-surface-subtle)' }}>
                 <div style={{ minWidth: 0 }}>
                   <UiTooltip content={mover.name}><p style={{ margin: 0, fontWeight: 500 }}>{mover.name}</p></UiTooltip>
                   <p className="mv-muted" style={{ margin: 0 }}>{formatCurrency(mover.current)}</p>
@@ -299,18 +299,18 @@ function BudgetCard({ budget }: { budget: { BudgetName: string; ActualSpend: num
   const forecastExceeds = budget.ForecastedSpend > budget.BudgetLimit;
   return (
     <article className="mv-panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, gap: 8 }}>
-        <UiTooltip content={budget.BudgetName}><h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{budget.BudgetName}</h3></UiTooltip>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.625rem', gap: '0.5rem' }}>
+        <UiTooltip content={budget.BudgetName}><h3 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>{budget.BudgetName}</h3></UiTooltip>
         <span className={`mv-status mv-status--${tone}`}>{pct.toFixed(0)}%</span>
       </div>
-      <div className="mv-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+      <div className="mv-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
         <span>Spent: <strong style={{ color: 'var(--mv-text)' }}>{formatCurrency(budget.ActualSpend)}</strong></span>
         <span>Cap: <strong style={{ color: 'var(--mv-text)' }}>{formatCurrency(budget.BudgetLimit)}</strong></span>
       </div>
-      <div style={{ height: 8, borderRadius: 999, background: 'var(--mv-divider)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 999, width: `${pct}%`, background: `var(--mv-${tone})` }} />
+      <div style={{ height: '0.5rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${pct}%`, background: `var(--mv-${tone})` }} />
       </div>
-      {forecastExceeds && <p className="mv-text-warning" style={{ margin: '8px 0 0' }}>Forecasted spend {formatCurrency(budget.ForecastedSpend)} exceeds this budget.</p>}
+      {forecastExceeds && <p className="mv-text-warning" style={{ margin: '0.5rem 0 0' }}>Forecasted spend {formatCurrency(budget.ForecastedSpend)} exceeds this budget.</p>}
     </article>
   );
 }

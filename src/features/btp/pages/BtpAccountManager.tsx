@@ -117,10 +117,10 @@ export function BtpAccountManager() {
   return (
     <div>
       <div className="mv-page-heading">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span className="mv-avatar" style={{ background: '#0070f2', borderRadius: 10 }}><CloudIcon size={18} /></span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="mv-avatar" style={{ background: '#0070f2', borderRadius: '0.625rem' }}><CloudIcon size={18} /></span>
           <div>
-            <h1 className="mv-title" style={{ fontSize: 22 }}>BTP Account Manager</h1>
+            <h1 className="mv-title" style={{ fontSize: '1.375rem' }}>BTP Account Manager</h1>
             <p className="mv-subtitle">Connect your SAP BTP global accounts for cost monitoring.</p>
           </div>
         </div>
@@ -128,7 +128,7 @@ export function BtpAccountManager() {
       </div>
 
       {accounts.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: 16 }}>
+        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Connected Accounts</h2></div>
           <ul className="mv-account-list">
             {accounts.map((account) => {
@@ -136,8 +136,8 @@ export function BtpAccountManager() {
               const expanded = expandedId === account.id;
               return (
                 <li key={account.id} className="mv-account-row" style={{ flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                    {!account.hasCis && <span aria-hidden style={{ width: 36, flex: 'none' }} />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                    {!account.hasCis && <span aria-hidden style={{ width: '2.25rem', flex: 'none' }} />}
                     {account.hasCis && (
                       <button className="mv-icon-button" aria-label={expanded ? 'Collapse subaccounts' : 'Expand subaccounts'} onClick={() => setExpandedId(expanded ? null : account.id)}>
                         {expanded ? <ChevronDownIcon size={16} /> : <ChevronRightIcon size={16} />}
@@ -149,7 +149,7 @@ export function BtpAccountManager() {
                         {renamingId === account.id ? (
                           <input autoFocus className="mv-account-rename-input" value={renameValue} onClick={(e) => e.stopPropagation()} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingId(null); }} />
                         ) : (
-                          <strong>{account.name}{account.hasCis && <span className="mv-status mv-status--info" style={{ marginLeft: 8 }}>CIS</span>}</strong>
+                          <strong>{account.name}{account.hasCis && <span className="mv-status mv-status--info" style={{ marginLeft: '0.5rem' }}>CIS</span>}</strong>
                         )}
                         <span className="mv-muted">{account.targetUrl}</span>
                       </span>
@@ -169,7 +169,7 @@ export function BtpAccountManager() {
                     </span>
                   </div>
                   {expanded && subaccounts.length > 0 && (
-                    <div style={{ width: '100%', marginTop: 10, paddingLeft: 40, display: 'grid', gap: 8 }}>
+                    <div style={{ width: '100%', marginTop: '0.625rem', paddingLeft: '2.5rem', display: 'grid', gap: '0.5rem' }}>
                       {subaccounts.map((sub) => {
                         const smConfig = MOCK_BTP_SM_CONFIGS[sub.guid];
                         return (
@@ -177,7 +177,7 @@ export function BtpAccountManager() {
                             key={sub.guid}
                             type="button"
                             className="mv-account-row-body"
-                            style={{ justifyContent: 'space-between', border: '1px solid var(--mv-divider)', borderRadius: 8, padding: 10 }}
+                            style={{ justifyContent: 'space-between', border: '1px solid var(--mv-divider)', borderRadius: '0.5rem', padding: '0.625rem' }}
                             onClick={() => navigate(`/btp/account/${account.id}/subaccount/${sub.guid}/service-instances`)}
                           >
                             <span className="mv-account-row-meta">
@@ -214,9 +214,9 @@ export function BtpAccountManager() {
       ) : (
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Connect New Account</h2></div>
-          {error && <div className="mv-inline-error" role="alert" style={{ marginBottom: 16 }}>{error}</div>}
+          {error && <div className="mv-inline-error" role="alert" style={{ marginBottom: '1rem' }}>{error}</div>}
           <form onSubmit={submit}>
-            <div className="mv-notice" style={{ marginBottom: 16 }}>
+            <div className="mv-notice" style={{ marginBottom: '1rem' }}>
               <strong>Service Instance 1 — COST_API</strong> (required, Usage Data Management Service, plan <code className="mv-code">reporting-ga-admin</code>). Path: BTP Cockpit → subaccount → Cloud Foundry → Spaces → Instances → COST_API → Service Keys → View.
             </div>
             <div className="mv-sa-field-grid">
@@ -227,13 +227,13 @@ export function BtpAccountManager() {
               <label className="mv-field" style={{ gridColumn: '1 / -1' }}>Reporting API Base URL<input value={form.targetUrl} onChange={update('targetUrl')} placeholder="https://reporting.cf.eu10.hana.ondemand.com" /></label>
             </div>
 
-            <button type="button" className="mv-quiet-button" style={{ display: 'flex', marginBottom: 16 }} onClick={() => setCisOpen((v) => !v)}>
-              <ChevronDownIcon size={14} style={{ marginRight: 6, transform: cisOpen ? 'rotate(180deg)' : undefined }} />
+            <button type="button" className="mv-quiet-button" style={{ display: 'flex', marginBottom: '1rem' }} onClick={() => setCisOpen((v) => !v)}>
+              <ChevronDownIcon size={14} style={{ marginRight: '0.375rem', transform: cisOpen ? 'rotate(180deg)' : undefined }} />
               Service Instance 2 — CIS_Central (optional — account hierarchy &amp; subaccounts)
             </button>
             {cisOpen && (
-              <div style={{ marginBottom: 16 }}>
-                <div className="mv-notice" style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <div className="mv-notice" style={{ marginBottom: '1rem' }}>
                   Cloud Management Service, plan <code className="mv-code">central-viewer</code>. Adding this unlocks the directory/subaccount Hierarchy tab on the cost page. Expected subdomain: same as COST_API's Token URL.
                 </div>
                 <div className="mv-sa-field-grid">
@@ -245,7 +245,7 @@ export function BtpAccountManager() {
               </div>
             )}
 
-            <button className="mv-primary-button" type="submit" disabled={saving}><PlusIcon size={16} style={{ marginRight: 6 }} />{saving ? 'Connecting…' : 'Connect Account'}</button>
+            <button className="mv-primary-button" type="submit" disabled={saving}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />{saving ? 'Connecting…' : 'Connect Account'}</button>
           </form>
         </section>
       )}

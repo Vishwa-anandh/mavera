@@ -2363,3 +2363,31 @@ a.mv-insight-row:focus-visible { outline: 2px solid var(--mv-focus); outline-off
 /* Body text never goes heavier than medium (the body font ships 400 and 500 only); bare <strong>/<b>/<th> would
    otherwise be synthesised bold. Headings keep their own Poppins weights. */
 strong, b, th { font-weight: 500; }
+
+/* ---- Light theme: white top bar. The bar's navy-on-white tokens are swapped for ink-on-white ones inside the
+   bar only, so every rule above that reads --mv-ink-* picks up dark text; dark theme keeps the navy gradient. ---- */
+:root:not([data-theme="dark"]) .mv-topbar {
+  --mv-ink-text: var(--mv-text);
+  --mv-ink-muted: var(--mv-text-secondary);
+  --mv-ink-accent: var(--mv-primary);
+  --mv-ink-line: var(--mv-divider);
+  color: var(--mv-text);
+  background-color: #fff;
+  background-image: none;
+  border-bottom: 1px solid var(--mv-divider);
+}
+:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger:hover,
+:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger[aria-expanded="true"],
+:root:not([data-theme="dark"]) .mv-topbar .mv-icon-button:hover,
+:root:not([data-theme="dark"]) .mv-topbar .mv-profile-trigger:hover,
+:root:not([data-theme="dark"]) .mv-topbar .mv-secondary-button:hover { background: var(--mv-surface-hover); }
+:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger:hover,
+:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger[aria-expanded="true"],
+:root:not([data-theme="dark"]) .mv-topbar .mv-icon-button:hover { color: var(--mv-primary); }
+:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger.is-active,
+:root:not([data-theme="dark"]) .mv-topbar a.mv-nav-trigger[aria-current="page"] { color: var(--mv-primary); }
+:root:not([data-theme="dark"]) .mv-topbar .mv-secondary-button { border-color: var(--mv-border); }
+:root:not([data-theme="dark"]) .mv-topbar .mv-secondary-button:hover { border-color: var(--mv-primary); }
+:root:not([data-theme="dark"]) .mv-topbar .mv-avatar { color: var(--mv-on-primary, #fff); background: var(--mv-primary); }
+:root:not([data-theme="dark"]) .mv-topbar .mv-badge-dot { box-shadow: 0 0 0 2px #fff; }
+:root:not([data-theme="dark"]) .mv-sa-portal-badge { background: var(--mv-selected); color: var(--mv-primary); }

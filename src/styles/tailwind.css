@@ -1,0 +1,63 @@
+/*
+ * Tailwind entry point. Layer order puts utilities above the legacy stylesheet, so a Tailwind class always
+ * beats an old `.mv-*` rule while pages are migrated one at a time. Preflight (Tailwind's global reset) is
+ * deliberately not imported: the old stylesheet already sets the element defaults, and a second reset would
+ * shift every page. `legacy` shrinks as components move to utilities and goes away when none are left.
+ */
+@layer theme, legacy, utilities;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "./fonts.css" layer(legacy);
+@import "./app.css" layer(legacy);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/*
+ * Design tokens. The values are the runtime CSS variables the ThemeProvider writes (light and dark), so every
+ * utility below follows the active theme with no `dark:` variants. `inline` makes Tailwind emit var(--mv-*)
+ * rather than a copy of the value.
+ */
+@theme inline {
+  --color-canvas: var(--mv-canvas);
+  --color-surface: var(--mv-surface);
+  --color-surface-subtle: var(--mv-surface-subtle);
+  --color-surface-hover: var(--mv-surface-hover);
+  --color-surface-pressed: var(--mv-surface-pressed);
+  --color-elevated: var(--mv-elevated);
+  --color-ink: var(--mv-text);
+  --color-ink-secondary: var(--mv-text-secondary);
+  --color-ink-muted: var(--mv-text-muted);
+  --color-ink-disabled: var(--mv-text-disabled);
+  --color-line: var(--mv-border);
+  --color-line-control: var(--mv-border-control);
+  --color-divider: var(--mv-divider);
+  --color-primary: var(--mv-primary);
+  --color-primary-hover: var(--mv-primary-hover);
+  --color-primary-active: var(--mv-primary-active);
+  --color-action: var(--mv-action);
+  --color-action-hover: var(--mv-action-hover);
+  --color-on-action: var(--mv-on-action);
+  --color-on-primary: var(--mv-on-primary);
+  --color-selected: var(--mv-selected);
+  --color-focus: var(--mv-focus);
+  --color-success: var(--mv-success);
+  --color-warning: var(--mv-warning);
+  --color-danger: var(--mv-danger);
+  --color-info: var(--mv-info);
+  --color-scrim: var(--mv-scrim);
+
+  --font-body: var(--mv-font-body);
+  --font-heading: var(--mv-font-heading);
+  --font-mono: var(--mv-font-mono);
+
+  --radius-xs: var(--mv-r-xs);
+  --radius-sm: var(--mv-r-sm);
+  --radius-md: var(--mv-r-md);
+  --radius-lg: var(--mv-r-lg);
+}
+
+@theme {
+  --animate-skeleton: skeleton-sweep 1.4s ease-in-out infinite;
+  @keyframes skeleton-sweep {
+    to { transform: translateX(100%); }
+  }
+}

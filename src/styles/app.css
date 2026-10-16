@@ -2338,56 +2338,6 @@ a.mv-insight-row:focus-visible { outline: 2px solid var(--mv-focus); outline-off
 .mv-tour-picker-text strong { font: 500 0.9375rem/1.25rem var(--mv-font-body); }
 .mv-tour-picker-text small { margin-top: 0.125rem; color: var(--mv-text-secondary); font-size: 0.75rem; }
 
-/* ---- Page skeletons: what a page looks like while its code or data is on the way ---- */
-.mv-skel-page { display: grid; gap: 1.5rem; }
-.mv-skel-head { display: grid; gap: 0.625rem; }
-.mv-skel-title { width: min(16rem, 60%); height: 1.75rem; }
-.mv-skel-sub { width: min(28rem, 85%); height: 0.875rem; }
-.mv-skel-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; }
-.mv-skel-kpi { display: grid; gap: 0.625rem; padding: 0.25rem 0; }
-.mv-skel-kpi .mv-skeleton:nth-child(1) { width: 45%; height: 0.75rem; }
-.mv-skel-kpi .mv-skeleton:nth-child(2) { width: 65%; height: 1.75rem; }
-.mv-skel-kpi .mv-skeleton:nth-child(3) { width: 80%; height: 0.625rem; }
-.mv-skel-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.5rem; }
-.mv-skel-block { display: grid; gap: 0.75rem; align-content: start; }
-.mv-skel-block > .mv-skeleton:first-child { width: 40%; height: 1rem; }
-.mv-skel-chart { height: 11rem; border-radius: 0.75rem; }
-.mv-skel-row { display: grid; grid-template-columns: 0.5rem 1fr; align-items: center; gap: 0.75rem; padding: 0.5rem 0; }
-.mv-skel-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; }
-.mv-skel-lines { display: grid; gap: 0.375rem; }
-.mv-skel-lines .mv-skeleton:nth-child(1) { width: 55%; }
-.mv-skel-lines .mv-skeleton:nth-child(2) { width: 85%; height: 0.625rem; }
-.mv-skel-toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.mv-skel-toolbar .mv-skeleton { height: 2.25rem; width: 12rem; border-radius: 0.5rem; }
-
 /* Body text never goes heavier than medium (the body font ships 400 and 500 only); bare <strong>/<b>/<th> would
    otherwise be synthesised bold. Headings keep their own Poppins weights. */
 strong, b, th { font-weight: 500; }
-
-/* ---- Light theme: white top bar. The bar's navy-on-white tokens are swapped for ink-on-white ones inside the
-   bar only, so every rule above that reads --mv-ink-* picks up dark text; dark theme keeps the navy gradient. ---- */
-:root:not([data-theme="dark"]) .mv-topbar {
-  --mv-ink-text: var(--mv-text);
-  --mv-ink-muted: var(--mv-text-secondary);
-  --mv-ink-accent: var(--mv-primary);
-  --mv-ink-line: var(--mv-divider);
-  color: var(--mv-text);
-  background-color: #fff;
-  background-image: none;
-  border-bottom: 1px solid var(--mv-divider);
-}
-:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger:hover,
-:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger[aria-expanded="true"],
-:root:not([data-theme="dark"]) .mv-topbar .mv-icon-button:hover,
-:root:not([data-theme="dark"]) .mv-topbar .mv-profile-trigger:hover,
-:root:not([data-theme="dark"]) .mv-topbar .mv-secondary-button:hover { background: var(--mv-surface-hover); }
-:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger:hover,
-:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger[aria-expanded="true"],
-:root:not([data-theme="dark"]) .mv-topbar .mv-icon-button:hover { color: var(--mv-primary); }
-:root:not([data-theme="dark"]) .mv-topbar .mv-nav-trigger.is-active,
-:root:not([data-theme="dark"]) .mv-topbar a.mv-nav-trigger[aria-current="page"] { color: var(--mv-primary); }
-:root:not([data-theme="dark"]) .mv-topbar .mv-secondary-button { border-color: var(--mv-border); }
-:root:not([data-theme="dark"]) .mv-topbar .mv-secondary-button:hover { border-color: var(--mv-primary); }
-:root:not([data-theme="dark"]) .mv-topbar .mv-avatar { color: var(--mv-on-primary, #fff); background: var(--mv-primary); }
-:root:not([data-theme="dark"]) .mv-topbar .mv-badge-dot { box-shadow: 0 0 0 2px #fff; }
-:root:not([data-theme="dark"]) .mv-sa-portal-badge { background: var(--mv-selected); color: var(--mv-primary); }

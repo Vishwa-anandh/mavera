@@ -76,7 +76,7 @@ for (const file of sourceFiles) {
 }
 
 /* ---- Styling ------------------------------------------------------------------------------ */
-const allowedCssFiles = new Set(["src/styles/app.css", "src/styles/fonts.css"]);
+const allowedCssFiles = new Set(["src/styles/app.css", "src/styles/fonts.css", "src/styles/tailwind.css"]);
 for (const file of cssFiles) {
   if (!allowedCssFiles.has(file)) fail(`${file}: global CSS lives only in src/styles (app.css, fonts.css)`);
 }

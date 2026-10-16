@@ -152,7 +152,7 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
               {aiInsights.map((insight, i) => (
                 <div key={i} className={`mv-inline-error mv-ai-insight mv-ai-insight--${insight.type}`}>
                   <span className={`mv-status mv-status--${insight.type}`}>{insightTypeLabel(insight.type)}</span>
-                  <p style={{ margin: '0.375rem 0 0', fontWeight: 600, color: 'var(--mv-text)' }}>{insight.title}</p>
+                  <p style={{ margin: '0.375rem 0 0', fontWeight: 500, color: 'var(--mv-text)' }}>{insight.title}</p>
                   <p className="mv-muted" style={{ margin: '2px 0 0' }}>{insight.detail}</p>
                 </div>
               ))}

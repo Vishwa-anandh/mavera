@@ -42,7 +42,7 @@ function MetaChip({ label, value }: { label: string; value?: string }) {
   return (
     <div style={{ padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'var(--mv-surface-subtle)' }}>
       <p className="mv-muted" style={{ margin: 0, fontSize: '0.75rem', fontWeight: 500 }}>{label}</p>
-      <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 600 }}>{value}</p>
+      <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{value}</p>
     </div>
   );
 }
@@ -61,7 +61,7 @@ function ProgressRow({ label, amount, total, sub }: { label: string; amount: num
   return (
     <div style={{ marginBottom: '0.75rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
-        <span style={{ fontWeight: 600 }}>{label}</span>
+        <span style={{ fontWeight: 500 }}>{label}</span>
         <span>{formatCurrency(amount)}</span>
       </div>
       <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-surface-subtle)', overflow: 'hidden' }}>

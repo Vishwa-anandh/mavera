@@ -92,12 +92,12 @@ export function InvoicesTab({ invoices, customers }: InvoicesTabProps) {
               <tbody>
                 {filtered.map((inv) => (
                   <tr key={inv.id} onClick={() => { setSelectedId(inv.id); setShowDocument(false); }} style={{ cursor: 'pointer', background: selectedId === inv.id ? 'var(--mv-selected)' : undefined }}>
-                    <td style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{inv.invoiceNumber}</td>
+                    <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{inv.invoiceNumber}</td>
                     <td>{customerName(inv.customerId)}{customers.find((c) => c.id === inv.customerId)?.discountPct ? <span className="mv-status mv-status--neutral" style={{ marginLeft: '0.375rem', fontSize: '0.625rem' }}>{customers.find((c) => c.id === inv.customerId)?.discountPct}%</span> : null}</td>
                     <td className="mv-muted mv-nowrap">{shortDate(inv.invoiceDate)}</td>
                     <td className="mv-muted mv-nowrap">{shortDate(inv.dueDate)}</td>
                     <td><StatusPill status={inv.status} /></td>
-                    <td className="mv-num mv-nowrap" style={{ fontWeight: 600 }}>{formatCurrency(inv.totalDue)}</td>
+                    <td className="mv-num mv-nowrap" style={{ fontWeight: 500 }}>{formatCurrency(inv.totalDue)}</td>
                   </tr>
                 ))}
               </tbody>

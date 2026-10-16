@@ -11,7 +11,7 @@ function MetaChip({ label, value }: { label: string; value?: string | null }) {
   return (
     <div style={{ padding: '0.5rem 0.75rem', borderRadius: '0.5rem', background: 'var(--mv-surface-subtle)' }}>
       <p className="mv-muted" style={{ margin: 0, fontSize: '0.75rem', fontWeight: 500 }}>{label}</p>
-      <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 600 }}>{value}</p>
+      <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{value}</p>
     </div>
   );
 }
@@ -93,7 +93,7 @@ export function CustomerInvoiceDetail({ invoice, customer, allowPayment, onPay }
                 {showDiscountCol && <td className="mv-num">{l.discountPctApplied > 0 ? `${l.discountPctApplied}%` : '—'}</td>}
                 <td className="mv-num">{formatCurrency(l.netAmountAfterDiscount)}</td>
                 {showAdjustmentCol && <td className="mv-num">{l.maitsysAdjustmentPctApplied > 0 ? `${l.maitsysAdjustmentPctApplied}%` : '—'}</td>}
-                <td className="mv-num" style={{ fontWeight: 600 }}>{formatCurrency(l.finalLineAmount)}</td>
+                <td className="mv-num" style={{ fontWeight: 500 }}>{formatCurrency(l.finalLineAmount)}</td>
                 {invoice.columns.map((c) => <td key={c.id}>{l.extra[c.id] || '—'}</td>)}
               </tr>
             ))}

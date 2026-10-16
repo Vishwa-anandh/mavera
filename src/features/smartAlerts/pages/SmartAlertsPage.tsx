@@ -222,7 +222,7 @@ function SettingsPanel() {
         {SETTINGS_FIELDS.map((field) => (
           <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 0', borderBottom: '1px solid var(--mv-divider)' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontWeight: 600 }}>{field.label}</p>
+              <p style={{ margin: 0, fontWeight: 500 }}>{field.label}</p>
               <p className="mv-muted" style={{ margin: '2px 0 0' }}>{field.desc}</p>
             </div>
             <input type="range" min={field.min} max={field.max} step={field.step} value={form[field.key] as number} onChange={(e) => setForm({ ...form, [field.key]: parseFloat(e.target.value) })} style={{ width: '8.75rem' }} />

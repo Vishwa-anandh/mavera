@@ -79,7 +79,7 @@ export function LineItemsEditor({ lines, columns, onChange, discountAvailable = 
   return (
     <div style={{ marginBottom: '1.125rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-        <p className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Line Items</p>
+        <p className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Line Items</p>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button type="button" className="mv-quiet-button" onClick={addColumn}><PlusIcon size={14} style={{ marginRight: '0.25rem' }} />Add Column</button>
           <button type="button" className="mv-quiet-button" onClick={addLine}><PlusIcon size={14} style={{ marginRight: '0.25rem' }} />Add Row</button>
@@ -133,7 +133,7 @@ export function LineItemsEditor({ lines, columns, onChange, discountAvailable = 
                 {columns.map((col) => (
                   <td key={col.id}><input className="mv-select" style={{ width: '100%' }} value={line.extra[col.id] ?? ''} onChange={(e) => updateExtra(line.id, col.id, e.target.value)} /></td>
                 ))}
-                <td className="mv-num" style={{ fontWeight: 600 }}>{formatCurrency(line.finalLineAmount)}</td>
+                <td className="mv-num" style={{ fontWeight: 500 }}>{formatCurrency(line.finalLineAmount)}</td>
                 <td><button type="button" className="mv-icon-button" aria-label="Remove row" onClick={() => removeLine(line.id)}><TrashIcon size={15} /></button></td>
               </tr>
             ))}

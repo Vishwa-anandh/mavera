@@ -72,7 +72,7 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
           style={{ width: '100%', padding: '1.875rem', border: '2px dashed var(--mv-border)', borderRadius: '0.625rem', background: 'transparent', textAlign: 'center', cursor: 'pointer' }}
         >
           <FileTextIcon size={28} style={{ marginBottom: '0.5rem', color: 'var(--mv-text-muted)' }} />
-          <p style={{ margin: 0, fontWeight: 600 }}>{file ? file.name : 'Drag & drop Excel file here'}</p>
+          <p style={{ margin: 0, fontWeight: 500 }}>{file ? file.name : 'Drag & drop Excel file here'}</p>
           <p className="mv-muted" style={{ margin: '0.25rem 0 0', fontSize: '0.75rem' }}>.xlsx only · max 10 MB</p>
         </button>
         <input ref={inputRef} type="file" accept=".xlsx" style={{ display: 'none' }} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />

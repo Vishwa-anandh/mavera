@@ -48,7 +48,7 @@ function Row({ icon, label, value }: { icon: ReactNode; label: string; value: Re
   return (
     <div style={rowStyle}>
       <span className="mv-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{icon}{label}</span>
-      <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{value}</span>
+      <span style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{value}</span>
     </div>
   );
 }
@@ -246,7 +246,7 @@ export function SubscriptionPage() {
         <div className="mv-notice" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
           <AlertTriangleIcon size={16} style={{ flex: 'none', marginTop: 2, color: 'var(--mv-warning)' }} />
           <div>
-            <p style={{ margin: '0 0 2px', fontWeight: 600 }}>Note from Maitsys</p>
+            <p style={{ margin: '0 0 2px', fontWeight: 500 }}>Note from Maitsys</p>
             <p style={{ margin: 0 }}>{subscriptionNotes}</p>
           </div>
         </div>

@@ -18,7 +18,7 @@ export function CustomFieldsEditor({ fields, onChange }: CustomFieldsEditorProps
   return (
     <div style={{ marginBottom: '1.125rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-        <p className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Custom Fields</p>
+        <p className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Custom Fields</p>
         <button type="button" className="mv-quiet-button" onClick={addField}><PlusIcon size={14} style={{ marginRight: '0.25rem' }} />Add Field</button>
       </div>
       {fields.length === 0 ? (

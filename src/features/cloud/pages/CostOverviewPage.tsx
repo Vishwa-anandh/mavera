@@ -190,7 +190,7 @@ export function CostOverviewPage() {
           </div>
         )}
         {spendChangePct !== null ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: spendChangePct > 0 ? 'var(--mv-danger)' : 'var(--mv-success)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 500, color: spendChangePct > 0 ? 'var(--mv-danger)' : 'var(--mv-success)' }}>
             {spendChangePct > 0 ? <TrendUpIcon size={13} /> : <TrendDownIcon size={13} />}
             {Math.abs(spendChangePct)}% <span className="mv-muted" style={{ fontWeight: 400 }}>vs prev month</span>
           </div>
@@ -219,18 +219,18 @@ export function CostOverviewPage() {
         {mspRows.length > 0 ? (
           <p className="mv-muted" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>{mspRows.map((r) => `${r.label} ${(r.rate * 100).toFixed(1)}%`).join(' · ')}</p>
         ) : <p className="mv-muted" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>No cloud spend data yet</p>}
-        {recsCount > 0 && <a href="/cloud/optimization" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--mv-primary)' }}>{recsCount} recommendations <ChevronRightIcon size={12} /></a>}
+        {recsCount > 0 && <a href="/cloud/optimization" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>{recsCount} recommendations <ChevronRightIcon size={12} /></a>}
       </KpiShell>
 
       <KpiShell loading={smartAlerts.loading} error={smartAlerts.error} icon={<BellIcon size={22} />} tone={criticalCount > 0 ? 'danger' : warningCount > 0 ? 'warning' : 'success'}>
         <div className="mv-kpi-label">Active Alerts</div>
         <strong className="mv-kpi-value">{activeAlerts.length}</strong>
-        <div style={{ display: 'flex', gap: '0.625rem', marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 600 }}>
+        <div style={{ display: 'flex', gap: '0.625rem', marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 500 }}>
           {criticalCount > 0 && <span style={{ color: 'var(--mv-danger)' }}>{criticalCount} critical</span>}
           {warningCount > 0 && <span style={{ color: 'var(--mv-warning)' }}>{warningCount} warning</span>}
           {activeAlerts.length === 0 && <span style={{ color: 'var(--mv-success)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><CheckIcon size={13} />All clear</span>}
         </div>
-        {activeAlerts.length > 0 && <a href="/smart-alerts" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--mv-primary)' }}>View alerts <ChevronRightIcon size={12} /></a>}
+        {activeAlerts.length > 0 && <a href="/smart-alerts" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>View alerts <ChevronRightIcon size={12} /></a>}
       </KpiShell>
     </div>
 
@@ -248,9 +248,9 @@ export function CostOverviewPage() {
       <div className="mv-panel-header"><h2 id="monthly-spend-title" className="mv-panel-title">Monthly spend trend</h2><span className="mv-kpi-label">Current billing period</span></div>
       {!summary.loading && !summary.error && forecastEom !== null && (
         <p style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '2px 0.5rem', margin: '-0.25rem 0 0.75rem' }}>
-          <span className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>End-of-month forecast</span>
+          <span className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>End-of-month forecast</span>
           <strong style={{ fontSize: '1.125rem' }}>{formatCurrency(forecastEom)}</strong>
-          {totalBudget > 0 && <span style={{ fontSize: '0.75rem', fontWeight: 600, color: forecastEom > totalBudget ? 'var(--mv-danger)' : 'var(--mv-success)' }}>{((forecastEom / totalBudget) * 100).toFixed(1)}% vs budget{forecastEom > totalBudget ? ' — over budget' : ''}</span>}
+          {totalBudget > 0 && <span style={{ fontSize: '0.75rem', fontWeight: 500, color: forecastEom > totalBudget ? 'var(--mv-danger)' : 'var(--mv-success)' }}>{((forecastEom / totalBudget) * 100).toFixed(1)}% vs budget{forecastEom > totalBudget ? ' — over budget' : ''}</span>}
         </p>
       )}
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -261,13 +261,13 @@ export function CostOverviewPage() {
           <div style={{ flex: '1 1 100%', display: 'grid', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--mv-divider)' }}>
             {forecastEom !== null ? (
               <>
-                <span className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>Forecast by provider</span>
+                <span className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Forecast by provider</span>
                 {(Object.keys(forecastByProvider) as ProviderKey[]).length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
                     {(Object.keys(forecastByProvider) as ProviderKey[]).map((p) => (
                       <span key={p} style={{ display: 'inline-flex', gap: '0.375rem', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', background: 'var(--mv-surface-subtle)', fontSize: '0.6875rem' }}>
-                        <span style={{ fontWeight: 600 }}>{PROVIDER_META[p].label}</span>
-                        <span style={{ fontWeight: 700 }}>{formatCurrency(forecastByProvider[p] ?? 0)}</span>
+                        <span style={{ fontWeight: 500 }}>{PROVIDER_META[p].label}</span>
+                        <span style={{ fontWeight: 500 }}>{formatCurrency(forecastByProvider[p] ?? 0)}</span>
                       </span>
                     ))}
                   </div>
@@ -294,7 +294,7 @@ export function CostOverviewPage() {
             }))}
           />
         )}
-        {!loading && insights.length > 0 && <a href="/cloud/optimization" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.625rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--mv-primary)' }}>View all insights <ChevronRightIcon size={12} /></a>}
+        {!loading && insights.length > 0 && <a href="/cloud/optimization" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.625rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>View all insights <ChevronRightIcon size={12} /></a>}
       </section>
 
       <section className="mv-glance-col">
@@ -308,7 +308,7 @@ export function CostOverviewPage() {
               {mspRows.map((row) => (
                 <div key={row.provider} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.25rem', borderBottom: '1px solid var(--mv-divider)' }}>
                   <div>
-                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.8125rem' }}>{row.label}</p>
+                    <p style={{ margin: 0, fontWeight: 500, fontSize: '0.8125rem' }}>{row.label}</p>
                     <p className="mv-muted" style={{ margin: '2px 0 0', fontSize: '0.6875rem' }}>{(row.rate * 100).toFixed(1)}% discount · {formatCurrency(row.spend)} spend</p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -391,7 +391,7 @@ export function CostOverviewPage() {
           <FileTextIcon size={20} />
           <div>
             <p className="mv-eyebrow" style={{ marginBottom: 2 }}>Invoice Summary</p>
-            <p style={{ margin: 0, fontWeight: 600 }}>{invoiceStats.count} invoice{invoiceStats.count !== 1 ? 's' : ''} · <span style={{ color: 'var(--mv-primary)' }}>{formatCurrency(invoiceStats.total)}</span> total</p>
+            <p style={{ margin: 0, fontWeight: 500 }}>{invoiceStats.count} invoice{invoiceStats.count !== 1 ? 's' : ''} · <span style={{ color: 'var(--mv-primary)' }}>{formatCurrency(invoiceStats.total)}</span> total</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -410,7 +410,7 @@ export function CostOverviewPage() {
           Recent Alerts
           {activeAlerts.length > 0 && <span className="mv-status mv-status--danger" style={{ fontSize: '0.625rem' }}>{activeAlerts.length}</span>}
         </h2>
-        <a href="/smart-alerts" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--mv-primary)' }}>View all <ChevronRightIcon size={12} /></a>
+        <a href="/smart-alerts" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>View all <ChevronRightIcon size={12} /></a>
       </div>
       {loading ? <div className="mv-loading" /> : activeAlerts.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(16.25rem, 1fr))', gap: '0.75rem' }}>
@@ -418,7 +418,7 @@ export function CostOverviewPage() {
             <div key={alert.id ?? i} style={{ display: 'flex', gap: '0.625rem', padding: '0.875rem', border: '1px solid var(--mv-divider)', borderRadius: '0.625rem' }}>
               <BellIcon size={14} style={{ flex: 'none', marginTop: 2, color: alert.severity === 'critical' ? 'var(--mv-danger)' : alert.severity === 'high' ? 'var(--mv-warning)' : 'var(--mv-text-muted)' }} />
               <div style={{ minWidth: 0 }}>
-                <p style={{ margin: 0, fontWeight: 600, fontSize: '0.8125rem' }}>{alert.title ?? alert.message ?? alert.alert_type}</p>
+                <p style={{ margin: 0, fontWeight: 500, fontSize: '0.8125rem' }}>{alert.title ?? alert.message ?? alert.alert_type}</p>
                 <p className="mv-muted" style={{ margin: '0.25rem 0 0', fontSize: '0.6875rem' }}>{alert.detected_at ? new Date(alert.detected_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>
               </div>
             </div>

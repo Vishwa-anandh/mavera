@@ -28,7 +28,7 @@ function StatusBadge({ status }: { status: OrgMember['status'] }) {
 }
 
 function cellLabel(text: string) {
-  return <span className="mv-muted" style={{ fontSize: '0.625rem', fontWeight: 600 }}>{text}</span>;
+  return <span className="mv-muted" style={{ fontSize: '0.625rem', fontWeight: 500 }}>{text}</span>;
 }
 
 /** View-access cell: always-on and disabled for admins/owners, otherwise a
@@ -169,7 +169,7 @@ export function UserManagementPage() {
                   <th />
                   {visibleProviders.map((p) => (
                     <th key={p.id} colSpan={2} style={{ textAlign: 'center', borderLeft: '1px solid var(--mv-divider)' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontWeight: 600, fontSize: '0.75rem', color: 'var(--mv-text)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontWeight: 500, fontSize: '0.75rem', color: 'var(--mv-text)' }}>
                         <span aria-hidden style={{ width: '0.4375rem', height: '0.4375rem', borderRadius: '50%', background: p.dot, display: 'inline-block' }} />
                         {p.label}
                       </span>
@@ -177,7 +177,7 @@ export function UserManagementPage() {
                   ))}
                   {showInvoiceColumn && (
                     <th style={{ textAlign: 'center', borderLeft: '1px solid var(--mv-divider)' }}>
-                      <span style={{ fontWeight: 600, fontSize: '0.75rem', color: 'var(--mv-text-secondary)' }}>Invoice</span>
+                      <span style={{ fontWeight: 500, fontSize: '0.75rem', color: 'var(--mv-text-secondary)' }}>Invoice</span>
                     </th>
                   )}
                   <th style={{ borderLeft: '1px solid var(--mv-divider)' }} />
@@ -202,7 +202,7 @@ export function UserManagementPage() {
                     <tr key={member.userId}>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                          <span style={{ width: '2.125rem', height: '2.125rem', borderRadius: '0.5625rem', background: 'var(--mv-selected)', color: 'var(--mv-primary)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '0.8125rem', flex: 'none' }}>
+                          <span style={{ width: '2.125rem', height: '2.125rem', borderRadius: '0.5625rem', background: 'var(--mv-selected)', color: 'var(--mv-primary)', display: 'grid', placeItems: 'center', fontWeight: 500, fontSize: '0.8125rem', flex: 'none' }}>
                             {member.fullName.charAt(0).toUpperCase()}
                           </span>
                           <div style={{ minWidth: 0 }}>

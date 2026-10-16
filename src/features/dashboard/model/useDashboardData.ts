@@ -128,8 +128,14 @@ function loadedSource<T>(data: T): DashboardSource<T> {
  * "test", while `vite dev` sets it to "development" — both have DEV=true, so
  * gating on DEV alone would also short-circuit useDashboardData.test.ts.
  */
+/**
+ * The demo login never stores a token, so "no token" means the sample-data session. That has to hold in a hosted
+ * build too (not only under `vite dev`), otherwise the dashboard and Cost Overview call an API that isn't there
+ * and show dashes, loading blocks and "Cannot reach the server" toasts. Real logins store a token and use the API.
+ * Unit tests (mode "test") keep exercising the real request path through their mocked client.
+ */
 function isDevPreview(): boolean {
-  return buildMode === 'development' && !localStorage.getItem(TOKEN_KEY);
+  return buildMode !== 'test' && !localStorage.getItem(TOKEN_KEY);
 }
 
 /** Realistic placeholder data so the dashboard renders fully with no backend. */
@@ -223,7 +229,7 @@ export function useDashboardData(): DashboardData & { refetch: () => void } {
     });
 
     if (isDevPreview()) {
-      // Prototype build, no backend: skip the real requests (which would
+      // Demo session, no backend: skip the real requests (which would
       // otherwise retry for ~7s per source before surfacing errors) and
       // populate with placeholder data instead.
       setTimeout(() => setState(devMockData()), 350);

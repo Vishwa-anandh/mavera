@@ -11,6 +11,9 @@
 @import "./app.css" layer(legacy);
 @import "tailwindcss/utilities.css" layer(utilities);
 
+/* Dark theme is keyed off the attribute ThemeProvider sets on <html>, not the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 /*
  * Design tokens. The values are the runtime CSS variables the ThemeProvider writes (light and dark), so every
  * utility below follows the active theme with no `dark:` variants. `inline` makes Tailwind emit var(--mv-*)
@@ -44,6 +47,10 @@
   --color-danger: var(--mv-danger);
   --color-info: var(--mv-info);
   --color-scrim: var(--mv-scrim);
+  --color-card: var(--mv-card-white);
+  --color-ink-on: var(--mv-ink-text);
+
+  --shadow-lift: var(--mv-lift);
 
   --font-body: var(--mv-font-body);
   --font-heading: var(--mv-font-heading);

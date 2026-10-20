@@ -5,6 +5,8 @@ import { Select } from '../../../shared/ui/Select';
 
 interface DashboardToolbarProps {
   onRefresh: () => void;
+  /** Which modules the organisation has; the search wording and the System filter follow them. */
+  modules?: { cloudCost: boolean; sapMonitoring: boolean };
 }
 
 const TIME_RANGE_OPTIONS = [
@@ -31,7 +33,9 @@ const SYSTEM_OPTIONS = [
  * this prototype has one fixed mock dataset per module, so changing them
  * doesn't refetch anything; Refresh is real and re-runs the actual queries.
  */
-export function DashboardToolbar({ onRefresh }: DashboardToolbarProps) {
+export function DashboardToolbar({ onRefresh, modules = { cloudCost: true, sapMonitoring: true } }: DashboardToolbarProps) {
+  const both = modules.cloudCost && modules.sapMonitoring;
+  const searchLabel = both ? 'Search systems, resources, alerts' : modules.cloudCost ? 'Search accounts, resources, alerts' : 'Search systems, jobs, alerts';
   const [refreshing, setRefreshing] = useState(false);
   const [timeRange, setTimeRange] = useRememberedState('dashboard', 'time-range', '24h', oneOf(TIME_RANGE_OPTIONS.map((o) => o.value)));
   const [environment, setEnvironment] = useRememberedState('dashboard', 'environment', 'all', oneOf(ENVIRONMENT_OPTIONS.map((o) => o.value)));
@@ -47,12 +51,12 @@ export function DashboardToolbar({ onRefresh }: DashboardToolbarProps) {
     <div className="mv-dashboard-toolbar">
       <div className="mv-dashboard-search">
         <SearchIcon size={18} />
-        <input type="search" aria-label="Search systems, resources, alerts" placeholder="Search systems, resources, alerts…" />
+        <input type="search" aria-label={searchLabel} placeholder={`${searchLabel}…`} />
       </div>
       <div className="mv-dashboard-filters">
         <Select label="Time range" hideLabel value={timeRange} onChange={setTimeRange} options={TIME_RANGE_OPTIONS} />
         <Select label="Environment" hideLabel value={environment} onChange={setEnvironment} options={ENVIRONMENT_OPTIONS} />
-        <Select label="System" hideLabel value={system} onChange={setSystem} options={SYSTEM_OPTIONS} />
+        {both && <Select label="System" hideLabel value={system} onChange={setSystem} options={SYSTEM_OPTIONS} />}
         <button type="button" className="mv-primary-button" onClick={handleRefresh} disabled={refreshing}>
           <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />
           {refreshing ? 'Refreshing…' : 'Refresh'}

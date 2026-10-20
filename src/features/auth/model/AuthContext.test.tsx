@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { AuthProvider, useAuth, DEMO_EMAIL, DEMO_PASSWORD } from './AuthContext';
+import { AuthProvider, useAuth, DEMO_EMAIL, DEMO_PASSWORD, DEMO_CLOUD_EMAIL } from './AuthContext';
 import { TOKEN_KEY, REFRESH_TOKEN_KEY } from '../../../data-access';
 
 const getMock = vi.fn();
@@ -62,6 +62,20 @@ function DemoLoginConsumer() {
       <span data-testid="authed">{String(isAuthenticated)}</span>
       <span data-testid="email">{user?.email ?? 'none'}</span>
       <button onClick={() => void login(DEMO_EMAIL, DEMO_PASSWORD)}>demo-login</button>
+    </div>
+  );
+}
+
+function CloudDemoConsumer() {
+  const { user, isAuthenticated, isDemoSession, modules, login } = useAuth();
+  return (
+    <div>
+      <span data-testid="authed">{String(isAuthenticated)}</span>
+      <span data-testid="org">{user?.orgName ?? 'none'}</span>
+      <span data-testid="demo">{String(isDemoSession)}</span>
+      <span data-testid="cloud">{String(modules.cloudCost)}</span>
+      <span data-testid="sap">{String(modules.sapMonitoring)}</span>
+      <button onClick={() => void login(DEMO_CLOUD_EMAIL, DEMO_PASSWORD)}>cloud-login</button>
     </div>
   );
 }
@@ -216,6 +230,25 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('email')).toHaveTextContent(DEMO_EMAIL);
     expect(postMock).not.toHaveBeenCalled();
     expect(getMock).not.toHaveBeenCalled();
+  });
+
+  it('signs the Cloud Cost only demo organisation in locally, without SAP Monitoring', async () => {
+    const user = userEvent.setup();
+    render(
+      <AuthProvider>
+        <CloudDemoConsumer />
+      </AuthProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId('authed')).toHaveTextContent('false'));
+
+    await user.click(screen.getByText('cloud-login'));
+
+    await waitFor(() => expect(screen.getByTestId('authed')).toHaveTextContent('true'));
+    expect(screen.getByTestId('org')).toHaveTextContent('Cloud Cost only');
+    expect(screen.getByTestId('demo')).toHaveTextContent('true');
+    expect(screen.getByTestId('cloud')).toHaveTextContent('true');
+    expect(screen.getByTestId('sap')).toHaveTextContent('false');
+    expect(postMock).not.toHaveBeenCalled();
   });
 
   it('logout calls POST /auth/logout, then clears tokens, caches, onboarding flags, sessionStorage and user', async () => {

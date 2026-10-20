@@ -2720,7 +2720,6 @@ strong, b, th { font-weight: 500; }
 
 /* Budgets & Alert Integrations: two stacked sections on one page. */
 .mv-budgets-section { margin-bottom: 1.75rem; }
-.mv-budgets-section--integrations { padding-top: 1.5rem; border-top: 1px solid var(--mv-divider); scroll-margin-top: 1rem; }
 .mv-budget-list, .mv-channel-list { display: grid; align-content: start; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
 .mv-budget-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin: 0; }
 .mv-budget-item p { margin: 0.25rem 0 0; }
@@ -2975,3 +2974,13 @@ strong, b, th { font-weight: 500; }
 
 /* User Management: the members table grows with the page instead of scrolling inside its own box. */
 .mv-content .mv-users-page .mv-table-wrap { max-height: none; }
+
+/* ---- SAP tabbed pages (Alerts, Jobs & Dumps, Performance, HANA): panels inside tabs ---- */
+.mv-alert-actions { margin-left: auto; }
+.mv-alert-settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; align-items: start; }
+.mv-alert-recipients { max-width: 44rem; }
+/* Phones: tab labels share the row and wrap onto two lines instead of scrolling. */
+@media (max-width: 40rem) {
+  .mv-tabbar-list { gap: 0; }
+  .mv-tabbar-tab { flex: 1 1 0; min-width: 0; justify-content: center; padding-inline: 0.375rem; white-space: normal; text-align: center; line-height: 1.125rem; }
+}

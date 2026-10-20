@@ -22,7 +22,8 @@ vi.mock('../../auth', () => ({
   }),
 }));
 
-const wrap = (node: ReactNode) => render(<ThemeProvider><MemoryRouter>{node}</MemoryRouter></ThemeProvider>);
+const wrap = (node: ReactNode, entry = '/') => render(<ThemeProvider><MemoryRouter initialEntries={[entry]}>{node}</MemoryRouter></ThemeProvider>);
+const OPPORTUNITIES = '/cloud/optimization#opportunities';
 
 describe('Cloud Cost pages', () => {
   beforeEach(() => {
@@ -62,7 +63,7 @@ describe('Cloud Cost pages', () => {
   });
 
   it('Optimization Advisor leaves overlapping recommendations out of the total', () => {
-    wrap(<OptimizationAdvisorPage />);
+    wrap(<OptimizationAdvisorPage />, OPPORTUNITIES);
     // The test organisation is subscribed to Azure and AWS only, so SAP BTP and Google Cloud findings stay out.
     const all = cloudInsightsRepository.listOptimizationOpportunities().filter((o) => o.provider === 'azure' || o.provider === 'aws');
     const expected = all.filter((o) => !o.overlapsWith || !all.some((x) => x.id === o.overlapsWith)).reduce((s, o) => s + o.monthlySaving, 0);
@@ -70,19 +71,58 @@ describe('Cloud Cost pages', () => {
     expect(screen.getByText(/1 overlapping not double-counted/)).toBeInTheDocument();
   });
 
-  it('Savings & Optimization shows the savings overview above the opportunities, once each', () => {
+  it('Savings & Optimization has Savings overview and Opportunities tabs, rendering only the active panel', async () => {
+    const user = userEvent.setup();
     wrap(<OptimizationAdvisorPage />);
     expect(screen.getByRole('heading', { level: 1, name: 'Savings & Optimization' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Savings overview' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Opportunities' })).toBeInTheDocument();
-    // The top recommendations are part of the overview now, once.
+    const tabs = screen.getByRole('tablist', { name: 'Savings and optimization sections' });
+    expect(within(tabs).getAllByRole('tab').map((t) => t.textContent?.replace(/\d+$/, ''))).toEqual(['Savings overview', 'Opportunities']);
+    expect(screen.getByRole('tab', { name: 'Savings overview' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { level: 2, name: 'Savings overview' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Opportunities' })).toBeNull();
+    // The top recommendations are part of the overview, once.
     expect(screen.getAllByRole('heading', { name: 'Top recommendations' })).toHaveLength(1);
+    expect(screen.queryByRole('table', { name: 'Optimization opportunities, highest saving first' })).toBeNull();
+
+    await user.click(screen.getByRole('tab', { name: /Opportunities/ }));
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName(/Opportunities/);
+    expect(screen.getByRole('heading', { level: 2, name: 'Opportunities' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Saving by type' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Savings overview' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Top recommendations' })).toBeNull();
+  });
+
+  it('opens the tab named in the URL hash', () => {
+    wrap(<OptimizationAdvisorPage />, OPPORTUNITIES);
+    expect(screen.getByRole('tab', { name: /Opportunities/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('table', { name: 'Optimization opportunities, highest saving first' })).toBeInTheDocument();
+  });
+
+  it('keeps the provider filter in the page header, above the tabs, and it follows you to the other tab', async () => {
+    const user = userEvent.setup();
+    wrap(<OptimizationAdvisorPage />);
+    const header = screen.getByRole('heading', { level: 1 }).closest('.mv-page-header') as HTMLElement;
+    expect(within(header).getByLabelText('Provider')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('Provider'));
+    await user.click(screen.getByRole('option', { name: 'Amazon AWS' }));
+    await user.click(screen.getByRole('tab', { name: /Opportunities/ }));
+    expect(within(header).getByLabelText('Provider')).toHaveTextContent('Amazon AWS');
+    expect(screen.getAllByLabelText('Provider')).toHaveLength(1);
+    expect(screen.getByText(/AWS only/)).toBeInTheDocument();
+  });
+
+  it('opens an opportunity from Top recommendations on the overview tab without leaving it', async () => {
+    const user = userEvent.setup();
+    wrap(<OptimizationAdvisorPage />);
+    const list = screen.getByRole('list', { name: 'Top recommendations by monthly saving' });
+    await user.click(within(within(list).getAllByRole('listitem')[0]).getByRole('button'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Savings overview' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('Optimization Advisor dismisses with a reason and only records the decision', async () => {
     const user = userEvent.setup();
-    wrap(<OptimizationAdvisorPage />);
-    // The opportunity also appears under Top recommendations, so pick it from the opportunities table.
+    wrap(<OptimizationAdvisorPage />, OPPORTUNITIES);
     const table = screen.getByRole('table', { name: 'Optimization opportunities, highest saving first' });
     await user.click(within(table).getByRole('button', { name: 'Merge App Service plans' }));
     const drawer = screen.getByRole('dialog', { name: 'Merge App Service plans' });
@@ -142,16 +182,19 @@ describe('Cloud Cost pages', () => {
     const list = screen.getByRole('list', { name: 'Top recommendations by monthly saving' });
     expect(within(list).queryByText(/Azure ·/)).not.toBeInTheDocument();
     expect(within(list).getAllByText(/AWS ·/).length).toBeGreaterThan(0);
-    // The opportunity list below follows the same filter.
+    // The opportunities tab follows the same filter.
+    await user.click(screen.getByRole('tab', { name: /Opportunities/ }));
     const table = screen.getByRole('table', { name: 'Optimization opportunities, highest saving first' });
     expect(within(table).queryByText('Merge App Service plans')).not.toBeInTheDocument();
     expect(within(table).getByText('Buy a 1-year Compute Savings Plan')).toBeInTheDocument();
   });
 
-  it('keeps SAP BTP and Google Cloud out of an organisation that is not subscribed to them', () => {
+  it('keeps SAP BTP and Google Cloud out of an organisation that is not subscribed to them', async () => {
+    const user = userEvent.setup();
     wrap(<OptimizationAdvisorPage />);
     const msp = screen.getByRole('table', { name: /Maitsys discount rate/ });
     expect(msp).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: /Opportunities/ }));
     const table = screen.getByRole('table', { name: 'Optimization opportunities, highest saving first' });
     expect(within(table).queryByText(/Move from pay-as-you-go to the CPEA/)).not.toBeInTheDocument();
     expect(within(table).queryByText(/Delete idle Compute Engine/)).not.toBeInTheDocument();

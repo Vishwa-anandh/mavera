@@ -2,18 +2,21 @@ import { useState } from 'react';
 import { sapAdminRepository, type SapSmartAlert } from '../../../data-access';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
+import { useHashTab } from '../../../shared/lib/useHashTab';
 import { Pagination } from '../../../shared/ui/Pagination';
 import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
 import { Select } from '../../../shared/ui/Select';
 import { StatusTag, type StatusTone } from '../../../shared/ui/StatusTag';
 import { Tooltip } from '../../../shared/ui/Tooltip';
 import { usePagination } from '../../../shared/ui/usePagination';
-import { CheckIcon, EyeSlashIcon, MailIcon, RefreshIcon, SettingsIcon } from '../../../shared/ui/icons';
-import { AlertRecipientsDialog } from '../components/AlertRecipientsDialog';
-import { AlertSettingsDrawer } from '../components/AlertSettingsDrawer';
+import { CheckIcon, EyeSlashIcon, RefreshIcon } from '../../../shared/ui/icons';
+import { AlertRecipientsPanel } from '../components/AlertRecipientsPanel';
+import { AlertSettingsPanel } from '../components/AlertSettingsPanel';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
 import { ALERT_TYPES, ALERT_VIEWS, SEVERITY_TONE, alertCounts, alertSummary, filterAlerts, type AlertFilters, type SourceFilter } from '../model/sapAlerts';
 import { formatStamp } from '../model/sapFormat';
+import { useAlertSettingsForm } from '../model/useAlertSettingsForm';
 
 const repo = sapAdminRepository.alerts;
 const SOURCES: Array<{ value: SourceFilter; label: string }> = [
@@ -21,6 +24,10 @@ const SOURCES: Array<{ value: SourceFilter; label: string }> = [
   { value: 'HANA', label: 'HANA Monitoring' },
   { value: 'SAP', label: 'SAP Monitoring' },
 ];
+
+type AlertsTab = 'alerts' | 'settings' | 'recipients';
+const TABS: AlertsTab[] = ['alerts', 'settings', 'recipients'];
+const TAB_ITEMS = [{ id: 'alerts', label: 'Alerts' }, { id: 'settings', label: 'Settings' }, { id: 'recipients', label: 'Recipients' }];
 
 function statusOf(alert: SapSmartAlert): { label: string; tone: StatusTone } {
   if (alert.state === 'resolved') return { label: 'Resolved', tone: 'success' };
@@ -31,8 +38,9 @@ function statusOf(alert: SapSmartAlert): { label: string; tone: StatusTone } {
 /**
  * SAP and HANA anomaly alerts (MIO /smart-alerts), distinct from the org-wide cost alerts. A source switch
  * narrows everything on the page to HANA or SAP Monitoring; alerts can be marked read, resolved or ignored
- * and brought back. Detection settings and recipients open from the header. State lives in the data-access
- * store, so it survives moving between pages.
+ * and brought back. Three tabs (ids in the URL hash): Alerts (the list), Settings (anomaly detection and the
+ * metric thresholds) and Recipients. The settings form state lives here so unsaved edits survive a tab switch.
+ * Alert state lives in the data-access store, so it survives moving between pages.
  */
 export function SapAlertsPage() {
   const [alerts, setAlerts] = useState<SapSmartAlert[]>(() => repo.list());
@@ -40,10 +48,10 @@ export function SapAlertsPage() {
   const [source, setSource] = useState<SourceFilter>('All');
   const [view, setView] = useState<AlertFilters['view']>('active');
   const [type, setType] = useState<AlertFilters['type']>('All');
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [recipientsOpen, setRecipientsOpen] = useState(false);
+  const [tab, setTab] = useHashTab(TABS);
 
   const reload = () => { setAlerts(repo.list()); setAdjustments(repo.listAdjustments()); };
+  const settingsForm = useAlertSettingsForm(reload);
   const counts = alertCounts(alerts, source);
   const summary = alertSummary(alerts, source, adjustments);
   const filtered = filterAlerts(alerts, { source, view, type });
@@ -70,20 +78,22 @@ export function SapAlertsPage() {
   return (
     <div>
       <PageHeader title="Alerts & Escalations" subtitle="Automated detection of threshold breaches across SAP HANA and ABAP monitoring metrics.">
-        <div className="mv-actions-wrap">
         <DestinationSwitcher />
-        <button type="button" className="mv-secondary-button" onClick={() => setRecipientsOpen(true)}><MailIcon size={14} style={{ marginRight: '0.375rem' }} />Recipients</button>
-        <button type="button" className="mv-secondary-button" onClick={() => setSettingsOpen(true)}><SettingsIcon size={14} style={{ marginRight: '0.375rem' }} />Settings</button>
-        <button type="button" className="mv-secondary-button" onClick={markAll}><CheckIcon size={14} style={{ marginRight: '0.375rem' }} />Mark All Read</button>
-        <button type="button" className="mv-secondary-button" onClick={refresh}><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
-        </div>
       </PageHeader>
 
+      <TabBar idPrefix="sap-alerts" label="Alerts sections" items={TAB_ITEMS} activeId={tab} onChange={(id) => setTab(id as AlertsTab)} />
+
+      {tab === 'alerts' && (
+      <div {...tabPanelProps('sap-alerts', 'alerts')}>
       <div className="mv-alert-scope">
         <SegmentedToggle<SourceFilter> label="Alert source" value={source} onChange={setSource} options={SOURCES} />
         <p className="mv-muted mv-alert-summary" aria-live="polite">
           Last alert: <strong>{summary.lastAlert ?? 'none yet'}</strong>. Ignored this month: <strong>{summary.ignoredThisMonth}</strong>. Threshold adjustments: <strong>{summary.adjustmentsThisMonth}</strong>. Detection {repo.detectionSchedule()}.
         </p>
+        <div className="mv-actions-wrap mv-alert-actions">
+          <button type="button" className="mv-secondary-button" onClick={markAll}><CheckIcon size={14} style={{ marginRight: '0.375rem' }} />Mark All Read</button>
+          <button type="button" className="mv-secondary-button" onClick={refresh}><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
+        </div>
       </div>
 
       <div className="mv-kpi-row-4" style={{ marginBottom: '1.25rem' }}>
@@ -147,9 +157,12 @@ export function SapAlertsPage() {
           </>
         )}
       </section>
+      </div>
+      )}
 
-      {settingsOpen && <AlertSettingsDrawer onClose={() => setSettingsOpen(false)} onAdjusted={reload} />}
-      {recipientsOpen && <AlertRecipientsDialog onClose={() => setRecipientsOpen(false)} />}
+      {tab === 'settings' && <div {...tabPanelProps('sap-alerts', 'settings')}><AlertSettingsPanel form={settingsForm} /></div>}
+
+      {tab === 'recipients' && <div {...tabPanelProps('sap-alerts', 'recipients')}><AlertRecipientsPanel /></div>}
     </div>
   );
 }

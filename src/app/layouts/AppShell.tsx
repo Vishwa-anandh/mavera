@@ -9,7 +9,8 @@ import { ProfileMenu } from './ProfileMenu';
 import { formatBadgeCount, useNotifications } from './notifications';
 import { AssistantWidget } from '../../features/assistant';
 import { PreviewBanner, RouteAccessGuard } from '../../features/access';
-import { routeModuleFor } from '../router/route-manifest';
+import { productModuleFor, routeModuleFor } from '../router/route-manifest';
+import { ModuleNotSubscribed } from './ModuleNotSubscribed';
 import { SearchIcon, BellIcon, HelpIcon, MenuIcon } from '../../shared/ui/icons';
 import maveraLogo from '../../../assets/brand/mavera-logo.png';
 
@@ -20,6 +21,8 @@ export function AppShell() {
   const { pathname } = useLocation();
   const [overlay, setOverlay] = useState<Overlay>(null);
   const notifications = useNotifications(modules);
+  const neededModule = productModuleFor(pathname);
+  const missingModule = neededModule && !modules[neededModule] ? neededModule : undefined;
   const unread = notifications.unreadCount;
 
   // Ctrl/⌘+K opens page search from anywhere, the convention users bring from other tools.
@@ -89,7 +92,11 @@ export function AppShell() {
         </header>
         <PreviewBanner />
         <main className="mv-content" id="mv-main" tabIndex={-1}>
-          <RouteAccessGuard module={routeModuleFor(pathname)}><Outlet /></RouteAccessGuard>
+          {missingModule ? (
+            <ModuleNotSubscribed module={missingModule} />
+          ) : (
+            <RouteAccessGuard module={routeModuleFor(pathname)}><Outlet /></RouteAccessGuard>
+          )}
         </main>
       </div>
       {overlay === 'mobile-nav' && <MobileNav onClose={close} />}

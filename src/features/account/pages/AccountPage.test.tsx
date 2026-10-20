@@ -12,18 +12,59 @@ vi.mock('../../auth/model/AuthContext', async (importOriginal) => {
   return { ...actual, useAuth: () => useAuthMock() };
 });
 
-function setup(changePassword = vi.fn().mockResolvedValue(undefined)) {
+type Tab = 'profile' | 'security' | 'appearance' | 'help';
+
+function setup(changePassword = vi.fn().mockResolvedValue(undefined), tab: Tab = 'profile') {
   useAuthMock.mockReturnValue({
     user: { id: '1', email: 'priya@acme.com', name: 'Priya Shah', orgName: 'Acme', role: 'admin' },
     modules: { cloudCost: true, sapMonitoring: true },
     planType: 'premium',
     changePassword,
   });
-  render(<ThemeProvider><MemoryRouter><AccountPage /></MemoryRouter></ThemeProvider>);
+  render(<ThemeProvider><MemoryRouter initialEntries={[`/account#${tab}`]}><AccountPage /></MemoryRouter></ThemeProvider>);
   return { changePassword, user: userEvent.setup() };
 }
 
 describe('AccountPage', () => {
+  it('has Profile, Security, Appearance and Help tabs and renders only the active panel', async () => {
+    const { user } = setup();
+    const tabs = screen.getByRole('tablist', { name: 'Account sections' });
+    expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Profile', 'Security', 'Appearance', 'Help']);
+    expect(screen.getByRole('tab', { name: 'Profile' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Profile');
+    expect(screen.getByRole('heading', { level: 2, name: 'Organisation' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Current password')).toBeNull();
+    expect(screen.queryByRole('radiogroup')).toBeNull();
+
+    await user.click(screen.getByRole('tab', { name: 'Security' }));
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Security');
+    expect(screen.getByLabelText('Current password')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: /Biometric sign-in/ })).toBeInTheDocument();
+    expect(screen.queryByText('Priya Shah')).toBeNull();
+
+    await user.click(screen.getByRole('tab', { name: 'Appearance' }));
+    expect(screen.getAllByRole('radiogroup')).toHaveLength(2);
+    expect(screen.getByText(/reduced-motion setting/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Help' }));
+    expect(screen.getByRole('link', { name: /Contact Maitsys support/ })).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup')).toBeNull();
+  });
+
+  it('opens the tab named in the URL hash', () => {
+    setup(undefined, 'help');
+    expect(screen.getByRole('tab', { name: 'Help' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { level: 2, name: 'Help & support' })).toBeInTheDocument();
+  });
+
+  it('keeps a half-typed password when you switch tabs and back', async () => {
+    const { user } = setup(undefined, 'security');
+    await user.type(screen.getByLabelText('Current password'), 'OldPassword1');
+    await user.click(screen.getByRole('tab', { name: 'Appearance' }));
+    await user.click(screen.getByRole('tab', { name: 'Security' }));
+    expect(screen.getByLabelText('Current password')).toHaveValue('OldPassword1');
+  });
+
   it('shows identity, organisation and role as read-only text', () => {
     setup();
     expect(screen.getByText('Priya Shah')).toBeInTheDocument();
@@ -33,7 +74,7 @@ describe('AccountPage', () => {
   });
 
   it('validates the new password before calling the backend', async () => {
-    const { changePassword, user } = setup();
+    const { changePassword, user } = setup(undefined, 'security');
     await user.type(screen.getByLabelText('Current password'), 'OldPassword1');
     await user.type(screen.getByLabelText('New password'), 'NewPassword1');
     await user.type(screen.getByLabelText('Confirm new password'), 'Different1');
@@ -43,7 +84,7 @@ describe('AccountPage', () => {
   });
 
   it('changes the password and confirms inline', async () => {
-    const { changePassword, user } = setup();
+    const { changePassword, user } = setup(undefined, 'security');
     await user.type(screen.getByLabelText('Current password'), 'OldPassword1');
     await user.type(screen.getByLabelText('New password'), 'NewPassword1');
     await user.type(screen.getByLabelText('Confirm new password'), 'NewPassword1');
@@ -53,7 +94,7 @@ describe('AccountPage', () => {
   });
 
   it('shows the backend’s error text when the change is refused', async () => {
-    const { user } = setup(vi.fn().mockRejectedValue({ response: { data: { error: 'Your current password is incorrect.' } } }));
+    const { user } = setup(vi.fn().mockRejectedValue({ response: { data: { error: 'Your current password is incorrect.' } } }), 'security');
     await user.type(screen.getByLabelText('Current password'), 'Wrong1234');
     await user.type(screen.getByLabelText('New password'), 'NewPassword1');
     await user.type(screen.getByLabelText('Confirm new password'), 'NewPassword1');
@@ -62,13 +103,13 @@ describe('AccountPage', () => {
   });
 
   it('switches appearance immediately', async () => {
-    const { user } = setup();
+    const { user } = setup(undefined, 'appearance');
     await user.click(screen.getByRole('radio', { name: 'Dark' }));
     expect(screen.getByRole('radio', { name: 'Dark' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('offers Light, Dark and System themes and remembers the choice', async () => {
-    const { user } = setup();
+    const { user } = setup(undefined, 'appearance');
     const group = screen.getByRole('radiogroup', { name: /Theme/ });
     expect(within(group).getAllByRole('radio').map((r) => r.textContent)).toEqual(['Light', 'Dark', 'System']);
     await user.click(within(group).getByRole('radio', { name: 'System' }));
@@ -79,7 +120,7 @@ describe('AccountPage', () => {
   });
 
   it('switches table density and notes that motion follows the device', async () => {
-    const { user } = setup();
+    const { user } = setup(undefined, 'appearance');
     const group = screen.getByRole('radiogroup', { name: /Density/ });
     await user.click(within(group).getByRole('radio', { name: 'Compact' }));
     expect(within(group).getByRole('radio', { name: 'Compact' })).toHaveAttribute('aria-checked', 'true');
@@ -94,7 +135,7 @@ describe('AccountPage', () => {
     });
 
     it('says it is not available on this device when WebAuthn is missing, and the switch is off and disabled', () => {
-      setup();
+      setup(undefined, 'security');
       const sw = screen.getByRole('switch', { name: /Biometric sign-in/ });
       expect(sw).toBeDisabled();
       expect(sw).toHaveAttribute('aria-checked', 'false');
@@ -103,7 +144,7 @@ describe('AccountPage', () => {
 
     it('stores the preference locally when available, and is honest that it is a prototype', async () => {
       (window as { PublicKeyCredential?: unknown }).PublicKeyCredential = { isUserVerifyingPlatformAuthenticatorAvailable: () => Promise.resolve(true) };
-      const { user } = setup();
+      const { user } = setup(undefined, 'security');
       const sw = await screen.findByRole('switch', { name: /Biometric sign-in/ });
       expect(sw).toBeEnabled();
       expect(screen.getByText(/prototype capability/)).toHaveTextContent(/does not register a passkey/);
@@ -114,7 +155,7 @@ describe('AccountPage', () => {
 
     it('treats a device whose authenticator probe says no as unavailable', async () => {
       (window as { PublicKeyCredential?: unknown }).PublicKeyCredential = { isUserVerifyingPlatformAuthenticatorAvailable: () => Promise.resolve(false) };
-      setup();
+      setup(undefined, 'security');
       await screen.findByText(/Not available on this device/);
       expect(screen.getByRole('switch', { name: /Biometric sign-in/ })).toBeDisabled();
     });

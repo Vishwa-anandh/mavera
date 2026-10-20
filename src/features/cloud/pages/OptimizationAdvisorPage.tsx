@@ -9,11 +9,16 @@ import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedStat
 import { PROVIDER_LABEL, formatMoney } from '../model/cloudFormat';
 import { updateOpportunity, useOpportunityStates, type OpportunityState } from '../../../shared/lib/opportunityStore';
 import { PageHeader } from '../../../shared/ui/PageHeader';
-import { useScrollToHash } from '../../../shared/lib/useScrollToHash';
+import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
+import { useHashTab } from '../../../shared/lib/useHashTab';
 import { SavingsOverviewSection, useSavingsScope } from '../../recommendations';
 
 const ALL = 'All';
 const PROVIDER_FILTER_LABELS = { '': 'All providers', azure: 'Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'Google Cloud' } as const;
+const PROVIDER_SELECT_LABELS = { '': 'All Providers', azure: 'Microsoft Azure', aws: 'Amazon AWS', btp: 'SAP BTP', gcp: 'Google Cloud' } as const;
+
+type OptimizationTab = 'overview' | 'opportunities';
+const TABS: OptimizationTab[] = ['overview', 'opportunities'];
 const CATEGORIES: OptimizationOpportunity['category'][] = ['Rightsizing', 'Idle resources', 'Storage tiering', 'Commitments', 'Consolidation'];
 const IMPACT_TONE = { High: 'danger', Medium: 'warning', Low: 'neutral' } as const;
 const STATUSES: OpportunityState['status'][] = ['Open', 'In review', 'Dismissed'];
@@ -21,14 +26,17 @@ const OWNERS = ['Unassigned', 'platform-team', 'data-team', 'web-team', 'finance
 const DISMISS_REASONS = ['Not applicable', 'Already planned', 'Business requirement', 'Estimate is wrong'];
 
 /**
- * Savings & Optimization (CLOUD-04): the savings overview (former Recommendations page) followed
- * by the prioritised cost opportunities. `/recommendations` redirects here.
+ * Savings & Optimization (CLOUD-04), in two tabs (the owner asked for tabs here): "Savings overview" (the former
+ * Recommendations page) and "Opportunities" (the prioritised cost opportunities). `/recommendations` redirects
+ * here. The active tab lives in the URL hash (#overview, #opportunities). The provider filter sits in the page
+ * header, above the tabs, because it limits both tabs; the recalculation state and the opportunity drawer also
+ * live on the page, so they are not lost when the tab changes (a top recommendation opens its detail from the
+ * overview without leaving it).
  * Opportunities: Totals leave out recommendations that overlap
  * another one (same spend) so savings aren't counted twice. Actions here only record ownership
  * and decisions; nothing is changed in the cloud from this page.
  */
 export function OptimizationAdvisorPage() {
-  useScrollToHash();
   const allOpportunities = useMemo(() => cloudInsightsRepository.listOptimizationOpportunities(), []);
   // One provider filter for the whole page (overview figures and this list); limited to providers the person may see.
   const scope = useSavingsScope();
@@ -43,6 +51,9 @@ export function OptimizationAdvisorPage() {
   const [status, setStatus] = useRememberedState('cloud', 'optimization-status', 'Active', oneOf(['Active', ...STATUSES]));
   const [openId, setOpenId] = useState<string | null>(null);
   const [dismissReason, setDismissReason] = useState(DISMISS_REASONS[0]);
+  const [hashTab, showTab] = useHashTab(TABS);
+  // Without the savings overview in the plan, the page is just the opportunities (no tabs).
+  const tab: OptimizationTab = scope.overviewEnabled ? hashTab : 'opportunities';
 
   const stateOf = (o: OptimizationOpportunity): OpportunityState => states[o.id] ?? { status: 'Open' };
   const visible = opportunities
@@ -58,11 +69,30 @@ export function OptimizationAdvisorPage() {
 
   return (
     <div>
-      <PageHeader title="Savings & Optimization" subtitle="What you could save, what Maitsys rates already save you, and every opportunity to act on." />
+      <PageHeader title="Savings & Optimization" subtitle="What you could save, what Maitsys rates already save you, and every opportunity to act on.">
+        {scope.hasAnyAccess && (
+          <Select label="Provider" hideLabel value={provider} onChange={scope.setProvider} options={scope.providerOptions.map((p) => ({ value: p, label: PROVIDER_SELECT_LABELS[p] }))} />
+        )}
+      </PageHeader>
 
-      <SavingsOverviewSection scope={scope} opportunities={allOpportunities} onOpenOpportunity={setOpenId} />
+      {scope.overviewEnabled && (
+        <TabBar
+          idPrefix="optimization"
+          label="Savings and optimization sections"
+          activeId={tab}
+          onChange={(id) => showTab(id as OptimizationTab)}
+          items={[{ id: 'overview', label: 'Savings overview' }, { id: 'opportunities', label: 'Opportunities', count: active.length }]}
+        />
+      )}
 
-      <section id="opportunities" aria-labelledby="opportunities-title">
+      {tab === 'overview' && (
+        <div {...tabPanelProps('optimization', 'overview')}>
+          <SavingsOverviewSection scope={scope} opportunities={allOpportunities} onOpenOpportunity={setOpenId} />
+        </div>
+      )}
+
+      {tab === 'opportunities' && (
+      <section {...(scope.overviewEnabled ? tabPanelProps('optimization', 'opportunities') : { 'aria-labelledby': 'opportunities-title' })}>
       <div className="mv-section-head">
         <div>
           <h2 id="opportunities-title" className="mv-section-title">Opportunities</h2>
@@ -82,9 +112,6 @@ export function OptimizationAdvisorPage() {
           <div className="mv-filter-bar" role="search" aria-label="Filter opportunities">
             <Select label="Category" hideLabel value={category} onChange={setCategory} options={[{ value: ALL, label: 'All categories' }, ...CATEGORIES.map((c) => ({ value: c, label: c }))]} />
             <Select label="Impact" hideLabel value={impact} onChange={setImpact} options={[{ value: ALL, label: 'Any impact' }, { value: 'High', label: 'High impact' }, { value: 'Medium', label: 'Medium impact' }, { value: 'Low', label: 'Low impact' }]} />
-            {(!scope.overviewEnabled || !scope.hasAnyAccess) && (
-              <Select label="Provider" hideLabel value={provider} onChange={scope.setProvider} options={scope.providerOptions.map((p) => ({ value: p, label: PROVIDER_FILTER_LABELS[p] }))} />
-            )}
             <Select label="Status" hideLabel value={status} onChange={setStatus} options={[{ value: 'Active', label: 'Open and in review' }, ...STATUSES.map((s) => ({ value: s, label: s }))]} />
           </div>
           {visible.length === 0 ? (
@@ -119,6 +146,7 @@ export function OptimizationAdvisorPage() {
         </section>
       </div>
       </section>
+      )}
 
       {open && (
         <DetailDrawer

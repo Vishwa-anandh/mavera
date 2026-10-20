@@ -2,13 +2,12 @@ import { useMemo, useState } from 'react';
 import type { OptimizationOpportunity } from '../../../data-access';
 import { useOpportunityStates } from '../../../shared/lib/opportunityStore';
 import { DonutChart } from '../../../shared/ui/DonutChart';
-import { Select } from '../../../shared/ui/Select';
 import { RefreshIcon, TrendUpIcon, CreditCardIcon, LockIcon, ClockIcon } from '../../../shared/ui/icons';
 import { DetailDrawer, DetailList } from '../../../shared/ui/DetailDrawer';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
-import { buildRecommendationsView, type ProviderFilter } from '../model/recommendationsDerivations';
+import { buildRecommendationsView } from '../model/recommendationsDerivations';
 import type { SavingsCategory } from '../model/recommendationsTypes';
 import { applyRecalculation, groupSmallAreas, mspRowsOf, savingsByArea, topRecommendationsOf, visibleOpportunities } from '../model/savingsInsights';
 import type { SavingsScope } from '../model/useSavingsScope';
@@ -20,14 +19,12 @@ function formatCurrency(value: number, fractionDigits = 2): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }).format(value);
 }
 
-const PROVIDER_LABELS: Record<ProviderFilter, string> = { '': 'All Providers', azure: 'Microsoft Azure', aws: 'Amazon AWS', btp: 'SAP BTP', gcp: 'Google Cloud' };
-
 interface SavingsOverviewSectionProps {
-  /** Provider filter, recalculation and access, owned by the page so the opportunity list below agrees with it. */
+  /** Provider filter, recalculation and access, owned by the page (its provider filter sits in the page header) so both tabs agree. */
   scope: SavingsScope;
   /** Every optimisation opportunity; the section limits them to the selected provider and what the person may see. */
   opportunities: OptimizationOpportunity[];
-  /** Opens one opportunity's detail (the drawer on the page below). */
+  /** Opens one opportunity's detail (the drawer lives on the page, so it opens from either tab). */
   onOpenOpportunity: (id: string) => void;
 }
 
@@ -35,11 +32,12 @@ interface SavingsOverviewSectionProps {
  * Savings overview (the former Recommendations page, ported from the reference CCM app's
  * RecommendationsPage.jsx): month-to-date spend and potential savings, the potential-versus-realised
  * trend, savings by category, the top recommendations, the savings you can control, and the Maitsys
- * MSP savings per provider. Everything follows one provider filter, and "Recalculate savings" re-runs
- * the (simulated) calculation. BTP has its own data-driven savings model, see recommendationsDerivations.ts.
+ * MSP savings per provider. Everything follows the page's one provider filter, and "Recalculate savings" re-runs
+ * the (simulated) calculation. It is the "Savings overview" tab of the page; the page renders it only while
+ * that tab is open. BTP has its own data-driven savings model, see recommendationsDerivations.ts.
  */
 export function SavingsOverviewSection({ scope, opportunities, onOpenOpportunity }: SavingsOverviewSectionProps) {
-  const { provider, setProvider, providerOptions, allowedProviders, hasAnyAccess, overviewEnabled, recalculation } = scope;
+  const { provider, allowedProviders, hasAnyAccess, overviewEnabled, recalculation } = scope;
   const { mode } = useMaveraTheme();
   const colors = chartColors[mode];
   const states = useOpportunityStates();
@@ -76,13 +74,6 @@ export function SavingsOverviewSection({ scope, opportunities, onOpenOpportunity
           <p className="mv-muted">Month-to-date spend, potential savings and Maitsys MSP rates (Azure 7% · AWS 3.5% · BTP 2% · GCP 2%).</p>
         </div>
         <div className="mv-heading-actions">
-          <Select
-            label="Provider"
-            hideLabel
-            value={provider}
-            onChange={setProvider}
-            options={providerOptions.map((p) => ({ value: p, label: PROVIDER_LABELS[p] }))}
-          />
           <button type="button" className="mv-secondary-button" onClick={recalculation.start} disabled={recalculation.running}>
             <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{recalculation.running ? 'Recalculating…' : 'Recalculate savings'}
           </button>

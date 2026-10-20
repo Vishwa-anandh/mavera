@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { LoginPage } from './LoginPage';
 import type { AuthContextValue } from '../model/AuthContext';
-import { DEMO_EMAIL, DEMO_PASSWORD } from '../model/AuthContext';
+import { DEMO_EMAIL, DEMO_PASSWORD, DEMO_CLOUD_EMAIL } from '../model/AuthContext';
 import { SuperAdminAuthProvider, DEMO_USERNAME as SA_DEMO_USERNAME, DEMO_PASSWORD as SA_DEMO_PASSWORD } from '../../superAdmin';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 
@@ -184,7 +184,7 @@ describe('LoginPage', () => {
 
     renderAt('/login');
     expect(screen.getByText(DEMO_EMAIL)).toBeInTheDocument();
-    expect(screen.getByText(DEMO_PASSWORD)).toBeInTheDocument();
+    expect(screen.getAllByText(DEMO_PASSWORD).length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole('button', { name: 'Use demo credentials' }));
     expect(screen.getByText('Enter your password')).toBeInTheDocument();
@@ -193,6 +193,18 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(login).toHaveBeenCalledWith(DEMO_EMAIL, DEMO_PASSWORD);
     expect(navigateMock).toHaveBeenCalledWith('/');
+  });
+
+  it('offers the Cloud Cost only demo organisation and signs in with it', async () => {
+    const login = vi.fn().mockResolvedValue(undefined);
+    useAuthMock.mockReturnValue(auth({ login }));
+    const user = userEvent.setup();
+    renderAt('/login');
+    expect(screen.getByText(DEMO_CLOUD_EMAIL)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Use Cloud Cost only credentials' }));
+    expect(screen.getByLabelText('Password')).toHaveValue(DEMO_PASSWORD);
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(login).toHaveBeenCalledWith(DEMO_CLOUD_EMAIL, DEMO_PASSWORD);
   });
 
   it('routes the Super Admin credentials through the same form into the Super Admin dashboard', async () => {

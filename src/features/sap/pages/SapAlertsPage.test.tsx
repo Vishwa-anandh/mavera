@@ -6,7 +6,7 @@ import { resetSapAdminStore, sapAdminRepository } from '../../../data-access';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import { SapAlertsPage } from './SapAlertsPage';
 
-const renderPage = () => render(<ThemeProvider><MemoryRouter><SapAlertsPage /></MemoryRouter></ThemeProvider>);
+const renderPage = (path = '/') => render(<ThemeProvider><MemoryRouter initialEntries={[path]}><SapAlertsPage /></MemoryRouter></ThemeProvider>);
 const counter = (label: string) => screen.getByText(label, { selector: '.mv-kpi-label' }).closest('.mv-kpi') as HTMLElement;
 const bodyRows = () => screen.getAllByRole('row').slice(1);
 
@@ -33,7 +33,7 @@ describe('SapAlertsPage', () => {
     expect(bodyRows().every((row) => /HANA/.test(row.textContent ?? ''))).toBe(true);
     await user.click(screen.getByRole('button', { name: 'SAP Monitoring' }));
     expect(within(counter('Total Active')).getByText('4')).toBeInTheDocument();
-    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /HANA Monitoring|SAP Monitoring/ })).not.toBeInTheDocument(); // the source switch is a toggle, not a tab
   });
 
   it('filters by every alert type, including the ones that were missing', async () => {
@@ -85,54 +85,99 @@ describe('SapAlertsPage', () => {
     expect(screen.getByText(/Ignored this month:/)).toHaveTextContent('Ignored this month: 1');
   });
 
-  it('opens Settings in a drawer, validates, saves and resets; adjustments are counted', async () => {
+  it('has three tabs, shows only the active panel and follows the URL hash', async () => {
     const user = userEvent.setup();
-    renderPage();
-    await user.click(screen.getByRole('button', { name: 'Settings' }));
-    const drawer = await screen.findByRole('dialog', { name: 'Alert Settings' });
-    const sensitivity = within(drawer).getByLabelText(/Sensitivity/);
+    const { unmount } = renderPage();
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.map((t) => t.textContent)).toEqual(['Alerts', 'Settings', 'Recipients']);
+    expect(screen.getByRole('tab', { name: 'Alerts' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Alerts');
+    expect(screen.queryByRole('heading', { name: 'Alert recipients' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Settings' })).not.toBeInTheDocument(); // no header buttons any more
+
+    await user.click(screen.getByRole('tab', { name: 'Recipients' }));
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Recipients');
+    expect(screen.queryByText('Total Active')).not.toBeInTheDocument();
+    unmount();
+
+    renderPage('/#settings');
+    expect(screen.getByRole('tab', { name: 'Settings' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Anomaly Detection Settings' })).toBeInTheDocument();
+  });
+
+  it('edits Settings in its tab: validates, saves and resets; adjustments are counted', async () => {
+    const user = userEvent.setup();
+    renderPage('/#settings');
+    const panel = screen.getByRole('tabpanel');
+    const sensitivity = within(panel).getByLabelText(/Sensitivity/);
     expect(sensitivity).toHaveValue(3);
 
     await user.clear(sensitivity);
     await user.type(sensitivity, '9');
-    await user.click(within(drawer).getByRole('button', { name: 'Save Settings' }));
-    expect(within(drawer).getByRole('alert')).toHaveTextContent('Enter a value from 1 to 6.');
+    await user.click(within(panel).getByRole('button', { name: 'Save settings' }));
+    expect(within(panel).getByRole('alert')).toHaveTextContent('Enter a value from 1 to 6.');
     expect(sapAdminRepository.alerts.getSettings().sensitivity).toBe(3);
 
     await user.clear(sensitivity);
     await user.type(sensitivity, '2.5');
-    await user.click(within(drawer).getByRole('button', { name: 'Save Settings' }));
+    await user.click(within(panel).getByRole('button', { name: 'Save settings' }));
     expect(sapAdminRepository.alerts.getSettings().sensitivity).toBe(2.5);
 
-    await user.click(within(drawer).getByRole('button', { name: 'Reset to defaults' }));
+    await user.click(within(panel).getByRole('button', { name: 'Reset to defaults' }));
     expect(sensitivity).toHaveValue(3);
     expect(sapAdminRepository.alerts.getSettings().sensitivity).toBe(3);
 
-    await user.click(within(drawer).getByRole('button', { name: 'Close details' }));
+    await user.click(screen.getByRole('tab', { name: 'Alerts' }));
     expect(screen.getByText(/Threshold adjustments:/)).toHaveTextContent('Threshold adjustments: 2');
   });
 
-  it('manages recipients: validates, adds and removes', async () => {
+  it('keeps unsaved Settings edits when switching tabs and back', async () => {
     const user = userEvent.setup();
-    renderPage();
-    await user.click(screen.getByRole('button', { name: 'Recipients' }));
-    const dialog = screen.getByRole('dialog', { name: 'Alert recipients' });
-    const list = () => within(dialog).getByRole('list', { name: 'Alert recipients' });
+    renderPage('/#settings');
+    const sensitivity = screen.getByLabelText(/Sensitivity/);
+    await user.clear(sensitivity);
+    await user.type(sensitivity, '4');
+    await user.click(screen.getByRole('tab', { name: 'Recipients' }));
+    await user.click(screen.getByRole('tab', { name: 'Settings' }));
+    expect(screen.getByLabelText(/Sensitivity/)).toHaveValue(4);
+    expect(sapAdminRepository.alerts.getSettings().sensitivity).toBe(3);
+  });
+
+  it('saves the HANA and SAP thresholds from the Settings tab', async () => {
+    const user = userEvent.setup();
+    renderPage('/#settings');
+    const hana = screen.getByRole('region', { name: 'HANA Monitoring thresholds' });
+    expect(screen.getByRole('region', { name: 'SAP Monitoring thresholds' })).toBeInTheDocument();
+    const first = within(hana).getAllByRole('switch')[0];
+    const before = first.getAttribute('aria-checked');
+    await user.click(first);
+    expect(first).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true');
+    await user.click(within(hana).getByRole('button', { name: 'Save HANA thresholds' }));
+    expect(sapAdminRepository.alerts.getThresholds().hana[0].enabled).toBe(before !== 'true');
+  });
+
+  it('manages recipients in their tab: validates, adds and removes', async () => {
+    const user = userEvent.setup();
+    renderPage('/#recipients');
+    const panel = screen.getByRole('tabpanel');
+    const list = () => within(panel).getByRole('list', { name: 'Alert recipients' });
     expect(within(list()).getAllByRole('listitem')).toHaveLength(1);
 
-    await user.type(within(dialog).getByLabelText(/^Email address/), 'not-an-email');
-    await user.click(within(dialog).getByRole('button', { name: 'Add' }));
-    expect(within(dialog).getByRole('alert')).toHaveTextContent(/valid email/);
+    await user.type(within(panel).getByLabelText(/^Email address/), 'not-an-email');
+    await user.click(within(panel).getByRole('button', { name: 'Add' }));
+    expect(within(panel).getByRole('alert')).toHaveTextContent(/valid email/);
 
-    await user.clear(within(dialog).getByLabelText(/^Email address/));
-    await user.type(within(dialog).getByLabelText(/^Email address/), 'basis@maitsys.com');
-    await user.click(within(dialog).getByRole('button', { name: 'Add' }));
+    await user.clear(within(panel).getByLabelText(/^Email address/));
+    await user.type(within(panel).getByLabelText(/^Email address/), 'basis@maitsys.com');
+    await user.click(within(panel).getByRole('button', { name: 'Add' }));
     expect(within(list()).getAllByRole('listitem')).toHaveLength(2);
 
-    await user.click(within(dialog).getByRole('button', { name: 'Remove recipient basis@maitsys.com' }));
+    await user.click(within(panel).getByRole('button', { name: 'Remove recipient basis@maitsys.com' }));
     expect(within(list()).getAllByRole('listitem')).toHaveLength(1);
-    await user.click(within(dialog).getByRole('button', { name: 'Remove recipient demo@mavera.local' }));
-    expect(within(dialog).getByText(/No recipients/)).toBeInTheDocument();
+    await user.click(within(panel).getByRole('button', { name: 'Remove recipient demo@mavera.local' }));
+    expect(within(panel).getByText(/No recipients/)).toBeInTheDocument();
   });
 
   it('shows an empty state when a filter matches nothing', async () => {

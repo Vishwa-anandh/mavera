@@ -183,7 +183,7 @@ export function HomePage() {
             <p className="mv-pulse-greeting">{greetingFor(new Date().getHours())}, {firstName}</p>
             <h1 id="pulse-title" className="mv-pulse-title">Operations pulse</h1>
           </div>
-          <DashboardToolbar onRefresh={refetch} />
+          <DashboardToolbar onRefresh={refetch} modules={modules} />
         </div>
         {summaryRows.length > 0 && <div className="mv-pulse-grid">{summaryRows}</div>}
       </section>

@@ -13,9 +13,15 @@ import { InsightList } from '../../../shared/ui/InsightList';
 import { ServerIcon, RefreshIcon } from '../../../shared/ui/icons';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
+import { useHashTab } from '../../../shared/lib/useHashTab';
 
 /** HANA hosts sync every 30 minutes. */
 const HANA_SYNC_INTERVAL_SEC = 30 * 60;
+
+type HanaTab = 'vitals' | 'storage' | 'backups';
+const TABS: HanaTab[] = ['vitals', 'storage', 'backups'];
+const TAB_ITEMS = [{ id: 'vitals', label: 'Vitals' }, { id: 'storage', label: 'Services and disk' }, { id: 'backups', label: 'Backups' }];
 
 function tone(condition: string): string {
   if (condition === 'healthy' || condition === 'stable') return 'success';
@@ -26,9 +32,11 @@ function tone(condition: string): string {
 /**
  * Single-system HANA deep dive — host vitals, 24h CPU/memory timeline, core services, disk partitions and
  * the backup timeline. Distinct from /sap/systems (the fleet-wide list):
- * this is what you land on after picking one system to inspect.
+ * this is what you land on after picking one system to inspect. The host line, KPI strip and destination switcher stay
+ * above three tabs (`#vitals`, `#storage`, `#backups`).
  */
 export function HanaMonitoringPage() {
+  const [tab, setTab] = useHashTab(TABS);
   const { system: HANA_SYSTEM, timeline: HANA_VITALS_TIMELINE, services: HANA_SERVICES } = useMemo(() => sapRepository.getHana(), []);
   const partitions = useMemo(() => sapRepository.listHanaDiskPartitions(), []);
   const backups = useMemo(() => sapRepository.listHanaBackups(), []);
@@ -81,41 +89,55 @@ export function HanaMonitoringPage() {
         <SessionsCard sessions={HANA_SYSTEM.sessions} />
       </div>
 
-      <section className="mv-panel" aria-labelledby="hana-insights-title" style={{ marginBottom: '1rem' }}>
-        <div className="mv-panel-header">
-          <div>
-            <h2 id="hana-insights-title" className="mv-panel-title">Last 24 hours</h2>
-            <p className="mv-muted">What the host did over the window, and anything that needs a look.</p>
+      <TabBar idPrefix="hana" label="HANA monitoring sections" items={TAB_ITEMS} activeId={tab} onChange={(id) => setTab(id as HanaTab)} />
+
+      {tab === 'vitals' && (
+        <div {...tabPanelProps('hana', 'vitals')} className="mv-column-stack">
+          <section className="mv-panel" aria-labelledby="hana-insights-title">
+            <div className="mv-panel-header">
+              <div>
+                <h2 id="hana-insights-title" className="mv-panel-title">Last 24 hours</h2>
+                <p className="mv-muted">What the host did over the window, and anything that needs a look.</p>
+              </div>
+            </div>
+            <InsightList items={insights} label="HANA findings for the last 24 hours" />
+          </section>
+
+          <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr' } as React.CSSProperties}>
+            <section className="mv-panel">
+              <div className="mv-panel-header"><h2 className="mv-panel-title">System Vitals Timeline</h2><p className="mv-muted" style={{ margin: 0 }}>CPU &amp; memory over 24 hours · CPU peaked at {facts.peakCpu.percent}% around {facts.peakCpu.time}</p></div>
+              <HanaVitalsChart data={HANA_VITALS_TIMELINE} />
+            </section>
+
+            <section className="mv-panel" aria-labelledby="hana-memory-title">
+              <div className="mv-panel-header"><h2 id="hana-memory-title" className="mv-panel-title">Memory composition</h2><span className="mv-muted">{HANA_SYSTEM.memory.totalGb} GB total</span></div>
+              <DonutChart
+                title="HANA memory, used and free"
+                totalLabel="GB total"
+                data={[
+                  { label: 'Used', value: HANA_SYSTEM.memory.usedGb, color: 'var(--mv-primary)' },
+                  { label: 'Free', value: HANA_SYSTEM.memory.freeGb, color: 'var(--mv-success)' },
+                ]}
+              />
+            </section>
           </div>
         </div>
-        <InsightList items={insights} label="HANA findings for the last 24 hours" />
-      </section>
+      )}
 
-      <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr', marginBottom: '1rem' } as React.CSSProperties}>
-        <section className="mv-panel">
-          <div className="mv-panel-header"><h2 className="mv-panel-title">System Vitals Timeline</h2><p className="mv-muted" style={{ margin: 0 }}>CPU &amp; memory over 24 hours · CPU peaked at {facts.peakCpu.percent}% around {facts.peakCpu.time}</p></div>
-          <HanaVitalsChart data={HANA_VITALS_TIMELINE} />
-        </section>
+      {tab === 'storage' && (
+        <div {...tabPanelProps('hana', 'storage')}>
+          <div className="mv-columns-16-8" style={{ '--mv-cols': '1fr 1fr' } as React.CSSProperties}>
+            <HanaCoreServicesPanel services={HANA_SERVICES} />
+            <HanaDiskUsagePanel partitions={partitions} />
+          </div>
+        </div>
+      )}
 
-        <section className="mv-panel" aria-labelledby="hana-memory-title">
-          <div className="mv-panel-header"><h2 id="hana-memory-title" className="mv-panel-title">Memory composition</h2><span className="mv-muted">{HANA_SYSTEM.memory.totalGb} GB total</span></div>
-          <DonutChart
-            title="HANA memory, used and free"
-            totalLabel="GB total"
-            data={[
-              { label: 'Used', value: HANA_SYSTEM.memory.usedGb, color: 'var(--mv-primary)' },
-              { label: 'Free', value: HANA_SYSTEM.memory.freeGb, color: 'var(--mv-success)' },
-            ]}
-          />
-        </section>
-      </div>
-
-      <div className="mv-columns-16-8" style={{ '--mv-cols': '1fr 1fr', marginBottom: '1rem' } as React.CSSProperties}>
-        <HanaCoreServicesPanel services={HANA_SERVICES} />
-        <HanaDiskUsagePanel partitions={partitions} />
-      </div>
-
-      <HanaBackupTimeline backups={backups} />
+      {tab === 'backups' && (
+        <div {...tabPanelProps('hana', 'backups')}>
+          <HanaBackupTimeline backups={backups} />
+        </div>
+      )}
     </div>
   );
 }

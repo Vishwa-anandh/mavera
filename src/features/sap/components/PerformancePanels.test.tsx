@@ -148,21 +148,28 @@ describe('BackgroundJobsSummaryCard', () => {
 });
 
 describe('SapPerformancePage T-code cards', () => {
-  it('labels each card with its transaction and shows the analytics charts', () => {
-    wrap(<SapPerformancePage />);
-    for (const [name, code] of [['ABAP Runtime Errors', 'ST22'], ['Server Topology', 'SM51'], ['Disk Usage', 'ST06'], ['DB Call Statistics', 'ST02'], ['Background Jobs', 'SM37'], ['Work Processes', 'SM50']]) {
+  it('labels each card with its transaction and shows the analytics charts', async () => {
+    wrap(<SapPerformancePage />, '/#health');
+    for (const [name, code] of [['ABAP Runtime Errors', 'ST22'], ['Server Topology', 'SM51'], ['Disk Usage', 'ST06'], ['DB Call Statistics', 'ST02']]) {
       expect(screen.getByRole('heading', { name: new RegExp(name) })).toHaveTextContent(code);
     }
+    expect(screen.getByText('Nametab (NTAB)')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Jobs and processes' }));
+    for (const [name, code] of [['Background Jobs', 'SM37'], ['Work Processes', 'SM50']]) {
+      expect(screen.getByRole('heading', { name: new RegExp(name) })).toHaveTextContent(code);
+    }
+    expect(screen.getByRole('list', { name: 'Update and enqueue queues' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Analytics' }));
     for (const chart of ['Job Duration', 'Dump Timeline', 'Buffer Hit', 'DB Calls']) {
       expect(screen.getByRole('img', { name: new RegExp(`^${chart}\\.`) })).toBeInTheDocument();
     }
     expect(screen.getByRole('img', { name: 'Work process mix by type' })).toBeInTheDocument();
-    expect(screen.getByRole('list', { name: 'Update and enqueue queues' })).toBeInTheDocument();
-    expect(screen.getByText('Nametab (NTAB)')).toBeInTheDocument();
   });
 
   it('shows the clean state for ST22 and the real sample for ST02', () => {
-    wrap(<SapPerformancePage />);
+    wrap(<SapPerformancePage />, '/#health');
     expect(screen.getAllByRole('status').some((el) => /No runtime errors, system is running clean/.test(el.textContent ?? ''))).toBe(true);
     expect(screen.queryByText('No call statistics')).not.toBeInTheDocument();
   });
@@ -176,6 +183,37 @@ describe('SapPerformancePage T-code cards', () => {
 });
 
 describe('SapJobsPage', () => {
+  it('has two tabs with counts and shows only the active panel', async () => {
+    wrap(<SapJobsPage />);
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Background jobs20', 'Short dumps0']);
+    expect(screen.getByRole('tab', { name: /Background jobs/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
+    expect(screen.queryByRole('heading', { name: /Short Dumps/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: /Short dumps/ }));
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
+    expect(screen.getByRole('heading', { name: /Short Dumps/ })).toBeInTheDocument();
+    expect(screen.queryByRole('searchbox', { name: 'Search jobs' })).not.toBeInTheDocument();
+  });
+
+  it('opens the dumps tab from #dumps (the /sap/dumps redirect) and the jobs tab from #jobs with a status', () => {
+    const { unmount } = wrap(<SapJobsPage />, '/sap/jobs#dumps');
+    expect(screen.getByRole('tab', { name: /Short dumps/ })).toHaveAttribute('aria-selected', 'true');
+    unmount();
+    wrap(<SapJobsPage />, '/sap/jobs?status=Running#jobs');
+    expect(screen.getByRole('tab', { name: /Background jobs/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: /^Running/ })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('keeps the chip and search when switching to dumps and back', async () => {
+    wrap(<SapJobsPage />);
+    await userEvent.click(screen.getByRole('button', { name: /^Running/ }));
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Search jobs' }), 'monthly');
+    await userEvent.click(screen.getByRole('tab', { name: /Short dumps/ }));
+    await userEvent.click(screen.getByRole('tab', { name: /Background jobs/ }));
+    expect(screen.getByRole('button', { name: /^Running/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('searchbox', { name: 'Search jobs' })).toHaveValue('monthly');
+  });
+
   it('filters, searches and pages the one job list', async () => {
     wrap(<SapJobsPage />);
     expect(screen.getByRole('button', { name: 'All 20' })).toHaveAttribute('aria-pressed', 'true');

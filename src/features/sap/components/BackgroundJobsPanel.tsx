@@ -6,10 +6,18 @@ import {
 } from '../model/sapPerformance';
 import { TcodeBadge } from './TcodeBadge';
 
+/** What the viewer has narrowed the list to; the page can hold it so it survives a tab switch. */
+export interface JobsView { filter: JobFilter; query: string; limit: number }
+
 interface BackgroundJobsPanelProps {
   jobs: SapJob[];
   /** Which status chip starts selected (Performance links here with `?status=Running`). */
   initialFilter?: JobFilter;
+  /** Search text and number of rows shown to start with (used to restore the view after a tab switch). */
+  initialQuery?: string;
+  initialLimit?: number;
+  /** Called whenever the chip, search or "Show more" count changes. */
+  onViewChange?: (view: JobsView) => void;
   onOpenJob: (job: SapJob) => void;
 }
 
@@ -18,10 +26,14 @@ interface BackgroundJobsPanelProps {
  * the whole job list, like the source; search and chip together narrow the table. This is the one place
  * the job list is filtered, SAP Performance links here rather than keeping its own copy.
  */
-export function BackgroundJobsPanel({ jobs, initialFilter = 'All', onOpenJob }: BackgroundJobsPanelProps) {
-  const [filter, setFilter] = useState<JobFilter>(initialFilter);
-  const [query, setQuery] = useState('');
-  const [limit, setLimit] = useState(JOBS_PAGE_SIZE);
+export function BackgroundJobsPanel({ jobs, initialFilter = 'All', initialQuery = '', initialLimit = JOBS_PAGE_SIZE, onViewChange, onOpenJob }: BackgroundJobsPanelProps) {
+  const [view, setView] = useState<JobsView>({ filter: initialFilter, query: initialQuery, limit: initialLimit });
+  const { filter, query, limit } = view;
+  const update = (patch: Partial<JobsView>) => {
+    const next = { ...view, ...patch };
+    setView(next);
+    onViewChange?.(next);
+  };
 
   const counts = useMemo(() => jobStatusCounts(jobs), [jobs]);
   const matches = useMemo(() => sortJobsNewestFirst(filterJobs(jobs, filter, query)), [jobs, filter, query]);
@@ -29,10 +41,10 @@ export function BackgroundJobsPanel({ jobs, initialFilter = 'All', onOpenJob }: 
   const remaining = matches.length - shown.length;
   const narrowed = filter !== 'All' || query.trim() !== '';
 
-  const choose = (next: JobFilter) => { setFilter(next); setLimit(JOBS_PAGE_SIZE); };
+  const choose = (next: JobFilter) => update({ filter: next, limit: JOBS_PAGE_SIZE });
 
   return (
-    <section className="mv-panel" id="jobs" aria-labelledby="sap-jobs-title">
+    <section className="mv-panel" aria-labelledby="sap-jobs-title">
       <div className="mv-panel-header">
         <h2 id="sap-jobs-title" className="mv-panel-title"><ClockIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />Background Jobs <TcodeBadge code="SM37" /></h2>
         <span className="mv-muted">{jobs.length} jobs</span>
@@ -41,7 +53,7 @@ export function BackgroundJobsPanel({ jobs, initialFilter = 'All', onOpenJob }: 
       <div className="mv-filter-bar" role="search" aria-label="Filter background jobs">
         <label className="mv-filter-search">
           <SearchIcon size={16} aria-hidden />
-          <input type="search" aria-label="Search jobs" placeholder="Search jobs..." value={query} onChange={(e) => { setQuery(e.target.value); setLimit(JOBS_PAGE_SIZE); }} />
+          <input type="search" aria-label="Search jobs" placeholder="Search jobs..." value={query} onChange={(e) => update({ query: e.target.value, limit: JOBS_PAGE_SIZE })} />
         </label>
       </div>
       <div className="mv-job-chips" role="group" aria-label="Filter jobs by status">
@@ -58,7 +70,7 @@ export function BackgroundJobsPanel({ jobs, initialFilter = 'All', onOpenJob }: 
         <div className="mv-empty-inline">
           <p><strong>No jobs match</strong></p>
           <p className="mv-muted">{narrowed ? 'Try another status or clear the search.' : 'There are no background jobs for this system.'}</p>
-          {narrowed && <button type="button" className="mv-quiet-button" onClick={() => { setFilter('All'); setQuery(''); }}>Clear filters</button>}
+          {narrowed && <button type="button" className="mv-quiet-button" onClick={() => update({ filter: 'All', query: '' })}>Clear filters</button>}
         </div>
       ) : (
         <div className="mv-table-wrap">
@@ -85,7 +97,7 @@ export function BackgroundJobsPanel({ jobs, initialFilter = 'All', onOpenJob }: 
         <div className="mv-show-more">
           <span className="mv-muted" aria-hidden="true">Showing {shown.length} of {matches.length}</span>
           {remaining > 0 && (
-            <button type="button" className="mv-quiet-button" onClick={() => setLimit((current) => current + JOBS_PAGE_SIZE)}>
+            <button type="button" className="mv-quiet-button" onClick={() => update({ limit: limit + JOBS_PAGE_SIZE })}>
               Show more ({remaining} remaining)
             </button>
           )}

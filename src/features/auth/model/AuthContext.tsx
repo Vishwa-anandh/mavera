@@ -76,6 +76,11 @@ export const DEMO_PASSWORD = 'Mavera@2026';
 /** The id of the local demo session's user; it has no backend account. */
 const DEMO_USER_ID = 'dev-preview-user';
 
+/** A second demo organisation that only subscribes to Cloud Cost, to show how Mavera looks without SAP Monitoring. */
+export const DEMO_CLOUD_EMAIL = 'cloud@mavera.local';
+const DEMO_CLOUD_USER_ID = 'demo-cloud-user';
+const DEMO_USER_IDS = new Set([DEMO_USER_ID, DEMO_CLOUD_USER_ID]);
+
 export interface AuthContextValue {
   user: User | null;
   loading: boolean;
@@ -157,6 +162,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchMe]);
 
   // PROTOTYPE ONLY — see the doc comment on DEMO_EMAIL/DEMO_PASSWORD above.
+  const applyCloudDemoSession = useCallback(() => {
+    setUser({
+      id: DEMO_CLOUD_USER_ID,
+      email: DEMO_CLOUD_EMAIL,
+      name: 'Cloud Preview',
+      orgName: 'Northwind Cloud (Cloud Cost only)',
+      role: 'admin',
+      canViewAzure: true,
+      canViewAws: true,
+      canViewBtp: true,
+      canViewGcp: true,
+      cloudAccess: ['azure', 'aws', 'btp', 'gcp'],
+      invoiceOnly: false,
+      modules: { cloudCost: true, sapMonitoring: false },
+      maxUsers: 10,
+      planType: 'premium',
+      aiEnabled: true,
+      subscriptionStartsAt: '2026-05-27T00:00:00.000Z',
+      subscriptionExpiresAt: '2027-05-27T00:00:00.000Z',
+      subscriptionActive: true,
+    });
+    setLoading(false);
+  }, []);
+
   const applyDemoSession = useCallback(() => {
     setUser({
       id: DEMO_USER_ID,
@@ -207,6 +236,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         applyDemoSession();
         return;
       }
+      if (email.trim().toLowerCase() === DEMO_CLOUD_EMAIL && password === DEMO_PASSWORD) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        applyCloudDemoSession();
+        return;
+      }
       const company = licenseRepository.authenticate(email, password);
       if (company) {
         await new Promise((resolve) => setTimeout(resolve, 400));
@@ -224,7 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // payload, which can lag the database.
       await fetchMe();
     },
-    [fetchMe, applyDemoSession, applyCompanySession],
+    [fetchMe, applyDemoSession, applyCloudDemoSession, applyCompanySession],
   );
 
   const register = useCallback(async (payload: RegisterPayload) => {
@@ -284,7 +318,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     // PROTOTYPE ONLY: the demo session has no backend account, so it only checks the current
     // password and stores nothing.
-    if (user?.id === DEMO_USER_ID) {
+    if (user?.id && DEMO_USER_IDS.has(user.id)) {
       await new Promise((resolve) => setTimeout(resolve, 400));
       if (currentPassword !== DEMO_PASSWORD) throw { response: { data: { error: 'Your current password is incorrect.' } } };
       return;
@@ -307,7 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       isAuthenticated: Boolean(user),
-      isDemoSession: user?.id === DEMO_USER_ID,
+      isDemoSession: Boolean(user?.id && DEMO_USER_IDS.has(user.id)),
       invoiceOnly: user?.invoiceOnly ?? false,
       cloudAccess: user?.cloudAccess ?? [],
       features: { ...DEFAULT_FEATURES, ...user?.features },

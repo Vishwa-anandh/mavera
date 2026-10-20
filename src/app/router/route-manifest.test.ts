@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { derivePermissions } from '../../shared/lib/permissions';
 import type { User } from '../../shared/types/auth';
 import { NAV_MODULES, resolveNav, type NavContext } from './navConfig';
-import { appPaths, isRegisteredPath, routeById, routeManifest, routeModuleFor } from './route-manifest';
+import { appPaths, isRegisteredPath, productModuleFor, routeById, routeManifest, routeModuleFor } from './route-manifest';
 
 const ALL_ON: NavContext = {
   features: { budgets: true, smartAlerts: true, syncLogs: true, recommendations: true, cloudManagement: true, invoices: true },
@@ -91,5 +91,22 @@ describe('role-based route protection', () => {
     expect(routeModuleFor('/alerts')).toBeUndefined();
     expect(routeModuleFor('/nowhere')).toBeUndefined();
     expect(routeById('audit-trail')).toMatchObject({ path: '/audit-trail', module: 'audit', layout: 'app' });
+  });
+});
+
+describe('productModuleFor', () => {
+  it('ties SAP pages to SAP Monitoring and cost, provider, budget and invoice pages to Cloud Cost', () => {
+    for (const path of ['/sap/systems', '/sap/databases', '/sap/jobs', '/sap/dumps', '/sap/transport-management', '/sap/configuration']) {
+      expect(productModuleFor(path), path).toBe('sapMonitoring');
+    }
+    for (const path of ['/cloud/overview', '/cloud/optimization', '/azure', '/azure/some-id', '/aws/accounts', '/budgets', '/smart-alerts', '/invoices']) {
+      expect(productModuleFor(path), path).toBe('cloudCost');
+    }
+  });
+
+  it('leaves shared pages open to every organisation', () => {
+    for (const path of ['/', '/account', '/users', '/subscription', '/audit-trail', '/alerts', '/ai-assistant']) {
+      expect(productModuleFor(path), path).toBeUndefined();
+    }
   });
 });

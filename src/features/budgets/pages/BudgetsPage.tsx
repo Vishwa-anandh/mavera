@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { budgetsRepository } from '../../../data-access';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
@@ -7,6 +8,8 @@ import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { BellIcon, TrashIcon, PlusIcon, CreditCardIcon, LockIcon } from '../../../shared/ui/icons';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { Select } from '../../../shared/ui/Select';
+import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
+import { useHashTab } from '../../../shared/lib/useHashTab';
 import { AddChannelDialog, type NewChannelValues } from '../components/AddChannelDialog';
 import { channelsForNewBudget, channelsNotifiedFor, channelSummary, linkedBudgetNames, providerLabel } from '../model/budgetChannels';
 import type { AlertChannel, Budget } from '../model/budgetsTypes';
@@ -17,9 +20,14 @@ function formatCurrency(value: number): string {
 
 const emptyBudgetForm = { name: '', target_amount: '', alert_threshold: '80', scope_type: 'organization' as 'organization' | 'account', scope_value: '' };
 
+type BudgetsTab = 'budgets' | 'integrations';
+const TABS: BudgetsTab[] = ['budgets', 'integrations'];
+
 /**
- * Budgets & Alerts: the spending limits, then, as its own section further down the same page, the
- * notification channels that carry their alerts (not a tab: both are in view with one scroll).
+ * Budgets & Alerts, in two tabs (the owner asked for tabs here): the spending limits with the create form,
+ * and the Alert integrations (notification channels) that carry their alerts. The active tab lives in the URL
+ * hash (#budgets, #integrations). The create-budget draft lives in this component, above the tabs, so
+ * switching tabs does not lose it.
  * `canManageBudgets` mirrors the reference's permission check: admin/owner, or any provider the user
  * can view without being read-only on it.
  */
@@ -35,6 +43,7 @@ export function BudgetsPage() {
   const [budgetForm, setBudgetForm] = useState(emptyBudgetForm);
   const [alsoNotify, setAlsoNotify] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [tab, showTab] = useHashTab(TABS);
 
   const refresh = () => {
     setBudgets(budgetsRepository.listBudgets());
@@ -95,10 +104,19 @@ export function BudgetsPage() {
     <div>
       <PageHeader title={<>Budgets & Alerts</>} subtitle="Manage your spending limits and the channels that carry their alerts." />
 
-      <section id="budgets" aria-labelledby="budgets-title" className="mv-budgets-section">
+      <TabBar
+        idPrefix="budgets"
+        label="Budgets and alerts sections"
+        activeId={tab}
+        onChange={(id) => showTab(id as BudgetsTab)}
+        items={[{ id: 'budgets', label: 'Budgets', count: budgets.length }, { id: 'integrations', label: 'Alert integrations', count: channels.length }]}
+      />
+
+      {tab === 'budgets' && (
+      <section {...tabPanelProps('budgets', 'budgets')} className="mv-budgets-section">
         <div className="mv-section-head">
           <div>
-            <h2 id="budgets-title" className="mv-section-title">Budgets</h2>
+            <h2 className="mv-section-title">Budgets</h2>
             <p className="mv-muted">{budgets.length} budget{budgets.length === 1 ? '' : 's'}. An alert is sent when spend reaches a budget's threshold.</p>
           </div>
         </div>
@@ -148,7 +166,7 @@ export function BudgetsPage() {
                   <p id="notify-summary" className="mv-muted" aria-live="polite">
                     {willNotify.length > 0
                       ? `This budget will notify ${willNotify.length} channel${willNotify.length === 1 ? '' : 's'}.`
-                      : <>No active channel is set up, so alerts for this budget will only show in Mavera. <a href="#alert-integrations">Add a channel</a></>}
+                      : <>No active channel is set up, so alerts for this budget will only show in Mavera. <Link to={{ hash: '#integrations' }} replace preventScrollReset>Add a channel</Link></>}
                   </p>
                 </fieldset>
 
@@ -176,7 +194,7 @@ export function BudgetsPage() {
                       <BellIcon size={13} aria-hidden />
                       {notified.length > 0
                         ? <span>Notifies {notified.map((c) => `${providerLabel(c)} (${channelSummary(c)})`).join('; ')}</span>
-                        : <span className="mv-muted">No active channel will be notified. <a href="#alert-integrations">Add one</a></span>}
+                        : <span className="mv-muted">No active channel will be notified. <Link to={{ hash: '#integrations' }} replace preventScrollReset>Add one</Link></span>}
                     </p>
                   </div>
                   {canManageBudgets && <button className="mv-icon-button" aria-label={`Delete ${b.name}`} onClick={() => deleteBudget(b)}><TrashIcon size={18} /></button>}
@@ -193,11 +211,13 @@ export function BudgetsPage() {
           </ul>
         </div>
       </section>
+      )}
 
-      <section id="alert-integrations" aria-labelledby="alert-integrations-title" className="mv-budgets-section mv-budgets-section--integrations">
+      {tab === 'integrations' && (
+      <section {...tabPanelProps('budgets', 'integrations')} className="mv-budgets-section">
         <div className="mv-section-head">
           <div>
-            <h2 id="alert-integrations-title" className="mv-section-title">Alert Integrations</h2>
+            <h2 className="mv-section-title">Alert integrations</h2>
             <p className="mv-muted">Where budget alerts are sent. A global channel hears about every budget; a budget-based one only about the budgets it is tied to.</p>
           </div>
           {canManageBudgets && channels.length > 0 && (
@@ -241,6 +261,7 @@ export function BudgetsPage() {
         )}
         {!canManageBudgets && <p className="mv-muted">You can see the channels but not change them: you don't have full access to manage integrations.</p>}
       </section>
+      )}
 
       {dialogOpen && <AddChannelDialog budgets={budgets} onAdd={addChannel} onClose={() => setDialogOpen(false)} />}
     </div>

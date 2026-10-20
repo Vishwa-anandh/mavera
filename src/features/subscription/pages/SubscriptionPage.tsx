@@ -19,6 +19,8 @@ import {
   } from '../../../shared/ui/icons';
 import { CLOUD_PROVIDER_INFO, MSP_BADGE, PLANS, isCurrentPlan, planNameOf, type PlanDefinition } from '../model/subscriptionData';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
+import { useHashTab } from '../../../shared/lib/useHashTab';
 import { PlanRequestDialog } from '../components/PlanRequestDialog';
 
 const MODULE_LABELS = [
@@ -102,7 +104,14 @@ function ProviderToggleRow({ info, selected, onToggle }: { info: (typeof CLOUD_P
   );
 }
 
+type SubscriptionTab = 'plan' | 'plans';
+const TABS: SubscriptionTab[] = ['plan', 'plans'];
+
 /**
+ * Two tabs (the owner asked for tabs here): "Your plan" (the current plan, what the organisation is
+ * subscribed to, seats and Maitsys's note) and "Available plans" (the comparison and plan requests).
+ * The active tab lives in the URL hash (#plan, #plans).
+ *
  * Ported from the reference CCM app's SubscriptionManagementPage.jsx, but entirely
  * read-only: an organisation's plan, modules, seats, cloud access and validity are set
  * by Maitsys in the Super Admin portal (Organizations › Manage), never by the org
@@ -113,6 +122,7 @@ export function SubscriptionPage() {
   const aiEnabled = user?.aiEnabled ?? false;
   const [requests, setRequests] = useState(() => subscriptionRepository.listPlanRequests());
   const [requesting, setRequesting] = useState<PlanDefinition | null>(null);
+  const [tab, showTab] = useHashTab(TABS);
 
   // Any member can ask; only Maitsys changes the plan, so nothing here touches modules or seats.
   const sendRequest = (plan: PlanDefinition, note: string) => {
@@ -135,6 +145,16 @@ export function SubscriptionPage() {
     <div>
       <PageHeader title="Subscription" subtitle="Your plan, modules and access. Maitsys manages these for your organisation." />
 
+      <TabBar
+        idPrefix="subscription"
+        label="Subscription sections"
+        activeId={tab}
+        onChange={(id) => showTab(id as SubscriptionTab)}
+        items={[{ id: 'plan', label: 'Your plan' }, { id: 'plans', label: 'Available plans' }]}
+      />
+
+      {tab === 'plan' && (
+      <div {...tabPanelProps('subscription', 'plan')}>
       {/* Current Plan */}
       <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
@@ -206,11 +226,25 @@ export function SubscriptionPage() {
         </p>
       </section>
 
-      {/* Available Plans */}
-      <section id="available-plans" aria-labelledby="available-plans-title" style={{ marginBottom: '1rem' }}>
+      {/* Admin Note */}
+      {subscriptionNotes && (
+        <div className="mv-notice" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+          <AlertTriangleIcon size={16} style={{ flex: 'none', marginTop: 2, color: 'var(--mv-warning)' }} />
+          <div>
+            <p style={{ margin: '0 0 2px', fontWeight: 500 }}>Note from Maitsys</p>
+            <p style={{ margin: 0 }}>{subscriptionNotes}</p>
+          </div>
+        </div>
+      )}
+      </div>
+      )}
+
+      {tab === 'plans' && (
+      /* Available Plans */
+      <section {...tabPanelProps('subscription', 'plans')} style={{ marginBottom: '1rem' }}>
         <div className="mv-section-head">
           <div>
-            <h2 id="available-plans-title" className="mv-section-title">Available plans</h2>
+            <h2 className="mv-section-title">Available plans</h2>
             <p className="mv-muted">Compare what each plan includes. Choosing a plan sends Maitsys a request; nothing changes until Maitsys confirms.</p>
           </div>
         </div>
@@ -251,19 +285,9 @@ export function SubscriptionPage() {
           <a href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">Contact Maitsys</a>.
         </p>
       </section>
+      )}
 
       {requesting && <PlanRequestDialog plan={requesting} currentPlanName={planNameOf(planType)} onSend={(note) => sendRequest(requesting, note)} onClose={() => setRequesting(null)} />}
-
-      {/* Admin Note */}
-      {subscriptionNotes && (
-        <div className="mv-notice" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-          <AlertTriangleIcon size={16} style={{ flex: 'none', marginTop: 2, color: 'var(--mv-warning)' }} />
-          <div>
-            <p style={{ margin: '0 0 2px', fontWeight: 500 }}>Note from Maitsys</p>
-            <p style={{ margin: 0 }}>{subscriptionNotes}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

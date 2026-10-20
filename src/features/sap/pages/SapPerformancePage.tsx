@@ -12,6 +12,8 @@ import { SyncStatus } from '../components/SyncStatus';
 import { TcodeBadge } from '../components/TcodeBadge';
 import { WorkProcessesPanel } from '../components/WorkProcessesPanel';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
+import { useHashTab } from '../../../shared/lib/useHashTab';
 import { WORK_PROCESS_LABEL, jobDurationSeries, jobDurationStats, processMix, trendStats } from '../model/sapPerformance';
 import { clockTime } from '../model/useSyncCountdown';
 
@@ -54,8 +56,13 @@ function DiskBar({ mount }: { mount: { path: string; usedGb: number; freeGb: num
 
 const compact = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v));
 
+type PerformanceTab = 'health' | 'jobs' | 'analytics';
+const TABS: PerformanceTab[] = ['health', 'jobs', 'analytics'];
+const TAB_ITEMS = [{ id: 'health', label: 'System health' }, { id: 'jobs', label: 'Jobs and processes' }, { id: 'analytics', label: 'Analytics' }];
+
 /** Maps to MIO's "SAP Monitoring" (ABAP performance) deep dive — the fleet
- * list lives separately at /sap/systems. Each card carries the SAP transaction it comes from. */
+ * list lives separately at /sap/systems. Each card carries the SAP transaction it comes from. The KPI strip and the
+ * host/sync line stay above three tabs (`#health`, `#jobs`, `#analytics`): system health, jobs and processes, analytics. */
 export function SapPerformancePage() {
   const data = useMemo(() => ({
     p: sapRepository.getPerformance(),
@@ -68,6 +75,7 @@ export function SapPerformancePage() {
     processes: sapRepository.listWorkProcesses(),
     queues: sapRepository.getQueueIndicators(),
   }), []);
+  const [tab, setTab] = useHashTab(TABS);
   const { p, topology, disks, errors, jobs, stats, trends, processes, queues } = data;
   const [sync, setSync] = useState({ at: p.lastFetched, token: 0 });
   const refresh = useCallback(() => setSync((s) => ({ at: clockTime(), token: s.token + 1 })), []);
@@ -110,120 +118,132 @@ export function SapPerformancePage() {
         <article className="mv-kpi"><span className="mv-kpi-label">System Locks</span><strong className="mv-kpi-value">{p.systemLocks}</strong></article>
       </div>
 
-      <div className="mv-column-stack" style={{ marginBottom: '1rem' }}>
-        <AbapRuntimeErrorsCard errors={errors} />
+      <TabBar idPrefix="sap-performance" label="Performance sections" items={TAB_ITEMS} activeId={tab} onChange={(id) => setTab(id as PerformanceTab)} />
 
-        <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr' } as React.CSSProperties}>
-          <section className="mv-panel" aria-labelledby="topology-title">
-            <div className="mv-panel-header">
-              <h2 id="topology-title" className="mv-panel-title">Server Topology <TcodeBadge code="SM51" /></h2>
-              <span className="mv-muted">{topology.length} {topology.length === 1 ? 'instance' : 'instances'}</span>
-            </div>
-            <ul className="mv-server-grid">
-              {topology.map((node) => (
-                <li key={node.id} className="mv-server">
-                  <div className="mv-server-head">
-                    <div className="mv-server-name">
-                      <strong>{node.id}</strong>
-                      <span className="mv-muted">{node.host}</span>
+      {tab === 'health' && (
+        <div {...tabPanelProps('sap-performance', 'health')} className="mv-column-stack">
+          <AbapRuntimeErrorsCard errors={errors} />
+
+          <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr' } as React.CSSProperties}>
+            <section className="mv-panel" aria-labelledby="topology-title">
+              <div className="mv-panel-header">
+                <h2 id="topology-title" className="mv-panel-title">Server Topology <TcodeBadge code="SM51" /></h2>
+                <span className="mv-muted">{topology.length} {topology.length === 1 ? 'instance' : 'instances'}</span>
+              </div>
+              <ul className="mv-server-grid">
+                {topology.map((node) => (
+                  <li key={node.id} className="mv-server">
+                    <div className="mv-server-head">
+                      <div className="mv-server-name">
+                        <strong>{node.id}</strong>
+                        <span className="mv-muted">{node.host}</span>
+                      </div>
+                      <span className="mv-server-state">
+                        <span className="mv-muted">{node.loadPercent}% load</span>
+                        <span className={`mv-status mv-status--${node.status === 'Active' ? 'success' : 'danger'}`}>{node.status}</span>
+                      </span>
                     </div>
-                    <span className="mv-server-state">
-                      <span className="mv-muted">{node.loadPercent}% load</span>
-                      <span className={`mv-status mv-status--${node.status === 'Active' ? 'success' : 'danger'}`}>{node.status}</span>
-                    </span>
-                  </div>
-                  <dl className="mv-server-metrics">
-                    <div><dt>Response</dt><dd>{node.responseMs}<small> ms</small></dd></div>
-                    <div><dt>Users</dt><dd>{node.users}</dd></div>
-                    <div><dt>Quality</dt><dd>{node.quality}</dd></div>
-                    <div><dt>Dialog steps</dt><dd>{node.steps}</dd></div>
-                  </dl>
-                </li>
-              ))}
-            </ul>
-          </section>
-          <BackgroundJobsSummaryCard jobs={jobs} />
-        </div>
-
-        <section className="mv-panel" aria-labelledby="disk-title">
-          <div className="mv-panel-header">
-            <h2 id="disk-title" className="mv-panel-title">Disk Usage <TcodeBadge code="ST06" /></h2>
-            <span className="mv-muted">{disks.length} mounts · fullest first</span>
+                    <dl className="mv-server-metrics">
+                      <div><dt>Response</dt><dd>{node.responseMs}<small> ms</small></dd></div>
+                      <div><dt>Users</dt><dd>{node.users}</dd></div>
+                      <div><dt>Quality</dt><dd>{node.quality}</dd></div>
+                      <div><dt>Dialog steps</dt><dd>{node.steps}</dd></div>
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            <section className="mv-panel" aria-labelledby="disk-title">
+              <div className="mv-panel-header">
+                <h2 id="disk-title" className="mv-panel-title">Disk Usage <TcodeBadge code="ST06" /></h2>
+                <span className="mv-muted">{disks.length} mounts · fullest first</span>
+              </div>
+              <ul className="mv-disk-grid" aria-label="Disk usage by mount">
+                {disksByFill.map((mount) => <DiskBar key={mount.path} mount={mount} />)}
+              </ul>
+            </section>
           </div>
-          <ul className="mv-disk-grid" aria-label="Disk usage by mount">
-            {disksByFill.map((mount) => <DiskBar key={mount.path} mount={mount} />)}
-          </ul>
-        </section>
 
-        <DbCallStatsCard stats={stats} />
-      </div>
-
-      <section aria-labelledby="perf-analytics-title" style={{ marginBottom: '1rem' }}>
-        <div className="mv-section-head">
-          <h2 id="perf-analytics-title" className="mv-panel-title">Analytics</h2>
-          <p className="mv-muted">Interactive charts · each has a data table behind View data</p>
+          <DbCallStatsCard stats={stats} />
         </div>
-        <div className="mv-mini-grid">
-          <MiniChart
-            title="Job Duration"
-            kind="bar"
-            data={durationSeries}
-            summary={`Avg ${durations.avgSec}s · Max ${durations.maxSec}s · ${durations.total} jobs`}
-            valueLabel="Duration"
-            timeLabel="Started"
-            format={(v) => `${v}s`}
-          />
-          <section className="mv-panel mv-mini-chart" aria-labelledby="mini-process-mix">
-            <div className="mv-mini-chart-head">
-              <h3 id="mini-process-mix" className="mv-panel-title">Process Mix</h3>
-              <p className="mv-muted">{processes.length} work processes by type</p>
-            </div>
-            <DonutChart
-              title="Work process mix by type"
-              totalLabel="processes"
-              data={mix.map((row, i) => ({
-                label: `${WORK_PROCESS_LABEL[row.type]} (${row.type})`,
-                value: row.count,
-                color: ['var(--mv-primary)', 'var(--mv-text-secondary)', 'var(--mv-success)', 'var(--mv-warning)', 'color-mix(in srgb, var(--mv-primary) 40%, var(--mv-surface))'][i % 5],
-              }))}
+      )}
+
+      {tab === 'jobs' && (
+        <div {...tabPanelProps('sap-performance', 'jobs')} className="mv-column-stack">
+          <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr' } as React.CSSProperties}>
+            <BackgroundJobsSummaryCard jobs={jobs} />
+            <QueueIndicators queues={queues} />
+          </div>
+
+          <WorkProcessesPanel processes={processes} system={topology[0]?.id ?? p.system} />
+        </div>
+      )}
+
+      {tab === 'analytics' && (
+        <section {...tabPanelProps('sap-performance', 'analytics')}>
+          <div className="mv-section-head">
+            <h2 id="perf-analytics-title" className="mv-panel-title">Analytics</h2>
+            <p className="mv-muted">Interactive charts · each has a data table behind View data</p>
+          </div>
+          <div className="mv-mini-grid">
+            <MiniChart
+              title="Job Duration"
+              kind="bar"
+              data={durationSeries}
+              summary={`Avg ${durations.avgSec}s · Max ${durations.maxSec}s · ${durations.total} jobs`}
+              valueLabel="Duration"
+              timeLabel="Started"
+              format={(v) => `${v}s`}
             />
-          </section>
-          <MiniChart
-            title="Dump Timeline"
-            kind="bar"
-            data={trends.dumps}
-            summary={`${dumpsToday} today · ${dumpsWeek} in 7 days`}
-            valueLabel="Dumps"
-            timeLabel="Day"
-            domain={[0, Math.max(3, ...trends.dumps.map((d) => d.value))]}
-            tone="secondary"
-          />
-          <MiniChart
-            title="Buffer Hit"
-            kind="area"
-            data={trends.bufferHit}
-            summary={`Now ${bufferStats.last.toFixed(1)}% · Low ${bufferStats.min.toFixed(1)}% over 24 hours`}
-            valueLabel="Hit ratio"
-            timeLabel="Hour"
-            format={(v) => `${v.toFixed(1)}%`}
-            axisFormat={(v) => `${Math.round(v)}%`}
-            domain={[95, 100]}
-          />
-          <MiniChart
-            title="DB Calls"
-            kind="area"
-            data={trends.dbCalls}
-            summary={`Peak ${compact(callStats.max)} calls per hour · Avg ${compact(Math.round(callStats.avg))}`}
-            valueLabel="Calls"
-            timeLabel="Hour"
-            axisFormat={compact}
-            tone="tertiary"
-          />
-          <QueueIndicators queues={queues} />
-        </div>
-      </section>
-
-      <WorkProcessesPanel processes={processes} system={topology[0]?.id ?? p.system} />
+            <section className="mv-panel mv-mini-chart" aria-labelledby="mini-process-mix">
+              <div className="mv-mini-chart-head">
+                <h3 id="mini-process-mix" className="mv-panel-title">Process Mix</h3>
+                <p className="mv-muted">{processes.length} work processes by type</p>
+              </div>
+              <DonutChart
+                title="Work process mix by type"
+                totalLabel="processes"
+                data={mix.map((row, i) => ({
+                  label: `${WORK_PROCESS_LABEL[row.type]} (${row.type})`,
+                  value: row.count,
+                  color: ['var(--mv-primary)', 'var(--mv-text-secondary)', 'var(--mv-success)', 'var(--mv-warning)', 'color-mix(in srgb, var(--mv-primary) 40%, var(--mv-surface))'][i % 5],
+                }))}
+              />
+            </section>
+            <MiniChart
+              title="Dump Timeline"
+              kind="bar"
+              data={trends.dumps}
+              summary={`${dumpsToday} today · ${dumpsWeek} in 7 days`}
+              valueLabel="Dumps"
+              timeLabel="Day"
+              domain={[0, Math.max(3, ...trends.dumps.map((d) => d.value))]}
+              tone="secondary"
+            />
+            <MiniChart
+              title="Buffer Hit"
+              kind="area"
+              data={trends.bufferHit}
+              summary={`Now ${bufferStats.last.toFixed(1)}% · Low ${bufferStats.min.toFixed(1)}% over 24 hours`}
+              valueLabel="Hit ratio"
+              timeLabel="Hour"
+              format={(v) => `${v.toFixed(1)}%`}
+              axisFormat={(v) => `${Math.round(v)}%`}
+              domain={[95, 100]}
+            />
+            <MiniChart
+              title="DB Calls"
+              kind="area"
+              data={trends.dbCalls}
+              summary={`Peak ${compact(callStats.max)} calls per hour · Avg ${compact(Math.round(callStats.avg))}`}
+              valueLabel="Calls"
+              timeLabel="Hour"
+              axisFormat={compact}
+              tone="tertiary"
+            />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

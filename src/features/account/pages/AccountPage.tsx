@@ -5,6 +5,8 @@ import { useAccess } from '../../access';
 import { PasswordField } from '../../../shared/ui/PasswordField';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
+import { useHashTab } from '../../../shared/lib/useHashTab';
 import { useDensity } from '../../../shared/ui/useDensity';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import type { ThemePreference } from '../../../shared/theme/resolveInitialTheme';
@@ -26,6 +28,9 @@ const DENSITY_OPTIONS = [
   { value: 'compact', label: 'Compact' },
 ] as const;
 
+type AccountTab = 'profile' | 'security' | 'appearance' | 'help';
+const TABS: AccountTab[] = ['profile', 'security', 'appearance', 'help'];
+
 function errorText(error: unknown): string {
   const data = (error as { response?: { data?: { error?: string; message?: string } } })?.response?.data;
   return data?.error ?? data?.message ?? 'Couldn’t change your password. Check your current password and try again.';
@@ -36,6 +41,11 @@ function errorText(error: unknown): string {
  * modal: identity, organisation context, appearance and password change. Identity is read-only
  * (no profile-update endpoint exists); the password form uses the supported
  * `/auth/change-password` contract. Theme changes apply immediately.
+ *
+ * Four tabs (the owner asked for tabs here): Profile (identity and organisation), Security (change password and
+ * the biometric preference), Appearance (theme, density, motion note) and Help. The active tab lives in the URL
+ * hash (#profile, #security, #appearance, #help). The password draft lives above the tabs, so it survives a
+ * tab switch.
  */
 export function AccountPage() {
   const { user, modules, planType, changePassword } = useAuth();
@@ -52,6 +62,7 @@ export function AccountPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [tab, showTab] = useHashTab(TABS);
 
   const name = user?.name || user?.email?.split('@')[0] || 'Account';
   const initial = name.slice(0, 1).toUpperCase();
@@ -80,6 +91,16 @@ export function AccountPage() {
     <div className="mv-reading-width">
       <PageHeader title="Account" subtitle="Your profile, organisation and preferences." />
 
+      <TabBar
+        idPrefix="account"
+        label="Account sections"
+        activeId={tab}
+        onChange={(id) => showTab(id as AccountTab)}
+        items={[{ id: 'profile', label: 'Profile' }, { id: 'security', label: 'Security' }, { id: 'appearance', label: 'Appearance' }, { id: 'help', label: 'Help' }]}
+      />
+
+      {tab === 'profile' && (
+      <div {...tabPanelProps('account', 'profile')}>
       <section className="mv-panel mv-account-section" aria-labelledby="identity-title">
         <h2 className="mv-panel-title" id="identity-title">Profile</h2>
         <div className="mv-account-identity">
@@ -106,6 +127,11 @@ export function AccountPage() {
         </p>
       </section>
 
+      </div>
+      )}
+
+      {tab === 'appearance' && (
+      <div {...tabPanelProps('account', 'appearance')}>
       <section className="mv-panel mv-account-section" aria-labelledby="prefs-title">
         <h2 className="mv-panel-title" id="prefs-title">Appearance</h2>
         <div className="mv-pref-row">
@@ -133,6 +159,11 @@ export function AccountPage() {
         </div>
       </section>
 
+      </div>
+      )}
+
+      {tab === 'security' && (
+      <div {...tabPanelProps('account', 'security')}>
       <section className="mv-panel mv-account-section" aria-labelledby="security-title">
         <h2 className="mv-panel-title" id="security-title">Security</h2>
         <h3 className="mv-detail-heading mv-account-subheading" id="password-title">Change password</h3>
@@ -175,10 +206,17 @@ export function AccountPage() {
         </div>
       </section>
 
+      </div>
+      )}
+
+      {tab === 'help' && (
+      <div {...tabPanelProps('account', 'help')}>
       <section className="mv-panel mv-account-section" aria-labelledby="help-title">
         <h2 className="mv-panel-title" id="help-title">Help &amp; support</h2>
         <p className="mv-muted">Questions about your account or Mavera? <a href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">Contact Maitsys support</a> (opens maitsys.com).</p>
       </section>
+      </div>
+      )}
     </div>
   );
 }

@@ -7,7 +7,7 @@
  * Access is enforced by the layout the route sits in (AppShell for `authenticated`,
  * SuperAdminGuard for `super-admin`) and by the API; UI visibility is never the security boundary.
  */
-import type { ModuleId } from '../../features/access';
+import { moduleById, type ModuleId } from '../../features/access';
 
 export type RouteAccess = { kind: 'public' } | { kind: 'authenticated' } | { kind: 'super-admin' };
 
@@ -183,4 +183,22 @@ const matchers = routeManifest.filter((route) => route.module).map((route) => ({
 /** The access-control module that guards `pathname`, if any (`/azure/123` is guarded like `/azure`). */
 export function routeModuleFor(pathname: string): ModuleId | undefined {
   return matchers.find((entry) => entry.regex.test(pathname))?.module;
+}
+
+/** The platform module (a subscription the super admin grants) a page belongs to, if it belongs to one. */
+export type ProductModule = 'cloudCost' | 'sapMonitoring';
+
+const SAP_GROUPS = new Set(['sap']);
+const CLOUD_GROUPS = new Set(['cloud-cost', 'cloud-providers', 'governance']);
+
+/**
+ * Which subscribed module `pathname` needs: SAP pages need SAP Monitoring; cost, provider, budget, alert and
+ * invoice pages need Cloud Cost; shared pages (dashboard, account, users, subscription...) need neither.
+ */
+export function productModuleFor(pathname: string): ProductModule | undefined {
+  const id = routeModuleFor(pathname);
+  const group = id ? moduleById(id)?.group : undefined;
+  if (group && SAP_GROUPS.has(group)) return 'sapMonitoring';
+  if (group && CLOUD_GROUPS.has(group)) return 'cloudCost';
+  return undefined;
 }

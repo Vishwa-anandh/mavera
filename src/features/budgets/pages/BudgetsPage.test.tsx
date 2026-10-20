@@ -11,8 +11,8 @@ vi.mock('../../auth', () => ({
   useAuth: () => ({ user: { id: '1', email: 'a@b.com', role: authState.role }, cloudAccess: ['azure', 'aws'], invoiceOnly: false }),
 }));
 
-function renderPage() {
-  return render(<MemoryRouter><ConfirmProvider><BudgetsPage /></ConfirmProvider></MemoryRouter>);
+function renderPage(tab?: 'budgets' | 'integrations') {
+  return render(<MemoryRouter initialEntries={[tab ? `/budgets#${tab}` : '/budgets']}><ConfirmProvider><BudgetsPage /></ConfirmProvider></MemoryRouter>);
 }
 
 function toastMessages(): { messages: string[]; stop: () => void } {
@@ -28,15 +28,48 @@ describe('BudgetsPage', () => {
     authState.role = 'admin';
   });
 
-  it('shows budgets and Alert Integrations as separate sections on one page, with no tabs', () => {
+  it('splits the page into Budgets and Alert integrations tabs and renders only the active panel', async () => {
+    const user = userEvent.setup();
     renderPage();
-    expect(screen.getByRole('region', { name: 'Budgets' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Alert Integrations' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    const tabs = screen.getByRole('tablist', { name: 'Budgets and alerts sections' });
+    expect(within(tabs).getAllByRole('tab').map((t) => t.textContent?.replace(/\d+$/, ''))).toEqual(['Budgets', 'Alert integrations']);
+    expect(screen.getByRole('tab', { name: /^Budgets/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName(/Budgets/);
+    expect(screen.getByRole('region', { name: 'Create New Budget' })).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Notification channels' })).toBeNull();
+
+    await user.click(screen.getByRole('tab', { name: /Alert integrations/ }));
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName(/Alert integrations/);
+    expect(screen.getByRole('list', { name: 'Notification channels' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Create New Budget' })).toBeNull();
+    expect(screen.queryByRole('list', { name: 'Budgets' })).toBeNull();
+  });
+
+  it('opens the tab named in the URL hash', () => {
+    renderPage('integrations');
+    expect(screen.getByRole('tab', { name: /Alert integrations/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('list', { name: 'Notification channels' })).toBeInTheDocument();
+  });
+
+  it('keeps a half-filled budget form when you switch tabs and back', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.type(screen.getByLabelText('Budget Name'), 'Q4 Data');
+    await user.click(screen.getByRole('tab', { name: /Alert integrations/ }));
+    await user.click(screen.getByRole('tab', { name: /^Budgets/ }));
+    expect(screen.getByLabelText('Budget Name')).toHaveValue('Q4 Data');
+  });
+
+  it('the "Add a channel" link on a budget with no active channel opens the Alert integrations tab', async () => {
+    const user = userEvent.setup();
+    budgetsRepository.setChannelEnabled('channel-1', false);
+    renderPage();
+    await user.click(within(screen.getByRole('region', { name: 'Create New Budget' })).getByRole('link', { name: 'Add a channel' }));
+    expect(screen.getByRole('tab', { name: /Alert integrations/ })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('lists the channels with provider, scope and recipients or webhook host', () => {
-    renderPage();
+    renderPage('integrations');
     const list = screen.getByRole('list', { name: 'Notification channels' });
     const rows = within(list).getAllByRole('listitem');
     expect(rows).toHaveLength(3);
@@ -52,7 +85,7 @@ describe('BudgetsPage', () => {
   it('adds an email channel from the dialog, turning each address into a chip on Enter', async () => {
     const user = userEvent.setup();
     const toasts = toastMessages();
-    renderPage();
+    renderPage('integrations');
     await user.click(screen.getByRole('button', { name: 'Add channel' }));
     const dialog = screen.getByRole('dialog', { name: 'Add notification channel' });
 
@@ -76,7 +109,7 @@ describe('BudgetsPage', () => {
 
   it('requires at least one recipient and validates the Teams webhook URL', async () => {
     const user = userEvent.setup();
-    renderPage();
+    renderPage('integrations');
     await user.click(screen.getByRole('button', { name: 'Add channel' }));
     const dialog = screen.getByRole('dialog', { name: 'Add notification channel' });
 
@@ -100,7 +133,7 @@ describe('BudgetsPage', () => {
 
   it('ties a budget-based channel to chosen budgets and asks for at least one', async () => {
     const user = userEvent.setup();
-    renderPage();
+    renderPage('integrations');
     await user.click(screen.getByRole('button', { name: 'Add channel' }));
     const dialog = screen.getByRole('dialog', { name: 'Add notification channel' });
     await user.type(within(dialog).getByLabelText('Recipients'), 'fin@maitsys.com{Enter}');
@@ -117,7 +150,7 @@ describe('BudgetsPage', () => {
 
   it('enables and disables a channel', async () => {
     const user = userEvent.setup();
-    renderPage();
+    renderPage('integrations');
     const toggle = screen.getByRole('switch', { name: 'Send alerts to Email finance@maitsys.com, ops@maitsys.com' });
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     await user.click(toggle);
@@ -129,7 +162,7 @@ describe('BudgetsPage', () => {
 
   it('removes a channel only after confirming, and shows "No channels added" with a call to action when none are left', async () => {
     const user = userEvent.setup();
-    renderPage();
+    renderPage('integrations');
     const removeButtons = () => screen.getAllByRole('button', { name: /^Remove (Email|Microsoft Teams)/ });
     await user.click(removeButtons()[0]);
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -183,15 +216,22 @@ describe('BudgetsPage', () => {
     renderPage();
     const form = screen.getByRole('region', { name: 'Create New Budget' });
     expect(within(form).getByText(/No active channel is set up/)).toBeInTheDocument();
-    expect(within(form).getByRole('link', { name: 'Add a channel' })).toHaveAttribute('href', '#alert-integrations');
+    expect(within(form).getByRole('link', { name: 'Add a channel' })).toHaveAttribute('href', '/budgets#integrations');
   });
 
   it('lets a read-only member see the channels but not change them', () => {
     authState.role = 'member';
-    renderPage();
+    renderPage('integrations');
     expect(screen.queryByRole('button', { name: 'Add channel' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Remove / })).not.toBeInTheDocument();
     expect(screen.getAllByRole('switch').every((s) => s.hasAttribute('disabled'))).toBe(true);
+    expect(screen.getByText(/you don't have full access to manage integrations/)).toBeInTheDocument();
+  });
+
+  it('shows a read-only member the read-only notice instead of the create form', () => {
+    authState.role = 'member';
+    renderPage();
     expect(screen.getByText('Read-only mode')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add Budget' })).not.toBeInTheDocument();
   });
 });

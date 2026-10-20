@@ -16,7 +16,7 @@ import { organizationRepository } from './organizationRepository';
 export const LICENSE_TOKEN_PATTERN = /^[0-9a-f]{64}$/i;
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 /** The built-in demo account (AuthContext.DEMO_EMAIL); a company cannot register with it. */
-const RESERVED_EMAILS = new Set(['demo@mavera.local']);
+const RESERVED_EMAILS = new Set(['demo@mavera.local', 'cloud@mavera.local']);
 const CODE_LIFETIME_MS = 10 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 const MIN_PASSWORD_LENGTH = 8;

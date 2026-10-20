@@ -12,7 +12,7 @@ vi.mock('recharts', async (importOriginal) => {
   return { ...actual, ResponsiveContainer: ({ children }: { children: ReactNode }) => <div style={{ width: 400, height: 220 }}>{children}</div> };
 });
 
-const renderPage = (node: ReactNode) => render(<ThemeProvider><MemoryRouter>{node}</MemoryRouter></ThemeProvider>);
+const renderPage = (node: ReactNode, path = '/') => render(<ThemeProvider><MemoryRouter initialEntries={[path]}>{node}</MemoryRouter></ThemeProvider>);
 
 describe('SapOverviewPage', () => {
   it('charts the load per system and the condition mix, above the one systems table', () => {
@@ -39,17 +39,19 @@ describe('SapOverviewPage', () => {
 });
 
 describe('HanaMonitoringPage', () => {
-  it('opens with the last-24-hours findings, then the vitals, memory composition and per-service memory chart', () => {
+  it('opens with the last-24-hours findings and the vitals tab, with the per-service memory chart one tab over', async () => {
     renderPage(<HanaMonitoringPage />);
     const findings = screen.getByRole('list', { name: 'HANA findings for the last 24 hours' });
     expect(within(findings).getByText(/CPU peaked at 1.1% around 18:00/)).toBeInTheDocument();
     expect(within(findings).getByText(/1 service stopped/)).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'HANA memory, used and free' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /HANA memory by service/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', { name: 'Services and disk' }));
     expect(screen.getByRole('img', { name: /HANA memory by service/ })).toBeInTheDocument();
   });
 
   it('lists stopped services first in the services list view', async () => {
-    renderPage(<HanaMonitoringPage />);
+    renderPage(<HanaMonitoringPage />, '/#storage');
     await userEvent.click(screen.getByRole('button', { name: 'List' }));
     const table = screen.getByRole('heading', { name: 'Active Core Services' }).closest('.mv-panel') as HTMLElement;
     const firstRow = within(table).getAllByRole('row')[1];

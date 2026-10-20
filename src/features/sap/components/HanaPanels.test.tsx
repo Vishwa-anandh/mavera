@@ -17,7 +17,7 @@ vi.mock('recharts', async (importOriginal) => {
   return { ...actual, ResponsiveContainer: ({ children }: { children: ReactNode }) => <div style={{ width: 400, height: 220 }}>{children}</div> };
 });
 
-const wrap = (node: ReactNode) => render(<ThemeProvider><MemoryRouter>{node}</MemoryRouter></ThemeProvider>);
+const wrap = (node: ReactNode, path = '/') => render(<ThemeProvider><MemoryRouter initialEntries={[path]}>{node}</MemoryRouter></ThemeProvider>);
 
 const services: HanaService[] = [
   { name: 'hdbindexserver', status: 'running', memoryMb: 20480, allocatedMb: 30720, sharedMb: 2048 },
@@ -164,13 +164,47 @@ describe('SyncStatus and the HANA page countdown', () => {
   });
 });
 
-describe('HanaMonitoringPage new sections', () => {
-  it('has the services, disk and backup sections', () => {
+describe('HanaMonitoringPage tabs', () => {
+  it('has three tabs, keeps the host line, KPI strip and sessions above them, and renders only the active panel', () => {
     wrap(<HanaMonitoringPage />);
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Vitals', 'Services and disk', 'Backups']);
+    expect(screen.getByRole('tab', { name: 'Vitals' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
+    expect(screen.getByText('Sessions')).toBeInTheDocument();
+    expect(screen.getByRole('timer')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Last 24 hours' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'System Vitals Timeline' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Memory composition' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Active Core Services' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Backup Timeline' })).not.toBeInTheDocument();
+  });
+
+  it('opens the tab named in the URL hash', () => {
+    const { unmount } = wrap(<HanaMonitoringPage />, '/#storage');
+    expect(screen.getByRole('tab', { name: 'Services and disk' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('heading', { name: 'Active Core Services' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Disk Usage' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Last 24 hours' })).not.toBeInTheDocument();
+    unmount();
+    wrap(<HanaMonitoringPage />, '/#backups');
     expect(screen.getByRole('heading', { name: 'Backup Timeline' })).toBeInTheDocument();
     expect(screen.getByText(/Last successful data backup:/)).toBeInTheDocument();
-    expect(screen.getByText('Sessions')).toBeInTheDocument();
+  });
+
+  it('keeps the Chart/List and Donut/Bar switches working inside their panel (they are not tabs)', async () => {
+    wrap(<HanaMonitoringPage />, '/#storage');
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    await userEvent.click(screen.getByRole('button', { name: 'List' }));
+    expect(screen.getByRole('button', { name: 'List' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(screen.getByRole('button', { name: 'Bar' }));
+    expect(screen.getByRole('button', { name: 'Bar' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
+  });
+
+  it('switches tabs with a click', async () => {
+    wrap(<HanaMonitoringPage />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Backups' }));
+    expect(screen.getByRole('heading', { name: 'Backup Timeline' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'System Vitals Timeline' })).not.toBeInTheDocument();
   });
 });

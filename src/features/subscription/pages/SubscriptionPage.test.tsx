@@ -13,6 +13,10 @@ vi.mock('../../auth/model/AuthContext', async (importOriginal) => {
   return { ...actual, useAuth: () => useAuthMock() };
 });
 
+function renderPage(tab?: 'plan' | 'plans') {
+  return render(<MemoryRouter initialEntries={[tab ? `/subscription#${tab}` : '/subscription']}><SubscriptionPage /></MemoryRouter>);
+}
+
 function auth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   return {
     user: { id: '1', email: 'owner@acme.com', role: 'owner' },
@@ -41,10 +45,37 @@ function auth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   };
 }
 
+describe('SubscriptionPage tabs', () => {
+  it('has Your plan and Available plans tabs, and renders only the active panel', async () => {
+    const user = userEvent.setup();
+    useAuthMock.mockReturnValue(auth());
+    renderPage();
+    const tabs = screen.getByRole('tablist', { name: 'Subscription sections' });
+    expect(within(tabs).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Your plan', 'Available plans']);
+    expect(screen.getByRole('tab', { name: 'Your plan' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Your plan');
+    expect(screen.getByText('What your organisation is subscribed to')).toBeInTheDocument();
+    expect(screen.queryAllByRole('article')).toHaveLength(0);
+
+    await user.click(screen.getByRole('tab', { name: 'Available plans' }));
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Available plans');
+    expect(screen.getAllByRole('article')).toHaveLength(3);
+    expect(screen.queryByText('What your organisation is subscribed to')).toBeNull();
+    expect(screen.queryByText('Note from Maitsys')).toBeNull();
+  });
+
+  it('opens the tab named in the URL hash', () => {
+    useAuthMock.mockReturnValue(auth());
+    renderPage('plans');
+    expect(screen.getByRole('tab', { name: 'Available plans' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('article')).toHaveLength(3);
+  });
+});
+
 describe('SubscriptionPage (organization view)', () => {
   it('is read-only even for an org owner: no controls to change modules or cloud access', () => {
     useAuthMock.mockReturnValue(auth());
-    render(<MemoryRouter><SubscriptionPage /></MemoryRouter>);
+    renderPage();
 
     expect(screen.getByText('Managed by Maitsys')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Update Cloud Access/ })).not.toBeInTheDocument();
@@ -54,7 +85,7 @@ describe('SubscriptionPage (organization view)', () => {
 
   it("shows which modules are subscribed and Maitsys's note", () => {
     useAuthMock.mockReturnValue(auth());
-    render(<MemoryRouter><SubscriptionPage /></MemoryRouter>);
+    renderPage();
 
     expect(screen.getByText('Note from Maitsys')).toBeInTheDocument();
     expect(screen.getByText('Extended per renewal agreement')).toBeInTheDocument();
@@ -69,7 +100,7 @@ describe('SubscriptionPage available plans', () => {
 
   it('compares Free, Professional and Enterprise with feature checklists, "Pricing coming soon" and the current plan marked', () => {
     useAuthMock.mockReturnValue(auth({ planType: 'basic' }));
-    render(<MemoryRouter><SubscriptionPage /></MemoryRouter>);
+    renderPage('plans');
     expect(screen.getByRole('heading', { name: 'Available plans' })).toBeInTheDocument();
     expect(plans().map((p) => within(p).getByRole('heading').textContent)).toEqual(['Free', 'Professional', 'Enterprise']);
     for (const plan of plans()) expect(within(plan).getByText('Pricing coming soon')).toBeInTheDocument();
@@ -86,7 +117,7 @@ describe('SubscriptionPage available plans', () => {
 
   it('marks the plan the organisation is actually on', () => {
     useAuthMock.mockReturnValue(auth({ planType: 'premium' }));
-    render(<MemoryRouter><SubscriptionPage /></MemoryRouter>);
+    renderPage('plans');
     const [free, pro] = plans();
     expect(within(pro).getByText('Current')).toBeInTheDocument();
     expect(within(free).getByRole('button', { name: 'Choose plan Free' })).toBeInTheDocument();
@@ -98,7 +129,7 @@ describe('SubscriptionPage available plans', () => {
     const listener = (e: Event) => messages.push((e as CustomEvent<{ message: string }>).detail.message);
     window.addEventListener('ccm:toast', listener);
     useAuthMock.mockReturnValue(auth({ planType: 'basic', maxUsers: 10, user: { id: '2', email: 'member@acme.com', role: 'member' } }));
-    render(<MemoryRouter><SubscriptionPage /></MemoryRouter>);
+    renderPage('plans');
 
     await user.click(screen.getByRole('button', { name: 'Choose plan Professional' }));
     const dialog = screen.getByRole('dialog', { name: 'Request the Professional plan' });
@@ -115,6 +146,8 @@ describe('SubscriptionPage available plans', () => {
     expect(within(pro).getByText(/^Requested /)).toBeInTheDocument();
     expect(within(pro).getByRole('button', { name: 'Request sent' })).toBeDisabled();
     expect(within(free).getByText('Current')).toBeInTheDocument();
+    // ...and the plan itself (on the other tab) is untouched.
+    await user.click(screen.getByRole('tab', { name: 'Your plan' }));
     expect(screen.getByText('Up to 10')).toBeInTheDocument();
     expect(screen.getByText('SAP Monitoring').closest('div')).toHaveTextContent('Locked');
     window.removeEventListener('ccm:toast', listener);
@@ -123,7 +156,7 @@ describe('SubscriptionPage available plans', () => {
   it('cancelling the dialog sends nothing', async () => {
     const user = userEvent.setup();
     useAuthMock.mockReturnValue(auth({ planType: 'basic' }));
-    render(<MemoryRouter><SubscriptionPage /></MemoryRouter>);
+    renderPage('plans');
     await user.click(screen.getByRole('button', { name: 'Choose plan Enterprise' }));
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

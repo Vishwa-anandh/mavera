@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth, DEMO_EMAIL, DEMO_PASSWORD } from '../model/AuthContext';
+import { useAuth, DEMO_EMAIL, DEMO_PASSWORD, DEMO_CLOUD_EMAIL } from '../model/AuthContext';
 import { useSuperAdminAuth, DEMO_USERNAME as SA_DEMO_USERNAME, DEMO_PASSWORD as SA_DEMO_PASSWORD } from '../../superAdmin';
 import { LoginBackdrop } from '../components/LoginBackdrop';
 import { PasswordField } from '../../../shared/ui/PasswordField';
@@ -87,6 +87,11 @@ export function LoginPage() {
   const useDemoCredentials = () => {
     setPasswordPrefill(DEMO_PASSWORD);
     handleContinue(DEMO_EMAIL);
+  };
+
+  const useCloudDemoCredentials = () => {
+    setPasswordPrefill(DEMO_PASSWORD);
+    handleContinue(DEMO_CLOUD_EMAIL);
   };
 
   const useSuperAdminDemoCredentials = () => {
@@ -189,6 +194,15 @@ export function LoginPage() {
               Demo credentials: <strong>{DEMO_EMAIL}</strong> / <strong>{DEMO_PASSWORD}</strong>
               <button type="button" className="mv-quiet-button" style={{ marginLeft: '0.625rem' }} onClick={useDemoCredentials}>
                 Use demo credentials
+              </button>
+            </div>
+          )}
+
+          {!accountLocked && step === 'email' && (
+            <div className="mv-notice">
+              Cloud Cost only organisation: <strong>{DEMO_CLOUD_EMAIL}</strong> / <strong>{DEMO_PASSWORD}</strong>
+              <button type="button" className="mv-quiet-button" style={{ marginLeft: '0.625rem' }} onClick={useCloudDemoCredentials}>
+                Use Cloud Cost only credentials
               </button>
             </div>
           )}

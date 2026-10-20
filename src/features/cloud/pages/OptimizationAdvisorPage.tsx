@@ -10,9 +10,10 @@ import { PROVIDER_LABEL, formatMoney } from '../model/cloudFormat';
 import { updateOpportunity, useOpportunityStates, type OpportunityState } from '../../../shared/lib/opportunityStore';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { useScrollToHash } from '../../../shared/lib/useScrollToHash';
-import { SavingsOverviewSection } from '../../recommendations';
+import { SavingsOverviewSection, useSavingsScope } from '../../recommendations';
 
 const ALL = 'All';
+const PROVIDER_FILTER_LABELS = { '': 'All providers', azure: 'Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'Google Cloud' } as const;
 const CATEGORIES: OptimizationOpportunity['category'][] = ['Rightsizing', 'Idle resources', 'Storage tiering', 'Commitments', 'Consolidation'];
 const IMPACT_TONE = { High: 'danger', Medium: 'warning', Low: 'neutral' } as const;
 const STATUSES: OpportunityState['status'][] = ['Open', 'In review', 'Dismissed'];
@@ -28,18 +29,24 @@ const DISMISS_REASONS = ['Not applicable', 'Already planned', 'Business requirem
  */
 export function OptimizationAdvisorPage() {
   useScrollToHash();
-  const opportunities = useMemo(() => cloudInsightsRepository.listOptimizationOpportunities(), []);
+  const allOpportunities = useMemo(() => cloudInsightsRepository.listOptimizationOpportunities(), []);
+  // One provider filter for the whole page (overview figures and this list); limited to providers the person may see.
+  const scope = useSavingsScope();
+  const { provider } = scope;
+  const opportunities = useMemo(
+    () => allOpportunities.filter((o) => scope.allowedProviders.includes(o.provider) && (provider === '' || o.provider === provider)),
+    [allOpportunities, scope.allowedProviders, provider],
+  );
   const states = useOpportunityStates();
   const [category, setCategory] = useRememberedState('cloud', 'optimization-category', ALL, oneOf([ALL, ...CATEGORIES]));
   const [impact, setImpact] = useRememberedState('cloud', 'optimization-impact', ALL, oneOf([ALL, 'High', 'Medium', 'Low']));
-  const [provider, setProvider] = useRememberedState('cloud', 'optimization-provider', ALL, oneOf([ALL, 'azure', 'aws', 'gcp', 'btp']));
   const [status, setStatus] = useRememberedState('cloud', 'optimization-status', 'Active', oneOf(['Active', ...STATUSES]));
   const [openId, setOpenId] = useState<string | null>(null);
   const [dismissReason, setDismissReason] = useState(DISMISS_REASONS[0]);
 
   const stateOf = (o: OptimizationOpportunity): OpportunityState => states[o.id] ?? { status: 'Open' };
   const visible = opportunities
-    .filter((o) => (category === ALL || o.category === category) && (impact === ALL || o.impact === impact) && (provider === ALL || o.provider === provider))
+    .filter((o) => (category === ALL || o.category === category) && (impact === ALL || o.impact === impact))
     .filter((o) => (status === 'Active' ? stateOf(o).status !== 'Dismissed' : stateOf(o).status === status))
     .sort((a, b) => b.monthlySaving - a.monthlySaving);
   const active = opportunities.filter((o) => stateOf(o).status !== 'Dismissed');
@@ -53,13 +60,13 @@ export function OptimizationAdvisorPage() {
     <div>
       <PageHeader title="Savings & Optimization" subtitle="What you could save, what Maitsys rates already save you, and every opportunity to act on." />
 
-      <SavingsOverviewSection />
+      <SavingsOverviewSection scope={scope} opportunities={allOpportunities} onOpenOpportunity={setOpenId} />
 
       <section id="opportunities" aria-labelledby="opportunities-title">
       <div className="mv-section-head">
         <div>
           <h2 id="opportunities-title" className="mv-section-title">Opportunities</h2>
-          <p className="mv-muted">Ranked by estimated monthly saving. Assign them, review them or dismiss them with a reason.</p>
+          <p className="mv-muted">Ranked by estimated monthly saving{provider ? `, ${PROVIDER_FILTER_LABELS[provider]} only` : ''}. Assign them, review them or dismiss them with a reason.</p>
         </div>
       </div>
 
@@ -75,7 +82,9 @@ export function OptimizationAdvisorPage() {
           <div className="mv-filter-bar" role="search" aria-label="Filter opportunities">
             <Select label="Category" hideLabel value={category} onChange={setCategory} options={[{ value: ALL, label: 'All categories' }, ...CATEGORIES.map((c) => ({ value: c, label: c }))]} />
             <Select label="Impact" hideLabel value={impact} onChange={setImpact} options={[{ value: ALL, label: 'Any impact' }, { value: 'High', label: 'High impact' }, { value: 'Medium', label: 'Medium impact' }, { value: 'Low', label: 'Low impact' }]} />
-            <Select label="Provider" hideLabel value={provider} onChange={setProvider} options={[{ value: ALL, label: 'All providers' }, { value: 'azure', label: 'Azure' }, { value: 'aws', label: 'AWS' }]} />
+            {(!scope.overviewEnabled || !scope.hasAnyAccess) && (
+              <Select label="Provider" hideLabel value={provider} onChange={scope.setProvider} options={scope.providerOptions.map((p) => ({ value: p, label: PROVIDER_FILTER_LABELS[p] }))} />
+            )}
             <Select label="Status" hideLabel value={status} onChange={setStatus} options={[{ value: 'Active', label: 'Open and in review' }, ...STATUSES.map((s) => ({ value: s, label: s }))]} />
           </div>
           {visible.length === 0 ? (
@@ -105,8 +114,8 @@ export function OptimizationAdvisorPage() {
           )}
         </section>
         <section className="mv-panel" aria-labelledby="by-category-title">
-          <div className="mv-panel-header"><h2 className="mv-panel-title" id="by-category-title">Saving by category</h2></div>
-          <BarList label="Estimated monthly saving by category" items={byCategory.map(({ c, saving }) => ({ key: c, label: c, value: saving, display: formatMoney(saving, 'USD', { compact: true }), tone: 'success', selected: category === c, onSelect: () => setCategory(category === c ? ALL : c) }))} />
+          <div className="mv-panel-header"><h2 className="mv-panel-title" id="by-category-title">Saving by type</h2></div>
+          <BarList label="Estimated monthly saving by type" items={byCategory.map(({ c, saving }) => ({ key: c, label: c, value: saving, display: formatMoney(saving, 'USD', { compact: true }), tone: 'success', selected: category === c, onSelect: () => setCategory(category === c ? ALL : c) }))} />
         </section>
       </div>
       </section>

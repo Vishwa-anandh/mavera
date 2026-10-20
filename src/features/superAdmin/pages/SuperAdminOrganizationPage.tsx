@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { Select } from '../../../shared/ui/Select';
 import { fireToast } from '../../../shared/lib/toastEvents';
+import { CopyButton } from '../../../shared/ui/CopyButton';
+import { licenseRepository } from '../../../data-access';
 import { CloudIcon, ServerIcon, ClockIcon, UsersIcon, FileTextIcon, LockIcon } from '../../../shared/ui/icons';
 import type { CloudProvider } from '../../../shared/types/auth';
 import { ExpiryBadge } from '../components/OrgStatus';
@@ -31,6 +33,32 @@ function emptyDraft(): Draft {
     expiresAt: extendDate(null, { months: 12 }),
     notes: '',
   };
+}
+
+/**
+ * The license token that identifies an organization's subscription. A new organization can be given
+ * a freshly generated token before it is created; an existing one shows the token on record, to copy.
+ */
+function LicenseTokenSection({ token, onGenerate }: { token: string | null | undefined; onGenerate?: () => void }) {
+  return (
+    <Section
+      title="License token"
+      icon={<LockIcon size={18} />}
+      description={onGenerate ? "A 64-character token that identifies this organization's license. It is saved with the organization when you create it." : "The 64-character token that identifies this organization's license."}
+    >
+      {token ? (
+        <div className="mv-sa-token-row">
+          <code className="mv-sa-token" aria-label="License token">{token}</code>
+          <CopyButton value={token} label="Copy token" ariaLabel="Copy license token" />
+        </div>
+      ) : (
+        <p className="mv-muted">{onGenerate ? 'No token generated yet.' : 'No license token is on record for this organization.'}</p>
+      )}
+      {onGenerate && (
+        <button type="button" className="mv-secondary-button" onClick={onGenerate}>{token ? 'Generate a new token' : 'Generate token'}</button>
+      )}
+    </Section>
+  );
 }
 
 function Section({ title, icon, description, children }: { title: string; icon: ReactNode; description?: string; children: ReactNode }) {
@@ -66,6 +94,7 @@ function OrganizationEditor({ orgId }: { orgId?: string }) {
   const confirm = useConfirm();
   const [draft, setDraft] = useState<Draft>(() => (org ? toDraft(org) : emptyDraft()));
   const [nameError, setNameError] = useState<string | null>(null);
+  const [newToken, setNewToken] = useState<string | null>(null);
 
   if (!isNew && !org) {
     return (
@@ -98,7 +127,8 @@ function OrganizationEditor({ orgId }: { orgId?: string }) {
       return;
     }
     if (isNew) {
-      createOrganization({ ...draft, name });
+      const created = createOrganization({ ...draft, name });
+      if (newToken) licenseRepository.assignToOrganization(newToken, created.id);
       fireToast({ type: 'success', message: `${name} was created.` });
     } else if (org) {
       saveOrganization({ ...org, ...draft });
@@ -117,7 +147,7 @@ function OrganizationEditor({ orgId }: { orgId?: string }) {
           <p className="mv-subtitle">
             {isNew
               ? 'Onboard a customer: choose its modules, seats, cloud access and subscription period.'
-              : `${org!.memberCount} members · subscribed since ${formatLongDate(org!.startsAt)}`}
+              : `${org!.memberCount} ${org!.memberCount === 1 ? 'member' : 'members'} · subscribed since ${formatLongDate(org!.startsAt)}${org!.plan ? ` · ${org!.plan === 'premium' ? 'Premium' : 'Basic'} plan` : ''}`}
           </p>
         </div>
         {!isNew && <ExpiryBadge expiresAt={org!.expiresAt} />}
@@ -144,6 +174,11 @@ function OrganizationEditor({ orgId }: { orgId?: string }) {
               {nameError && <span id="org-name-error" className="mv-field-error" role="alert">{nameError}</span>}
             </Section>
           )}
+
+          <LicenseTokenSection
+            token={isNew ? newToken : licenseRepository.getTokenForOrganization(org!.id)}
+            onGenerate={isNew ? () => setNewToken(licenseRepository.generateToken()) : undefined}
+          />
 
           <Section title="Subscription period" icon={<ClockIcon size={18} />} description="When access starts and ends. Extending counts from today if the subscription has lapsed.">
             <div className="mv-sa-field-grid">

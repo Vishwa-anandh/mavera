@@ -1,14 +1,29 @@
-import { useState, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
+import { useAccess } from '../../access';
 import { PasswordField } from '../../../shared/ui/PasswordField';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { useDensity } from '../../../shared/ui/useDensity';
+import { fireToast } from '../../../shared/lib/toastEvents';
+import type { ThemePreference } from '../../../shared/theme/resolveInitialTheme';
+import { readBiometricPreference, useBiometricAvailability, writeBiometricPreference } from '../model/biometric';
 
 const ROLE_LABEL = { owner: 'Owner', admin: 'Administrator', member: 'Member' } as const;
 const MODULE_LABELS = [
   { key: 'sapMonitoring', label: 'SAP Monitoring' },
   { key: 'cloudCost', label: 'Cloud Cost Monitoring' },
+] as const;
+
+const THEME_OPTIONS: Array<{ value: ThemePreference; label: string }> = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+];
+const DENSITY_OPTIONS = [
+  { value: 'comfortable', label: 'Comfortable' },
+  { value: 'compact', label: 'Compact' },
 ] as const;
 
 function errorText(error: unknown): string {
@@ -24,7 +39,13 @@ function errorText(error: unknown): string {
  */
 export function AccountPage() {
   const { user, modules, planType, changePassword } = useAuth();
-  const { mode, setMode } = useMaveraTheme();
+  const { currentRole } = useAccess();
+  const { preference, setPreference } = useMaveraTheme();
+  const [density, setDensity] = useDensity();
+  const biometricAvailable = useBiometricAvailability();
+  const biometricKey = user?.id ?? 'anonymous';
+  const [biometricOn, setBiometricOn] = useState(() => readBiometricPreference(biometricKey));
+  const biometricHelpId = useId();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -66,7 +87,7 @@ export function AccountPage() {
           <dl className="mv-detail-list">
             <div><dt>Name</dt><dd>{name}</dd></div>
             <div><dt>Email</dt><dd>{user?.email ?? '—'}</dd></div>
-            <div><dt>Role</dt><dd>{user ? ROLE_LABEL[user.role] : '—'}</dd></div>
+            <div><dt>Role</dt><dd>{currentRole?.name ?? (user ? ROLE_LABEL[user.role] : '—')}</dd></div>
           </dl>
         </div>
         <p className="mv-muted">Your name and email come from your organisation’s user directory. Ask an administrator to change them.</p>
@@ -86,21 +107,35 @@ export function AccountPage() {
       </section>
 
       <section className="mv-panel mv-account-section" aria-labelledby="prefs-title">
-        <h2 className="mv-panel-title" id="prefs-title">Preferences</h2>
+        <h2 className="mv-panel-title" id="prefs-title">Appearance</h2>
         <div className="mv-pref-row">
-          <span id="appearance-label"><strong>Appearance</strong><span className="mv-muted">Applies straight away on this device.</span></span>
-          <div className="mv-segmented" role="radiogroup" aria-labelledby="appearance-label">
-            {(['light', 'dark'] as const).map((m) => (
-              <button key={m} type="button" role="radio" aria-checked={mode === m} className={`mv-segmented-btn${mode === m ? ' is-active' : ''}`} onClick={() => setMode(m)}>
-                {m === 'light' ? 'Light' : 'Dark'}
+          <span id="theme-label"><strong>Theme</strong><span className="mv-muted">Applies straight away on this device. System follows your device’s light or dark setting.</span></span>
+          <div className="mv-segmented" role="radiogroup" aria-labelledby="theme-label">
+            {THEME_OPTIONS.map((option) => (
+              <button key={option.value} type="button" role="radio" aria-checked={preference === option.value} className={`mv-segmented-btn${preference === option.value ? ' is-active' : ''}`} onClick={() => setPreference(option.value)}>
+                {option.label}
               </button>
             ))}
           </div>
         </div>
+        <div className="mv-pref-row">
+          <span id="density-label"><strong>Density</strong><span className="mv-muted">How much room table rows take. Compact fits more rows on screen.</span></span>
+          <div className="mv-segmented" role="radiogroup" aria-labelledby="density-label">
+            {DENSITY_OPTIONS.map((option) => (
+              <button key={option.value} type="button" role="radio" aria-checked={density === option.value} className={`mv-segmented-btn${density === option.value ? ' is-active' : ''}`} onClick={() => setDensity(option.value)}>
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mv-pref-row">
+          <span><strong>Motion</strong><span className="mv-muted">Mavera follows your device’s reduced-motion setting automatically: when it is on, animations and transitions are switched off. There is nothing to change here.</span></span>
+        </div>
       </section>
 
-      <section className="mv-panel mv-account-section" aria-labelledby="password-title">
-        <h2 className="mv-panel-title" id="password-title">Change password</h2>
+      <section className="mv-panel mv-account-section" aria-labelledby="security-title">
+        <h2 className="mv-panel-title" id="security-title">Security</h2>
+        <h3 className="mv-detail-heading mv-account-subheading" id="password-title">Change password</h3>
         <form className="mv-account-form" onSubmit={submit} noValidate>
           {error && <div className="mv-auth-alert" role="alert">{error}</div>}
           {saved && <div className="mv-notice" role="status">Password changed. Use the new password next time you sign in.</div>}
@@ -112,6 +147,32 @@ export function AccountPage() {
             <button type="submit" className="mv-primary-button" disabled={saving}>{saving ? 'Saving…' : 'Change password'}</button>
           </div>
         </form>
+
+        <div className="mv-pref-row mv-biometric-row">
+          <span id="biometric-label">
+            <strong>Biometric sign-in</strong>
+            <span className="mv-muted" id={biometricHelpId}>
+              {biometricAvailable
+                ? 'Face ID, fingerprint or Windows Hello. This is a prototype capability: it only saves your preference on this device and does not register a passkey yet.'
+                : 'Not available on this device. Biometric sign-in needs a browser and device with a built-in authenticator. This is a prototype capability and registers no passkey.'}
+            </span>
+          </span>
+          <button
+            type="button"
+            className="mv-toggle"
+            role="switch"
+            aria-checked={biometricAvailable && biometricOn}
+            aria-labelledby="biometric-label"
+            aria-describedby={biometricHelpId}
+            disabled={!biometricAvailable}
+            onClick={() => {
+              const next = !biometricOn;
+              setBiometricOn(next);
+              writeBiometricPreference(biometricKey, next);
+              fireToast({ type: 'info', message: next ? 'Biometric sign-in preference saved on this device (prototype: no passkey is registered).' : 'Biometric sign-in turned off on this device.' });
+            }}
+          />
+        </div>
       </section>
 
       <section className="mv-panel mv-account-section" aria-labelledby="help-title">

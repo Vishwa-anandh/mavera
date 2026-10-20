@@ -118,3 +118,65 @@ export function buildAiInsights(costs: BtpCosts, yearlyData: BtpYearlyMonth[], m
 function formatCurrency(value: number, currency: string): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
 }
+
+/* ---- Service Category Summary --------------------------------------------------------------- */
+
+/** The category a SAP BTP service is reported under. Unknown services fall into "Other". */
+export function serviceCategoryOf(serviceName: string): string {
+  const name = serviceName.toLowerCase();
+  if (/hana|datasphere|analytics|data intelligence|data warehouse/.test(name)) return 'Data & Analytics';
+  if (/integration|event mesh|api management|connectivity|destination/.test(name)) return 'Integration';
+  if (/build|studio|fiori|mobile|workflow|launchpad|work zone/.test(name)) return 'Application Development';
+  if (/cloud foundry|kyma|continuous|transport|logging|autoscaler|alert notification/.test(name)) return 'DevOps & Platform';
+  if (/object store|document management|storage|blob/.test(name)) return 'Storage';
+  return 'Other';
+}
+
+export interface ServiceCostInput {
+  name: string;
+  cost: number;
+  previousCost?: number;
+}
+
+export interface ServiceCategoryRow {
+  category: string;
+  serviceCount: number;
+  cost: number;
+  /** Share of the total cost, one decimal. */
+  sharePct: number;
+  /** Month-over-month change in percent, one decimal; null when any service in the category has no previous cost. */
+  trendPct: number | null;
+}
+
+export interface ServiceCategorySummary {
+  rows: ServiceCategoryRow[];
+  total: { serviceCount: number; cost: number; sharePct: number; trendPct: number | null };
+}
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/**
+ * Groups services into categories: how many services, what they cost, their share of the total and how
+ * that cost moved against last month. Sorted by cost, descending unless `direction` says otherwise,
+ * with a grand total that is not part of the sort.
+ */
+export function serviceCategorySummaryOf(services: ServiceCostInput[], direction: 'desc' | 'asc' = 'desc'): ServiceCategorySummary {
+  const grand = services.reduce((sum, s) => sum + s.cost, 0);
+  const groups = new Map<string, ServiceCostInput[]>();
+  for (const service of services) {
+    const category = serviceCategoryOf(service.name);
+    groups.set(category, [...(groups.get(category) ?? []), service]);
+  }
+  const trendOf = (list: ServiceCostInput[]): number | null => {
+    if (list.length === 0 || list.some((s) => typeof s.previousCost !== 'number')) return null;
+    const previous = list.reduce((sum, s) => sum + (s.previousCost ?? 0), 0);
+    const current = list.reduce((sum, s) => sum + s.cost, 0);
+    return previous > 0 ? round1(((current - previous) / previous) * 100) : null;
+  };
+  const rows = [...groups.entries()].map(([category, list]) => {
+    const cost = list.reduce((sum, s) => sum + s.cost, 0);
+    return { category, serviceCount: list.length, cost, sharePct: grand > 0 ? round1((cost / grand) * 100) : 0, trendPct: trendOf(list) };
+  });
+  rows.sort((a, b) => (direction === 'desc' ? b.cost - a.cost : a.cost - b.cost) || a.category.localeCompare(b.category));
+  return { rows, total: { serviceCount: services.length, cost: grand, sharePct: grand > 0 ? 100 : 0, trendPct: trendOf(services) } };
+}

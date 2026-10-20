@@ -87,3 +87,10 @@ export const MSP_BADGE: Record<CloudProvider, string> = {
 export function isCurrentPlan(planType: string, planId: PlanDefinition['id']): boolean {
   return planType === planId || (planType === 'basic' && planId === 'free');
 }
+
+/** Display name of the organisation's plan; the API's "basic" is the Free plan. */
+export function planNameOf(planType: string): string {
+  const plan = PLANS.find((p) => isCurrentPlan(planType, p.id));
+  if (plan) return plan.name;
+  return planType ? planType.charAt(0).toUpperCase() + planType.slice(1) : 'Free';
+}

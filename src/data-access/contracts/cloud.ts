@@ -68,6 +68,9 @@ export interface Reservation {
   trend: Array<{ date: string; percent: number }>;
 }
 
+/** Where in the estate a saving sits, for the "Savings by category" breakdown. */
+export type OpportunityArea = 'Compute' | 'Storage' | 'Network' | 'Database' | 'Reservations' | 'Platform';
+
 export interface OptimizationOpportunity {
   id: string;
   provider: CloudProviderId;
@@ -76,7 +79,10 @@ export interface OptimizationOpportunity {
   resourceId: string;
   rationale: string;
   category: 'Rightsizing' | 'Idle resources' | 'Storage tiering' | 'Commitments' | 'Consolidation';
+  area: OpportunityArea;
   impact: 'High' | 'Medium' | 'Low';
+  /** How much work the change is for the resource owner (a commitment is a purchase decision, deleting an orphan is not). */
+  effort: 'Low' | 'Medium' | 'High';
   /** Estimated monthly saving as supplied by the source. */
   monthlySaving: number;
   currency: string;
@@ -84,4 +90,15 @@ export interface OptimizationOpportunity {
   assumptions: string;
   /** Another opportunity covering the same spend; excluded from totals to avoid double counting. */
   overlapsWith?: string;
+}
+
+/**
+ * How much of the identified optimisation saving had actually been applied by the end of each month
+ * (0 to 1). Sample data until the backend reports implemented changes; it is what separates "realised"
+ * from "potential" on the Savings Trend. Maitsys MSP discounts are always realised.
+ */
+export interface SavingsRealisationPoint {
+  /** "YYYY-MM". */
+  month: string;
+  appliedShare: number;
 }

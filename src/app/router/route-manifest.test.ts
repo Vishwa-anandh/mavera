@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { derivePermissions } from '../../shared/lib/permissions';
 import type { User } from '../../shared/types/auth';
-import { resolveNav, type NavContext } from './navConfig';
-import { appPaths, isRegisteredPath, routeById, routeManifest } from './route-manifest';
+import { NAV_MODULES, resolveNav, type NavContext } from './navConfig';
+import { appPaths, isRegisteredPath, routeById, routeManifest, routeModuleFor } from './route-manifest';
 
 const ALL_ON: NavContext = {
   features: { budgets: true, smartAlerts: true, syncLogs: true, recommendations: true, cloudManagement: true, invoices: true },
@@ -57,5 +57,39 @@ describe('route manifest', () => {
 
   it('throws for an unknown route id', () => {
     expect(() => routeById('does-not-exist')).toThrow('Unknown route id');
+  });
+});
+
+describe('role-based route protection', () => {
+  it('guards every navigation destination with the same module the menu uses', () => {
+    const admin: User = { id: '1', email: 'a@b.com', role: 'admin' };
+    const entries = resolveNav(derivePermissions(admin, ['azure', 'aws', 'btp', 'gcp'], false), ALL_ON);
+    let checked = 0;
+    for (const entry of entries) {
+      const leaves = entry.type === 'leaf' ? [entry] : entry.children;
+      for (const item of leaves) {
+        const module = NAV_MODULES[item.key];
+        if (!module) continue;
+        expect(routeModuleFor(item.path), `${item.key} -> ${item.path}`).toBe(module);
+        checked += 1;
+      }
+    }
+    expect(checked).toBeGreaterThan(20);
+  });
+
+  it('maps parameterised and splat routes, redirects and the new Audit Trail', () => {
+    expect(routeModuleFor('/audit-trail')).toBe('audit');
+    expect(routeModuleFor('/azure/sub-123')).toBe('provider.azure');
+    expect(routeModuleFor('/aws/accounts/1')).toBe('provider.aws');
+    expect(routeModuleFor('/sap/dumps')).toBe('sap.jobs');
+    expect(routeModuleFor('/')).toBe('dashboard');
+    expect(routeModuleFor('/users/')).toBe('users');
+  });
+
+  it('leaves pages that every signed-in member may open without a module', () => {
+    expect(routeModuleFor('/account')).toBeUndefined();
+    expect(routeModuleFor('/alerts')).toBeUndefined();
+    expect(routeModuleFor('/nowhere')).toBeUndefined();
+    expect(routeById('audit-trail')).toMatchObject({ path: '/audit-trail', module: 'audit', layout: 'app' });
   });
 });

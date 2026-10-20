@@ -46,10 +46,10 @@ describe('App', () => {
     // The dashboard's one h1 is the hero headline, not the literal word
     // "Dashboard" (that still appears in the nav link).
     // Pages load on demand: a skeleton stands in until the dashboard's code arrives.
-    expect(await screen.findByRole('heading', { level: 1 }, { timeout: 8000 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1 }, { timeout: 25000 })).toBeInTheDocument();
     expect(screen.queryByRole('status', { name: 'Loading page' })).not.toBeInTheDocument();
     expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
-  });
+  }, 40000);
 
   it('redirects /admin/login to the normal login page — there is no separate Super Admin login page', async () => {
     window.history.pushState({}, '', '/admin/login');

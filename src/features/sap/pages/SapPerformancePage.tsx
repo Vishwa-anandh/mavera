@@ -1,10 +1,22 @@
-import { SAP_PERFORMANCE, SAP_SERVER_TOPOLOGY, SAP_DISK_USAGE } from '../../../demo/sap/mockSapPerformance';
+import { useCallback, useMemo, useState } from 'react';
+import { sapRepository } from '../../../data-access';
 import { DonutChart } from '../../../shared/ui/DonutChart';
-import { chartColors } from '../../../shared/theme/tokens';
-import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { TrendUpIcon, RefreshIcon } from '../../../shared/ui/icons';
+import { AbapRuntimeErrorsCard } from '../components/AbapRuntimeErrorsCard';
+import { BackgroundJobsSummaryCard } from '../components/BackgroundJobsSummaryCard';
+import { DbCallStatsCard } from '../components/DbCallStatsCard';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
+import { MiniChart } from '../components/MiniChart';
+import { QueueIndicators } from '../components/QueueIndicators';
+import { SyncStatus } from '../components/SyncStatus';
+import { TcodeBadge } from '../components/TcodeBadge';
+import { WorkProcessesPanel } from '../components/WorkProcessesPanel';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { WORK_PROCESS_LABEL, jobDurationSeries, jobDurationStats, processMix, trendStats } from '../model/sapPerformance';
+import { clockTime } from '../model/useSyncCountdown';
+
+/** ABAP systems sync every five minutes. */
+const SAP_SYNC_INTERVAL_SEC = 5 * 60;
 
 /** A percentage metric that shows "Not reported" instead of a misleading 0% when the SAP
  * system didn't send a value. */
@@ -24,28 +36,51 @@ function PercentKpi({ label, value }: { label: string; value: number | null }) {
   );
 }
 
-function DiskBar({ mount }: { mount: (typeof SAP_DISK_USAGE)[number] }) {
+function DiskBar({ mount }: { mount: { path: string; usedGb: number; freeGb: number; totalGb: number; percent: number } }) {
   const tone = mount.percent >= 90 ? 'danger' : mount.percent >= 75 ? 'warning' : 'success';
   return (
-    <div style={{ marginBottom: '0.875rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
-        <strong>{mount.path}</strong>
+    <li className="mv-disk-mount">
+      <div className="mv-disk-mount-head">
+        <strong className="mv-mono">{mount.path}</strong>
         <span className={`mv-status mv-status--${tone}`}>{mount.percent}%</span>
       </div>
-      <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-surface-subtle)', overflow: 'hidden' }}>
-        <div style={{ width: `${mount.percent}%`, height: '100%', background: tone === 'danger' ? 'var(--mv-danger)' : tone === 'warning' ? 'var(--mv-warning)' : 'var(--mv-success)' }} />
+      <div className="mv-disk-track" aria-hidden="true">
+        <div className={`mv-disk-fill mv-disk-fill--${tone}`} style={{ width: `${mount.percent}%` }} />
       </div>
-      <p className="mv-muted" style={{ margin: '0.1875rem 0 0', fontSize: '0.6875rem' }}>Used {mount.usedMb.toFixed(1)} MB · Free {mount.freeMb.toFixed(1)} MB · Total {mount.totalMb.toFixed(1)} MB</p>
-    </div>
+      <p className="mv-muted mv-disk-mount-sizes">Used {mount.usedGb.toFixed(1)} GB · Free {mount.freeGb.toFixed(1)} GB · Total {mount.totalGb.toFixed(1)} GB</p>
+    </li>
   );
 }
 
+const compact = (v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v));
+
 /** Maps to MIO's "SAP Monitoring" (ABAP performance) deep dive — the fleet
- * list lives separately at /sap/systems. */
+ * list lives separately at /sap/systems. Each card carries the SAP transaction it comes from. */
 export function SapPerformancePage() {
-  const { mode } = useMaveraTheme();
-  const colors = chartColors[mode];
-  const p = SAP_PERFORMANCE;
+  const data = useMemo(() => ({
+    p: sapRepository.getPerformance(),
+    topology: sapRepository.listServerTopology(),
+    disks: sapRepository.listDiskMounts(),
+    errors: sapRepository.listDumps(),
+    jobs: sapRepository.listJobs(),
+    stats: sapRepository.getDbCallStatistics(),
+    trends: sapRepository.getPerformanceTrends(),
+    processes: sapRepository.listWorkProcesses(),
+    queues: sapRepository.getQueueIndicators(),
+  }), []);
+  const { p, topology, disks, errors, jobs, stats, trends, processes, queues } = data;
+  const [sync, setSync] = useState({ at: p.lastFetched, token: 0 });
+  const refresh = useCallback(() => setSync((s) => ({ at: clockTime(), token: s.token + 1 })), []);
+  const autoSync = useCallback(() => setSync((s) => ({ ...s, at: clockTime() })), []);
+
+  const durations = jobDurationStats(jobs);
+  const durationSeries = jobDurationSeries(jobs);
+  const mix = processMix(processes);
+  const bufferStats = trendStats(trends.bufferHit);
+  const callStats = trendStats(trends.dbCalls);
+  const dumpsWeek = trends.dumps.reduce((sum, d) => sum + d.value, 0);
+  const dumpsToday = trends.dumps[trends.dumps.length - 1]?.value ?? 0;
+  const disksByFill = [...disks].sort((a, b) => b.percent - a.percent);
 
   return (
     <div>
@@ -53,15 +88,14 @@ export function SapPerformancePage() {
         <DestinationSwitcher />
       </PageHeader>
 
-      <section className="mv-panel mv-panel--flat" style={{ marginBottom: '0.75rem' }}>
+      <section className="mv-panel mv-panel--flat" style={{ marginBottom: '0.75rem' }} aria-label="SAP performance status">
         <div className="mv-panel-header">
           <h2 className="mv-panel-title"><TrendUpIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />SAP Performance <span className="mv-muted" style={{ fontWeight: 400 }}>{p.system}</span></h2>
-          <button className="mv-quiet-button"><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
+          <button type="button" className="mv-quiet-button" onClick={refresh}><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
         </div>
-        <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.8125rem' }}>
+        <div className="mv-host-line">
           <span className="mv-status mv-status--success">{p.status}</span>
-          <span className="mv-muted">Last fetched <strong style={{ color: 'var(--mv-text)' }}>{p.lastFetched}</strong></span>
-          <span className="mv-muted">Next sync <strong style={{ color: 'var(--mv-text)' }}>{p.nextSyncMinutes}m</strong></span>
+          <SyncStatus lastFetched={sync.at} initialSec={p.nextSyncMinutes * 60} intervalSec={SAP_SYNC_INTERVAL_SEC} restartToken={sync.token} onAutoSync={autoSync} />
         </div>
       </section>
 
@@ -76,22 +110,27 @@ export function SapPerformancePage() {
         <article className="mv-kpi"><span className="mv-kpi-label">System Locks</span><strong className="mv-kpi-value">{p.systemLocks}</strong></article>
       </div>
 
-      <div className="mv-columns-16-8" style={{ marginBottom: '1.25rem' }}>
-        <div className="mv-column-stack">
-          <section className="mv-panel">
+      <div className="mv-column-stack" style={{ marginBottom: '1rem' }}>
+        <AbapRuntimeErrorsCard errors={errors} />
+
+        <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr' } as React.CSSProperties}>
+          <section className="mv-panel" aria-labelledby="topology-title">
             <div className="mv-panel-header">
-              <h2 className="mv-panel-title">Server Topology <span className="mv-muted" style={{ fontWeight: 400 }}>SM51</span></h2>
-              <span className="mv-muted">{SAP_SERVER_TOPOLOGY.length} {SAP_SERVER_TOPOLOGY.length === 1 ? 'instance' : 'instances'}</span>
+              <h2 id="topology-title" className="mv-panel-title">Server Topology <TcodeBadge code="SM51" /></h2>
+              <span className="mv-muted">{topology.length} {topology.length === 1 ? 'instance' : 'instances'}</span>
             </div>
             <ul className="mv-server-grid">
-              {SAP_SERVER_TOPOLOGY.map((node) => (
+              {topology.map((node) => (
                 <li key={node.id} className="mv-server">
                   <div className="mv-server-head">
                     <div className="mv-server-name">
                       <strong>{node.id}</strong>
                       <span className="mv-muted">{node.host}</span>
                     </div>
-                    <span className="mv-status mv-status--success">{node.status}</span>
+                    <span className="mv-server-state">
+                      <span className="mv-muted">{node.loadPercent}% load</span>
+                      <span className={`mv-status mv-status--${node.status === 'Active' ? 'success' : 'danger'}`}>{node.status}</span>
+                    </span>
                   </div>
                   <dl className="mv-server-metrics">
                     <div><dt>Response</dt><dd>{node.responseMs}<small> ms</small></dd></div>
@@ -103,17 +142,88 @@ export function SapPerformancePage() {
               ))}
             </ul>
           </section>
+          <BackgroundJobsSummaryCard jobs={jobs} />
         </div>
-        <section className="mv-panel">
-          <div className="mv-panel-header"><h2 className="mv-panel-title">Disk Usage <span className="mv-muted" style={{ fontWeight: 400 }}>ST06</span></h2></div>
-          <DonutChart
-            title="Disk usage by mount"
-            totalLabel="Used"
-            data={SAP_DISK_USAGE.map((m, i) => ({ label: m.path, value: m.usedMb, color: [colors.primary, colors.secondary, colors.tertiary, colors.axis, colors.grid][i % 5] }))}
-          />
-          {SAP_DISK_USAGE.map((mount) => <DiskBar key={mount.path} mount={mount} />)}
+
+        <section className="mv-panel" aria-labelledby="disk-title">
+          <div className="mv-panel-header">
+            <h2 id="disk-title" className="mv-panel-title">Disk Usage <TcodeBadge code="ST06" /></h2>
+            <span className="mv-muted">{disks.length} mounts · fullest first</span>
+          </div>
+          <ul className="mv-disk-grid" aria-label="Disk usage by mount">
+            {disksByFill.map((mount) => <DiskBar key={mount.path} mount={mount} />)}
+          </ul>
         </section>
+
+        <DbCallStatsCard stats={stats} />
       </div>
+
+      <section aria-labelledby="perf-analytics-title" style={{ marginBottom: '1rem' }}>
+        <div className="mv-section-head">
+          <h2 id="perf-analytics-title" className="mv-panel-title">Analytics</h2>
+          <p className="mv-muted">Interactive charts · each has a data table behind View data</p>
+        </div>
+        <div className="mv-mini-grid">
+          <MiniChart
+            title="Job Duration"
+            kind="bar"
+            data={durationSeries}
+            summary={`Avg ${durations.avgSec}s · Max ${durations.maxSec}s · ${durations.total} jobs`}
+            valueLabel="Duration"
+            timeLabel="Started"
+            format={(v) => `${v}s`}
+          />
+          <section className="mv-panel mv-mini-chart" aria-labelledby="mini-process-mix">
+            <div className="mv-mini-chart-head">
+              <h3 id="mini-process-mix" className="mv-panel-title">Process Mix</h3>
+              <p className="mv-muted">{processes.length} work processes by type</p>
+            </div>
+            <DonutChart
+              title="Work process mix by type"
+              totalLabel="processes"
+              data={mix.map((row, i) => ({
+                label: `${WORK_PROCESS_LABEL[row.type]} (${row.type})`,
+                value: row.count,
+                color: ['var(--mv-primary)', 'var(--mv-text-secondary)', 'var(--mv-success)', 'var(--mv-warning)', 'color-mix(in srgb, var(--mv-primary) 40%, var(--mv-surface))'][i % 5],
+              }))}
+            />
+          </section>
+          <MiniChart
+            title="Dump Timeline"
+            kind="bar"
+            data={trends.dumps}
+            summary={`${dumpsToday} today · ${dumpsWeek} in 7 days`}
+            valueLabel="Dumps"
+            timeLabel="Day"
+            domain={[0, Math.max(3, ...trends.dumps.map((d) => d.value))]}
+            tone="secondary"
+          />
+          <MiniChart
+            title="Buffer Hit"
+            kind="area"
+            data={trends.bufferHit}
+            summary={`Now ${bufferStats.last.toFixed(1)}% · Low ${bufferStats.min.toFixed(1)}% over 24 hours`}
+            valueLabel="Hit ratio"
+            timeLabel="Hour"
+            format={(v) => `${v.toFixed(1)}%`}
+            axisFormat={(v) => `${Math.round(v)}%`}
+            domain={[95, 100]}
+          />
+          <MiniChart
+            title="DB Calls"
+            kind="area"
+            data={trends.dbCalls}
+            summary={`Peak ${compact(callStats.max)} calls per hour · Avg ${compact(Math.round(callStats.avg))}`}
+            valueLabel="Calls"
+            timeLabel="Hour"
+            axisFormat={compact}
+            tone="tertiary"
+          />
+          <QueueIndicators queues={queues} />
+        </div>
+      </section>
+
+      <WorkProcessesPanel processes={processes} system={topology[0]?.id ?? p.system} />
     </div>
   );
 }

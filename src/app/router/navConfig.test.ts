@@ -234,3 +234,38 @@ describe('isNavPathActive', () => {
     expect(isNavPathActive('/', '/billing')).toBe(false);
   });
 });
+
+describe('role-based visibility and the Audit Trail', () => {
+  const admin: User = { id: '1', email: 'a@b.com', role: 'admin' };
+  const adminPermissions = derivePermissions(admin, ['azure'], false);
+
+  it('lists Audit Trail under Administration, between User Management and Sync Logs', () => {
+    const entries = resolveNav(adminPermissions, ctx());
+    const group = entries.find((e) => e.key === 'administration');
+    expect(group?.type === 'group' && group.children.map((c) => c.key)).toEqual(['users', 'audit-trail', 'sync-logs']);
+    expect(leaf(entries, 'audit-trail')).toMatchObject({ label: 'Audit Trail', path: '/audit-trail', locked: false });
+  });
+
+  it('hides every destination whose module the role cannot VIEW, and an emptied group with it', () => {
+    const none = resolveNav(adminPermissions, { ...ctx(), canView: () => false });
+    expect(none).toEqual([]);
+    const onlyDashboard = resolveNav(adminPermissions, { ...ctx(), canView: (m) => m === 'dashboard' });
+    expect(onlyDashboard.map((e) => e.key)).toEqual(['dashboard']);
+  });
+
+  it('hides just Audit Trail when only audit VIEW is missing', () => {
+    const entries = resolveNav(adminPermissions, { ...ctx(), canView: (m) => m !== 'audit' });
+    expect(leaf(entries, 'audit-trail')).toBeUndefined();
+    expect(leaf(entries, 'users')).toBeDefined();
+    expect(leaf(entries, 'sap-jobs')).toBeDefined();
+  });
+
+  it('lets the role, not the legacy member flag, decide on the administration pages once roles are in force', () => {
+    const member: User = { id: '2', email: 'm@b.com', role: 'member' };
+    const memberPermissions = derivePermissions(member, [], false);
+    expect(leaf(resolveNav(memberPermissions, ctx()), 'audit-trail')).toBeUndefined();
+    const withRoles = resolveNav(memberPermissions, { ...ctx(), canView: (m) => m === 'audit' });
+    expect(leaf(withRoles, 'audit-trail')).toBeDefined();
+    expect(leaf(withRoles, 'users')).toBeUndefined();
+  });
+});

@@ -50,7 +50,7 @@ export function SuperAdminOrganizationsPage() {
             <tbody>
               {orgs.map((org) => (
                 <tr key={org.id}>
-                  <td data-label="Organization" className="mv-stack-title"><strong>{org.name}</strong><div className="mv-muted">{org.memberCount} members</div></td>
+                  <td data-label="Organization" className="mv-stack-title"><strong>{org.name}</strong><div className="mv-muted">{org.memberCount} {org.memberCount === 1 ? 'member' : 'members'}</div>{org.plan && <div className="mv-muted">{org.plan === 'premium' ? 'Premium' : 'Basic'} plan · {(daysLeft(org.expiresAt) ?? 0) < 0 ? 'Expired' : 'Active'}</div>}</td>
                   <td data-label="Modules"><ModuleChips modules={org.modules} /></td>
                   <td data-label="Users">{org.maxUsers === 0 ? 'Unlimited' : `${org.maxUsers} seats`}</td>
                   <td data-label="Cloud access">{org.invoiceOnly ? 'Invoice only' : org.cloudAccess.length ? org.cloudAccess.map((c) => c.toUpperCase()).join(', ') : '—'}</td>

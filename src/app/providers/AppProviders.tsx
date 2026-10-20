@@ -4,6 +4,7 @@ import { ThemeProvider } from '../../shared/theme/ThemeProvider';
 import { ToastListener } from '../../shared/ui/ToastListener';
 import { ConfirmProvider } from '../../shared/ui/ConfirmProvider';
 import { AuthProvider } from '../../features/auth';
+import { AccessProvider } from '../../features/access';
 import { SuperAdminAuthProvider } from '../../features/superAdmin';
 import { BillingProvider } from '../../features/billing';
 import { ErrorBoundary } from '../errors/ErrorBoundary';
@@ -17,9 +18,11 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <ConfirmProvider>
           <AuthProvider>
             <SuperAdminAuthProvider>
-              <BillingProvider>
-                <BrowserRouter>{children}</BrowserRouter>
-              </BillingProvider>
+              <AccessProvider>
+                <BillingProvider>
+                  <BrowserRouter>{children}</BrowserRouter>
+                </BillingProvider>
+              </AccessProvider>
             </SuperAdminAuthProvider>
           </AuthProvider>
         </ConfirmProvider>

@@ -1,5 +1,5 @@
-import type { CloudResource, CostAnalyticsDataset, OptimizationOpportunity, Reservation } from '../contracts/cloud';
-import { MOCK_CLOUD_RESOURCES, MOCK_COST_ANALYTICS, MOCK_OPTIMIZATION_OPPORTUNITIES, MOCK_RESERVATIONS } from '../../demo/cloud/mockCloudInsights';
+import type { CloudResource, CostAnalyticsDataset, OptimizationOpportunity, Reservation, SavingsRealisationPoint } from '../contracts/cloud';
+import { MOCK_CLOUD_RESOURCES, MOCK_COST_ANALYTICS, MOCK_OPTIMIZATION_OPPORTUNITIES, MOCK_RESERVATIONS, MOCK_SAVINGS_REALISATION } from '../../demo/cloud/mockCloudInsights';
 
 /**
  * Cross-provider Cloud Cost data (analytics, inventory, reservations, optimization).
@@ -18,5 +18,9 @@ export const cloudInsightsRepository = {
   },
   listOptimizationOpportunities(): OptimizationOpportunity[] {
     return structuredClone(MOCK_OPTIMIZATION_OPPORTUNITIES);
+  },
+  /** Month by month, the share of identified optimisation savings that had been applied. */
+  getSavingsRealisation(): SavingsRealisationPoint[] {
+    return structuredClone(MOCK_SAVINGS_REALISATION);
   },
 };

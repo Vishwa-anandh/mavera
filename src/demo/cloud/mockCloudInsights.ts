@@ -1,4 +1,4 @@
-import type { CloudResource, CostAnalyticsDataset, CostBreakdownRow, OptimizationOpportunity, Reservation } from '../../data-access';
+import type { CloudResource, CostAnalyticsDataset, CostBreakdownRow, OpportunityArea, OptimizationOpportunity, Reservation, SavingsRealisationPoint } from '../../data-access';
 import { MOCK_AZURE_ACCOUNTS, MOCK_AZURE_ADVISOR_RECOMMENDATIONS, MOCK_AZURE_CSP_RECOMMENDATIONS, MOCK_AZURE_FULL, MOCK_AZURE_RESERVATION_UTILIZATION, MOCK_AZURE_YEARLY, azureAccountSummaries } from '../azure/mockAzureData';
 import { MOCK_AWS_ACCOUNTS, MOCK_AWS_CSP_RECOMMENDATIONS, MOCK_AWS_FULL, MOCK_AWS_YEARLY, awsAccountSummaries } from '../aws/mockAwsData';
 import { MOCK_GCP_ACCOUNTS, MOCK_GCP_COSTS } from '../gcp/mockGcpData';
@@ -175,7 +175,9 @@ const ACTION_TITLE: Record<string, string> = {
 const advisorCategory = (problem: string): OptimizationOpportunity['category'] =>
   /reserved/i.test(problem) ? 'Commitments' : /unattached|idle/i.test(problem) ? 'Idle resources' : 'Rightsizing';
 
-export const MOCK_OPTIMIZATION_OPPORTUNITIES: OptimizationOpportunity[] = [
+type OpportunityBase = Omit<OptimizationOpportunity, 'area' | 'effort'>;
+
+const BASE_OPPORTUNITIES: OpportunityBase[] = [
   ...MOCK_AZURE_ADVISOR_RECOMMENDATIONS.map((rec, i) => ({
     id: `az-adv-${i + 1}`,
     provider: 'azure' as const,
@@ -206,4 +208,37 @@ export const MOCK_OPTIMIZATION_OPPORTUNITIES: OptimizationOpportunity[] = [
     source: 'Maitsys CSP analysis',
     assumptions: rec.current_monthly_cost > 0 ? `Compared with the current ${rec.current_monthly_cost.toFixed(2)} USD/month for this resource.` : 'Estimated from 30 days of account-wide usage.',
   })),
+  // Network and database findings, plus Google Cloud and SAP BTP, so every provider has something to filter on.
+  { id: 'az-net-1', provider: 'azure', title: 'Release unassociated public IP addresses', resource: 'Production Environment', resourceId: MOCK_AZURE_ACCOUNTS[0].subscriptionId, rationale: '4 standard public IP addresses are not attached to any network interface and are billed every hour.', category: 'Idle resources', impact: 'Low', monthlySaving: 38.4, currency: 'USD', source: 'Azure Advisor', assumptions: 'Advisor estimate based on the last 30 days of usage.' },
+  { id: 'az-db-1', provider: 'azure', title: 'Move the SQL elastic pool to a lower service tier', resource: 'sqlpool-prod-eus', resourceId: MOCK_AZURE_ACCOUNTS[0].subscriptionId, rationale: 'Peak DTU use of the elastic pool stayed under 38% for the last 30 days.', category: 'Rightsizing', impact: 'Medium', monthlySaving: 176.9, currency: 'USD', source: 'Maitsys CSP analysis', assumptions: 'Compared with the current tier price; assumes the same peak load.' },
+  { id: 'aws-net-1', provider: 'aws', title: 'Replace NAT gateways with VPC endpoints for S3 traffic', resource: 'nat-0a1b2c3d4e5f67890', resourceId: 'nat-0a1b2c3d4e5f67890', rationale: 'Most NAT gateway data processing charges come from S3 traffic that a gateway endpoint carries for free.', category: 'Consolidation', impact: 'Medium', monthlySaving: 143.2, currency: 'USD', source: 'Maitsys CSP analysis', assumptions: 'Estimated from 30 days of NAT gateway data processing.' },
+  { id: 'aws-db-1', provider: 'aws', title: 'Right-size the RDS PostgreSQL instance', resource: 'rds-prod-pg-01', resourceId: 'rds-prod-pg-01', rationale: 'CPU stayed under 20% and freeable memory above 60% over the last 30 days.', category: 'Rightsizing', impact: 'Medium', monthlySaving: 192.5, currency: 'USD', source: 'Maitsys CSP analysis', assumptions: 'One instance size down in the same family; Multi-AZ kept.' },
+  { id: 'gcp-1', provider: 'gcp', title: 'Delete idle Compute Engine instances', resource: 'mavera-analytics-118820', resourceId: 'projects/mavera-analytics-118820', rationale: '3 instances had under 2% CPU and no network traffic for 30 days.', category: 'Idle resources', impact: 'Medium', monthlySaving: 163.4, currency: 'USD', source: 'Google Cloud Recommender', assumptions: 'Recommender estimate on the last 30 days of usage.' },
+  { id: 'gcp-2', provider: 'gcp', title: 'Add lifecycle rules to Cloud Storage buckets', resource: 'mavera-prod-482913', resourceId: 'projects/mavera-prod-482913', rationale: 'Objects older than 90 days are still in Standard storage and could move to Nearline.', category: 'Storage tiering', impact: 'Low', monthlySaving: 71, currency: 'USD', source: 'Maitsys CSP analysis', assumptions: 'Assumes the current access pattern continues.' },
+  { id: 'btp-1', provider: 'btp', title: 'Move from pay-as-you-go to the CPEA commitment model', resource: 'Mavera SAP Landscape', resourceId: 'btp-acc-1', rationale: 'Steady monthly consumption qualifies for CPEA pricing, about 10% below pay-as-you-go.', category: 'Commitments', impact: 'High', monthlySaving: round(MOCK_BTP_COSTS.totalCost * 0.1), currency: 'USD', source: 'Maitsys CSP analysis', assumptions: 'About 10% of the current month’s consumption; needs a commitment to SAP.' },
+  { id: 'btp-2', provider: 'btp', title: 'Downgrade SAP Build Apps in S4H-DEV to the free plan', resource: 'S4H-DEV', resourceId: 'sub-s4h-dev', rationale: 'The development subaccount uses a paid plan, but its usage fits the free tier.', category: 'Rightsizing', impact: 'Medium', monthlySaving: 118.5, currency: 'USD', source: 'Maitsys CSP analysis', assumptions: 'Based on the service plan and usage of the last 30 days.' },
+  { id: 'btp-3', provider: 'btp', title: 'Remove the unused Object Store instance in Shared-Services', resource: 'Shared-Services', resourceId: 'sub-shared-services', rationale: 'The instance has had almost no usage for 60 days.', category: 'Idle resources', impact: 'Low', monthlySaving: 84, currency: 'USD', source: 'Maitsys CSP analysis', assumptions: 'Assumes nothing depends on the instance; confirm with its owner.' },
 ];
+
+const EFFORT_BY_CATEGORY: Record<OptimizationOpportunity['category'], OptimizationOpportunity['effort']> = {
+  'Idle resources': 'Low', 'Storage tiering': 'Low', Rightsizing: 'Medium', Consolidation: 'Medium', Commitments: 'High',
+};
+
+function areaOf(o: OpportunityBase): OpportunityArea {
+  if (o.category === 'Commitments') return 'Reservations';
+  if (o.provider === 'btp') return 'Platform';
+  const text = `${o.title} ${o.resource}`;
+  if (/\b(ip addresses|nat gateway|vpc|egress|load balancer|bandwidth)\b/i.test(text)) return 'Network';
+  if (/sql|rds|database|cosmos|postgres/i.test(text)) return 'Database';
+  if (/disk|volume|storage|bucket|blob|tier|snapshot|s3/i.test(text)) return 'Storage';
+  return 'Compute';
+}
+
+export const MOCK_OPTIMIZATION_OPPORTUNITIES: OptimizationOpportunity[] = BASE_OPPORTUNITIES.map((o) => ({ ...o, area: areaOf(o), effort: EFFORT_BY_CATEGORY[o.category] }));
+
+// ---- Savings history ---------------------------------------------------------------------------
+
+/** Share of the identified optimisation saving that had been applied by month end: 12% a year ago, 40% now. Sample data. */
+export const MOCK_SAVINGS_REALISATION: SavingsRealisationPoint[] = [...new Set(MOCK_COST_ANALYTICS.monthly.map((m) => m.month))]
+  .sort()
+  .map((month, index, months) => ({ month, appliedShare: round(0.12 + (0.28 * index) / Math.max(1, months.length - 1)) }));

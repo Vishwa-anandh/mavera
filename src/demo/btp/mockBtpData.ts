@@ -39,7 +39,9 @@ const BTP_SERVICE_NAMES = ['SAP HANA Cloud', 'SAP Build Apps', 'Cloud Foundry Ru
 
 const serviceWeights = BTP_SERVICE_NAMES.map(() => 0.4 + rand() * 1.2);
 const serviceCosts = distribute(CURRENT_MONTH_TOTAL, serviceWeights);
-const CURRENT_MONTH_SERVICES = BTP_SERVICE_NAMES.map((name, i) => ({ name, cost: serviceCosts[i] })).sort((a, b) => b.cost - a.cost);
+/** Month-over-month change per service, in BTP_SERVICE_NAMES order (fixed values, so the seeded random sequence is untouched). */
+const SERVICE_CHANGE = [0.08, -0.05, 0.12, 0.03, -0.11, 0];
+const CURRENT_MONTH_SERVICES = BTP_SERVICE_NAMES.map((name, i) => ({ name, cost: serviceCosts[i], previousCost: Math.round((serviceCosts[i] / (1 + SERVICE_CHANGE[i])) * 100) / 100 })).sort((a, b) => b.cost - a.cost);
 
 // --- Directory / subaccount hierarchy (Mavera SAP Landscape only) ---
 const DIR_PRODUCTION: BtpDirectory = { guid: 'dir-production', displayName: 'Production', subaccountGuids: ['sub-s4h-prod', 'sub-s4h-qa'] };

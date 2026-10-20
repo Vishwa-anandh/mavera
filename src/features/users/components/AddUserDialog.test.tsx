@@ -53,4 +53,24 @@ describe('AddUserDialog', () => {
     setup({ limit: 1, used: 1, available: 0, full: true });
     expect(screen.getByRole('button', { name: 'Add user' })).toBeDisabled();
   });
+
+  it('defaults to the least-privileged built-in role and never offers Owner', async () => {
+    const { user } = setup();
+    const trigger = screen.getByRole('button', { name: /^Role/ });
+    expect(trigger).toHaveTextContent('Viewer');
+    await user.click(trigger);
+    expect(screen.queryByRole('option', { name: 'Owner' })).toBeNull();
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Admin', 'Analyst', 'Viewer']);
+  });
+
+  it('adds the member with the chosen role id and the matching legacy role; Admin needs no provider ticks', async () => {
+    const { user, onAdd } = setup();
+    await user.type(screen.getByLabelText('Full name'), 'Ana Gomez');
+    await user.type(screen.getByLabelText('Work email'), 'ana@x.com');
+    await user.click(screen.getByRole('button', { name: /^Role/ }));
+    await user.click(screen.getByRole('option', { name: 'Admin' }));
+    expect(screen.queryByRole('group', { name: 'Can view' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Add user' }));
+    expect(onAdd.mock.calls[0][0]).toMatchObject({ roleId: 'admin', role: 'admin', canViewAzure: true, canViewAws: true, alertsEnabled: true });
+  });
 });

@@ -297,12 +297,13 @@ export const FLOW_GUIDES: FlowGuide[] = [
     prompt: 'Want to know how to read the HANA page?',
     chipLabel: 'Walk me through HANA monitoring',
     steps: [
-      { target: 'css:.mv-kpi-row-4', title: 'Host vitals', tag: 'Key figures', body: 'Memory, CPU, active alerts and sessions, each with a status tag and the numbers behind it.' },
+      { target: 'css:.mv-kpi-row-4', title: 'Host vitals', tag: 'Key figures', body: 'Memory, CPU, active alerts and live sessions (with who is connected), each with a status tag and the numbers behind it. The host line above shows when the data was last fetched and a countdown to the next sync; Refresh restarts it.' },
       { target: 'panel:Last 24 hours', title: 'The last 24 hours in words', tag: 'Insight', body: 'When CPU peaked, the range memory stayed in, how much headroom you have and any stopped services or active alerts.' },
       { target: 'panel:System Vitals Timeline', title: 'CPU and memory over time', tag: 'Chart', body: 'Hourly CPU and memory for the last day. Use View data for the exact values.' },
       { target: 'panel:Memory composition', title: 'Used and free memory', tag: 'Chart', body: "How much of the host's memory is in use against what is free." },
-      { target: 'panel:Memory by service', title: 'Which service uses the memory', tag: 'Breakdown', body: 'HANA services ranked by memory, largest first.' },
-      { target: 'panel:Active Core Services', title: 'Service status', tag: 'Table', body: 'Every core service with its status and memory. Stopped services are listed first so they are hard to miss.' },
+      { target: 'panel:Active Core Services', title: 'Service memory and status', tag: 'Chart', body: 'Heap used, allocated and shared memory per service. Switch to List to see whether each service is running; stopped services come first so they are hard to miss.' },
+      { target: 'panel:Disk Usage', title: 'Disk partitions', tag: 'Chart', body: 'Used and free space across the host, then each partition with its utilisation, path, mount and device. Switch between Donut and Bar.' },
+      { target: 'panel:Backup Timeline', title: 'Recent backups', tag: 'Chart', body: 'Data, log and catalog backups over the last 7 or 14 days, with time, duration, size and status. The first line tells you when the last successful data backup ran; View data lists every backup.' },
     ],
   }),
   guide({
@@ -313,8 +314,12 @@ export const FLOW_GUIDES: FlowGuide[] = [
     chipLabel: 'Explain this page',
     steps: [
       { target: 'css:.mv-kpi-row-8', title: 'Eight vital signs', tag: 'Key figures', body: 'Response time, active users, DB hit ratio, work processes, ABAP dumps, aborted jobs, memory and system locks. "Not reported by this system" means the source did not send a value — it is not zero.' },
-      { target: 'panel:Server Topology', title: 'Application servers', tag: 'List', body: 'Each application server with its response time, users, quality and dialog steps.' },
-      { target: 'panel:Disk Usage', title: 'Disk usage by mount', tag: 'Chart', body: 'How full each mount point is. Watch the ones near the top of the range.' },
+      { target: 'panel:ABAP Runtime Errors', title: 'Runtime errors', tag: 'Status', body: 'ST22 short dumps. "System is running clean" means there are none; otherwise they are listed here and in Jobs & Dumps.' },
+      { target: 'panel:Server Topology', title: 'Application servers', tag: 'List', body: 'Each application server (SM51) with its load, response time, users, quality and dialog steps.' },
+      { target: 'panel:Disk Usage', title: 'Disk usage by mount', tag: 'Chart', body: 'How full each mount point is (ST06), fullest first. Watch the ones near the top of the range.' },
+      { target: 'panel:DB Call Statistics', title: 'Buffers and DB calls', tag: 'Table', body: 'The SAP buffer hit ratio and database calls per buffer (ST02). This is not the same as the DB Hit Ratio figure above, which the system may not report.' },
+      { target: 'panel:Background Jobs', title: 'Background jobs', tag: 'Filters', body: 'Counts of jobs by status (SM37). Click a status to open Jobs & Dumps already filtered; there you can also search jobs and show more.' },
+      { target: 'panel:Analytics', title: 'Trend charts', tag: 'Chart', body: 'Job duration, work-process mix, dump timeline, buffer hit, DB calls and the update and enqueue queues. Each has a View data table.' },
     ],
   }),
   guide({
@@ -324,7 +329,7 @@ export const FLOW_GUIDES: FlowGuide[] = [
     prompt: 'Want to know what you can do on this page?',
     chipLabel: 'Show me Jobs & Dumps',
     steps: [
-      { target: 'css:#jobs', title: 'Background jobs (SM37)', tag: 'Table', body: 'Scheduled, running, finished and cancelled jobs with their start, finish, duration and user. Click a job name for its run details.' },
+      { target: 'css:#jobs', title: 'Background jobs (SM37)', tag: 'Table', body: 'Filter by status with the chips (each shows its count), search by name or user, and use Show more to page through the list. Each row has its start, finish, duration, user and client. Click a job name for its run details.' },
       { target: 'css:#dumps', title: 'Short dumps (ST22)', tag: 'Table', body: 'ABAP runtime errors. An empty list is good news — it means ST22 has nothing in the period. Click a dump for its details.' },
     ],
   }),
@@ -336,10 +341,11 @@ export const FLOW_GUIDES: FlowGuide[] = [
     chipLabel: 'Help me with SAP alerts',
     steps: [
       { target: 'css:.mv-kpi-row-4', title: 'Alert counts', tag: 'Key figures', body: 'Total active, unread, critical and new breaches.' },
-      { target: 'btn:Alerts List', title: 'Three views', tag: 'Tabs', body: 'Alerts List is the inbox. HANA Monitoring and SAP Monitoring let you set the thresholds that raise alerts for each area.' },
-      { target: 'css:table', title: 'The alerts', tag: 'Table', body: 'Each alert with its type, severity, system and when it was detected. Filter by status and by type (CPU, memory, disk, sessions, dumps, jobs, locks, work processes).' },
-      { target: 'btn:Mark All Read', title: 'Clear the unread count', tag: 'Action', body: 'Marks every alert as read. You can also mark one as read or dismiss it from its row.' },
-      { target: 'btn:Recipients', title: 'Who gets told', tag: 'Tip', body: 'Choose who is notified; Settings next to it controls the thresholds.' },
+      { target: 'btn:HANA Monitoring', title: 'Pick a source', tag: 'Filters', body: 'Switch between all alerts, HANA Monitoring and SAP Monitoring. The counts and the list follow the source you pick.' },
+      { target: 'css:table', title: 'The alerts', tag: 'Table', body: 'Each alert with its type, severity, system, when it was detected and its status. Filter by status (active, unread, critical, resolved, ignored) and by type (CPU, memory, disk, sessions, dumps, jobs, locks, work processes).' },
+      { target: 'btn:Mark All Read', title: 'Clear the unread count', tag: 'Action', body: 'Marks every alert as read. On a row you can mark one as read, Resolve it so it leaves the active counts, or ignore it. Resolved alerts can be reopened.' },
+      { target: 'btn:Recipients', title: 'Who gets told', tag: 'Action', body: 'Add or remove the email addresses that receive alerts.' },
+      { target: 'btn:Settings', title: 'Tune detection', tag: 'Action', body: 'Opens the anomaly-detection settings (sensitivity, minimum change, history needed and cooldown) and the per-metric thresholds for HANA and SAP.' },
     ],
   }),
   guide({
@@ -351,9 +357,9 @@ export const FLOW_GUIDES: FlowGuide[] = [
     steps: [
       { target: 'css:.mv-kpi-row-4', title: 'Transport counts', tag: 'Key figures', body: 'Pending imports, successful imports, failures and releases at a glance.' },
       { target: 'panel:Import Route', title: 'Set the import route', tag: 'Form', body: 'Choose the source and target system (for example DEV to QAS) that transports travel along.' },
-      { target: 'css:input[placeholder^="Search"]', title: 'Find a transport', tag: 'Filters', body: 'Search by request number, description or owner. The tabs above split transports into Open, Released, Imported and Failed.' },
+      { target: 'css:input[placeholder^="Search"]', title: 'Find a transport', tag: 'Filters', body: 'Search by request number, description or owner. The switch beside it splits transports into Open, Released, Imported and Failed.' },
       { target: 'btn:Import Selected', title: 'Import', tag: 'Action', body: 'Import the transports you ticked into the target system. Export saves the list.' },
-      { target: 'panel:Activity Log', title: 'What happened', tag: 'History', body: 'A running log of imports and releases, with the import queue beside it.' },
+      { target: 'panel:Activity Log', title: 'What happened', tag: 'History', body: 'The latest few log entries, with the import queue beside it. View All Logs opens the full log, which you can filter by level and type, search and page through.' },
     ],
   }),
   guide({
@@ -366,8 +372,8 @@ export const FLOW_GUIDES: FlowGuide[] = [
       { target: 'css:.mv-kpi-row-5', title: 'Where you stand', tag: 'Key figures', body: 'How many notes you track and how many are implemented, can be implemented, cannot be implemented, obsolete or not yet checked.' },
       { target: 'css:input[placeholder^="Search"]', title: 'Search and filter', tag: 'Filters', body: 'Find a note by number, title or component, and filter by priority (Hot News, High Priority, Correction) and status.' },
       { target: 'btn:Check Status', title: 'Check against your system', tag: 'Action', body: 'Re-checks the notes against the connected SAP system so the status reflects what is actually applied.' },
-      { target: 'btn:Upload', title: 'Add notes', tag: 'Action', body: 'Upload a list of notes to track. History shows what was checked and when.' },
-      { target: 'css:table', title: 'The notes', tag: 'Table', body: 'Each note with its priority, component, CVSS score, release date, download status and implementation status.' },
+      { target: 'btn:Upload', title: 'Add notes', tag: 'Action', body: 'Upload one or many 7-digit note numbers to track; they start as Unknown until checked. History lists every upload, check and deletion with who did it and the counts.' },
+      { target: 'css:table', title: 'The notes', tag: 'Table', body: 'Each note with its priority, component, CVSS score, release date, SAP download status and implementation status. Recheck a note against SAP or delete it from its row.' },
     ],
   }),
   guide({
@@ -392,7 +398,7 @@ export const FLOW_GUIDES: FlowGuide[] = [
       { target: 'btn:Add Destination', title: 'Add a destination', tag: 'Action', body: 'A destination is a connection to an SAP environment. Give it a name and its endpoint URL.' },
       { target: 'css:input[placeholder^="Search"]', title: 'Find one', tag: 'Filters', body: 'Search destinations by name or URL.' },
       { target: 'btn:Connect', title: 'Connect or disconnect', tag: 'Action', body: 'Only a connected destination is monitored. A card shows its systems and whether HANA is configured.' },
-      { target: 'css:button[aria-label^="Edit"]', title: 'Edit', tag: 'Action', body: "Change a destination's name, URL or systems." },
+      { target: 'css:button[aria-label^="Edit"]', title: 'Edit', tag: 'Action', body: "Change a destination's name, URL or systems in the same form used to add one. The bin button next to it removes the destination after asking." },
     ],
   }),
 
@@ -418,7 +424,8 @@ export const FLOW_GUIDES: FlowGuide[] = [
       '1. The member table lists everyone in your org with their role and access level.',
       "2. Use Deactivate to revoke a member's access without deleting their history — Activate brings them back the same way.",
       "3. You can't deactivate your own account — that action is disabled so you're never locked out by accident.",
-      "4. Only admins and owners can manage other members, per your org's permission rules.",
+      "4. Only people whose role allows it can manage other members. Roles and their permissions are further down the same page.",
+      '5. Under Roles you can add, edit, duplicate or delete roles; under Permissions you pick a role and switch what it can view, create, edit, delete or export.',
     ].join('\n'),
     flows: [
       {
@@ -452,6 +459,22 @@ export const FLOW_GUIDES: FlowGuide[] = [
       { target: 'css:input[type="search"]', title: 'Find a member', tag: 'Filters', body: 'Search by name or email.' },
       { target: 'css:table', title: 'Access per provider', tag: 'Table', body: 'For each provider, switch View access on or off, and choose Full or Read-only. Admins and owners always have full access.' },
       { target: 'btn:Deactivate', title: 'Deactivate', tag: 'Action', body: "Revoke a member's access without deleting their history; Activate brings them back. You cannot deactivate yourself, and a full seat count blocks re-activating until one is free." },
+      { target: 'btn:Elevate', title: 'Elevate to Admin', tag: 'Action', body: 'Promote a member to Admin after a confirmation. Use the Role column to give anyone else a different role. You cannot change your own role or the Owner’s.' },
+      { target: 'panel:Roles', title: 'Roles', tag: 'Roles', body: 'The four built-in roles (Owner, Admin, Analyst, Viewer) and any custom roles. Add, edit, duplicate or delete a role; a role that members still hold cannot be deleted. Click a role name for who holds it and what it can do.' },
+      { target: 'panel:Permissions', title: 'Permissions', tag: 'Matrix', body: 'Pick a role, then switch View, Create, Edit, Delete and Export per module. Dashed cells do not apply to that module. Built-in roles are read-only; save or discard your changes from the bar that appears at the bottom.' },
+    ],
+  }),
+  guide({
+    key: 'audit-trail',
+    pathPrefix: '/audit-trail',
+    pageName: 'Audit Trail',
+    prompt: 'Want a quick tour of the Audit Trail?',
+    chipLabel: 'Show me the Audit Trail',
+    steps: [
+      { target: 'css:.mv-audit-filters', title: 'Find the events you need', tag: 'Filters', body: 'Search by anything in the record, switch between Admin and Member actors, and narrow by module and date range.' },
+      { target: 'css:.mv-audit-timeline', title: 'The timeline', tag: 'Timeline', body: 'Events grouped by day, newest first, each with who did it, to what, and whether it worked. Click an event name for its full record; role and permission changes show the values before and after.' },
+      { target: 'btn:Export CSV', title: 'Export what you see', tag: 'Action', body: 'Download the filtered events as a CSV.' },
+      { target: 'btn:Manual re-sync', title: 'Re-sync', tag: 'Action', body: 'Pull in events recorded since you opened the page.' },
     ],
   }),
   guide({

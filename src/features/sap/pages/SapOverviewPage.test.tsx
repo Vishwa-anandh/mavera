@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { SapOverviewPage } from './SapOverviewPage';
@@ -38,17 +39,18 @@ describe('SapOverviewPage', () => {
 });
 
 describe('HanaMonitoringPage', () => {
-  it('opens with the last-24-hours findings, then the vitals, memory composition and per-service memory', () => {
+  it('opens with the last-24-hours findings, then the vitals, memory composition and per-service memory chart', () => {
     renderPage(<HanaMonitoringPage />);
     const findings = screen.getByRole('list', { name: 'HANA findings for the last 24 hours' });
     expect(within(findings).getByText(/CPU peaked at 1.1% around 18:00/)).toBeInTheDocument();
     expect(within(findings).getByText(/1 service stopped/)).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'HANA memory, used and free' })).toBeInTheDocument();
-    expect(screen.getByRole('list', { name: 'HANA memory by service' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /HANA memory by service/ })).toBeInTheDocument();
   });
 
-  it('lists stopped services first in the services table', () => {
+  it('lists stopped services first in the services list view', async () => {
     renderPage(<HanaMonitoringPage />);
+    await userEvent.click(screen.getByRole('button', { name: 'List' }));
     const table = screen.getByRole('heading', { name: 'Active Core Services' }).closest('.mv-panel') as HTMLElement;
     const firstRow = within(table).getAllByRole('row')[1];
     expect(within(firstRow).getByText('hdbdiserver')).toBeInTheDocument();

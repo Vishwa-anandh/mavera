@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
+import { PreviewRoleMenu } from '../../features/access';
 import { useMaveraTheme } from '../../shared/theme/ThemeProvider';
 import { useConfirm } from '../../shared/ui/ConfirmProvider';
 import { handleMenuKeys, useDismiss } from '../../shared/ui/useOverlay';
@@ -78,6 +79,7 @@ export function ProfileMenu() {
             Help &amp; support
             <span className="mv-menu-item-hint">Opens maitsys.com</span>
           </a>
+          <PreviewRoleMenu />
           <div className="mv-menu-divider" role="separator" />
           <button type="button" role="menuitem" className="mv-menu-item mv-menu-item--danger" onClick={handleLogout}>Log out</button>
           <div className="mv-menu-footer">

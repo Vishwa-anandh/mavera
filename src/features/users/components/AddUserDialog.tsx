@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { useModalOverlay } from '../../../shared/ui/useOverlay';
 import { Select } from '../../../shared/ui/Select';
 import type { CloudProvider } from '../../../shared/types/auth';
+import { roleIdToLegacyRole, systemRoles, type AccessRole } from '../../access';
 import {
   validateNewMember,
-  type MemberRole,
   type NewMemberErrors,
   type OrgMember,
   type SeatSummary,
@@ -15,24 +15,26 @@ export interface AddUserDialogProps {
   seats: SeatSummary;
   /** Providers the organisation subscribes to; the new member can be given view access to any of them. */
   providers: Array<{ id: CloudProvider; label: string }>;
+  /** Roles the new member can hold; defaults to the built-in roles. The Owner role is never offered. */
+  roles?: AccessRole[];
   onCancel: () => void;
   onAdd: (member: OrgMember) => void;
 }
 
-const ROLE_OPTIONS: Array<{ value: Exclude<MemberRole, 'owner'>; label: string }> = [
-  { value: 'member', label: 'Member' },
-  { value: 'admin', label: 'Admin — full access to everything' },
-];
+const DEFAULT_ROLE_ID = 'viewer';
 
 /**
  * Adds a member to the organisation while a seat is free. New members start
  * Active; a member's cloud access is view-only until changed in the table.
  */
-export function AddUserDialog({ members, seats, providers, onCancel, onAdd }: AddUserDialogProps) {
+export function AddUserDialog({ members, seats, providers, roles, onCancel, onAdd }: AddUserDialogProps) {
   const panelRef = useModalOverlay<HTMLElement>(onCancel);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<Exclude<MemberRole, 'owner'>>('member');
+  const assignable = (roles ?? systemRoles()).filter((item) => item.id !== 'owner');
+  const [roleId, setRoleId] = useState<string>(DEFAULT_ROLE_ID);
+  const selectedRole = assignable.find((item) => item.id === roleId);
+  const privilegedRole = roleIdToLegacyRole(roleId) !== 'member';
   const [access, setAccess] = useState<Set<CloudProvider>>(() => new Set());
   const [errors, setErrors] = useState<NewMemberErrors>({});
 
@@ -47,17 +49,19 @@ export function AddUserDialog({ members, seats, providers, onCancel, onAdd }: Ad
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (seats.full) return;
-    const found = validateNewMember({ fullName, email, role }, members);
+    const found = validateNewMember({ fullName, email, roleId }, members);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
-    const canView = (id: CloudProvider) => role === 'admin' || access.has(id);
+    const canView = (id: CloudProvider) => privilegedRole || access.has(id);
     const member: OrgMember = {
       userId: `user-${Date.now().toString(36)}`,
       fullName: fullName.trim(),
       email: email.trim().toLowerCase(),
-      role,
+      role: roleIdToLegacyRole(roleId),
+      roleId,
       status: 'active',
+      alertsEnabled: true,
       canViewAzure: canView('azure'),
       canViewAws: canView('aws'),
       canViewBtp: canView('btp'),
@@ -109,9 +113,15 @@ export function AddUserDialog({ members, seats, providers, onCancel, onAdd }: Ad
             {errors.email && <span className="mv-field-error" role="alert">{errors.email}</span>}
           </label>
 
-          <Select label="Role" value={role} onChange={setRole} options={ROLE_OPTIONS} />
+          <Select
+            label="Role"
+            value={roleId}
+            onChange={setRoleId}
+            options={assignable.map((item) => ({ value: item.id, label: item.kind === 'custom' ? `${item.name} (custom)` : item.name }))}
+            helpText={selectedRole?.description}
+          />
 
-          {role === 'member' && providers.length > 0 && (
+          {!privilegedRole && providers.length > 0 && (
             <fieldset className="mv-checkbox-group">
               <legend>Can view</legend>
               {providers.map((provider) => (

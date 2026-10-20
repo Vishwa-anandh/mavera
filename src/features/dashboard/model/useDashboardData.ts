@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, TOKEN_KEY } from '../../../data-access';
 import { buildMode } from '../../../app/config/environment';
 import type { SpendTrendPoint } from '../../../shared/ui/SpendTrendChart';
+import { demoDailySpend, demoEarlierMonths } from './demoSpendHistory';
 
 /*
  * Response shapes below are taken from the reference app's HomePage.jsx data
@@ -25,6 +26,12 @@ export interface DashboardMonthlyRow {
   gcp?: number;
 }
 
+export interface DashboardDailyRow {
+  /** "YYYY-MM-DD" */
+  key: string;
+  total: number;
+}
+
 /** GET /summary/dashboard */
 export interface DashboardSummary {
   totals?: Partial<Record<ProviderKey, number>> & {
@@ -33,6 +40,11 @@ export interface DashboardSummary {
   };
   accounts?: Partial<Record<ProviderKey, unknown[]>>;
   monthly?: DashboardMonthlyRow[];
+  /**
+   * Recent days, oldest first (at least 60 for the 30D range to have a previous range to compare with).
+   * Optional: when the API doesn't send it, 7D and 30D say so instead of drawing an empty chart.
+   */
+  daily?: DashboardDailyRow[];
 }
 
 export interface RecommendationItem {
@@ -86,6 +98,7 @@ export interface MspSavings {
 
 export interface InvoiceItem {
   id?: string | number;
+  invoice_number?: string;
   provider?: string;
   total_cost?: number | string;
   invoice_date?: string;
@@ -138,20 +151,26 @@ function isDevPreview(): boolean {
   return buildMode !== 'test' && !localStorage.getItem(TOKEN_KEY);
 }
 
+/** Two years of monthly spend: 18 generated earlier months, then the six months below. September is month-to-date. */
+const DEMO_LAST_DAY = '2026-09-28';
+const DEMO_MONTHLY: DashboardMonthlyRow[] = [
+  ...demoEarlierMonths(),
+  { key: '2026-04', total: 13100, azure: 6600, aws: 4900, btp: 1200, gcp: 400 },
+  { key: '2026-05', total: 14250, azure: 7100, aws: 5000, btp: 1650, gcp: 500 },
+  { key: '2026-06', total: 13800, azure: 6900, aws: 4950, btp: 1500, gcp: 450 },
+  { key: '2026-07', total: 15420, azure: 7800, aws: 5200, btp: 1720, gcp: 700 },
+  { key: '2026-08', total: 15840, azure: 7950, aws: 5350, btp: 1790, gcp: 750 },
+  { key: '2026-09', total: 16230, azure: 8420, aws: 5310, btp: 1860, gcp: 640 },
+];
+
 /** Realistic placeholder data so the dashboard renders fully with no backend. */
 function devMockData(): DashboardData {
   return {
     summary: loadedSource<DashboardSummary>({
       totals: { azure: 8420, aws: 5310, btp: 1860, gcp: 640, forecast: 17400, forecastByProvider: { azure: 9050, aws: 5680, btp: 1990, gcp: 680 } },
       accounts: { azure: [{ id: 'az-1' }, { id: 'az-2' }], aws: [{ id: 'aw-1' }], btp: [{ id: 'bt-1' }], gcp: [] },
-      monthly: [
-        { key: '2026-04', total: 13100, azure: 6600, aws: 4900, btp: 1200, gcp: 400 },
-        { key: '2026-05', total: 14250, azure: 7100, aws: 5000, btp: 1650, gcp: 500 },
-        { key: '2026-06', total: 13800, azure: 6900, aws: 4950, btp: 1500, gcp: 450 },
-        { key: '2026-07', total: 15420, azure: 7800, aws: 5200, btp: 1720, gcp: 700 },
-        { key: '2026-08', total: 16230, azure: 8100, aws: 5400, btp: 1800, gcp: 930 },
-        { key: '2026-09', total: 16230, azure: 8420, aws: 5310, btp: 1860, gcp: 640 },
-      ],
+      monthly: DEMO_MONTHLY,
+      daily: demoDailySpend(DEMO_MONTHLY, '2026-07', DEMO_LAST_DAY),
     }),
     recommendations: loadedSource<RecommendationsResponse>({
       data: [
@@ -189,11 +208,13 @@ function devMockData(): DashboardData {
     }),
     invoices: loadedSource<InvoicesResponse>({
       data: [
-        { id: 'i1', provider: 'azure', total_cost: 2810, invoice_date: '2026-09-01' },
-        { id: 'i2', provider: 'aws', total_cost: 1770, invoice_date: '2026-09-01' },
-        { id: 'i3', provider: 'btp', total_cost: 620, invoice_date: '2026-09-01' },
-        { id: 'i4', provider: 'azure', total_cost: 2705, invoice_date: '2026-08-01' },
-        { id: 'i5', provider: 'aws', total_cost: 1802, invoice_date: '2026-08-01' },
+        { id: 'i1', invoice_number: 'MSFT-2026-09-4471', provider: 'azure', total_cost: 2810, invoice_date: '2026-09-01' },
+        { id: 'i2', invoice_number: 'AWS-2026-09-1183', provider: 'aws', total_cost: 1770, invoice_date: '2026-09-01' },
+        { id: 'i3', invoice_number: 'SAP-BTP-2026-09-0207', provider: 'btp', total_cost: 620, invoice_date: '2026-09-01' },
+        { id: 'i4', invoice_number: 'MSFT-2026-08-4390', provider: 'azure', total_cost: 2705, invoice_date: '2026-08-01' },
+        { id: 'i5', invoice_number: 'AWS-2026-08-1102', provider: 'aws', total_cost: 1802, invoice_date: '2026-08-01' },
+        { id: 'i6', invoice_number: 'GCP-2026-08-9921', provider: 'gcp', total_cost: 310, invoice_date: '2026-08-01' },
+        { id: 'i7', invoice_number: 'MSFT-2026-07-4311', provider: 'azure', total_cost: 2590, invoice_date: '2026-07-01' },
       ],
     }),
   };
@@ -474,6 +495,46 @@ export function invoiceStatsOf(response: InvoicesResponse | InvoiceItem[] | null
     if (provider) byProvider[provider] = (byProvider[provider] ?? 0) + 1;
   }
   return { count: items.length, total, byProvider };
+}
+
+export interface InvoiceProviderSplit {
+  provider: ProviderKey;
+  count: number;
+  total: number;
+  /** Share of the total invoiced amount, one decimal. */
+  sharePct: number;
+}
+
+export interface InvoiceSummary {
+  count: number;
+  total: number;
+  /** Providers with at least one invoice, largest total first. */
+  providers: InvoiceProviderSplit[];
+  /** Newest first (invoice date, then upload date); at most `limit`. */
+  latest: InvoiceItem[];
+}
+
+/** What the Cost Overview "Invoices" view shows: count, total, split by provider and the latest invoices. */
+export function invoiceSummaryOf(response: InvoicesResponse | InvoiceItem[] | null, limit = 5): InvoiceSummary {
+  const items = invoiceItemsOf(response);
+  const byProvider = new Map<ProviderKey, { count: number; total: number }>();
+  let total = 0;
+  for (const item of items) {
+    const amount = num(item.total_cost);
+    total += amount;
+    const provider = item.provider as ProviderKey | undefined;
+    if (!provider) continue;
+    const entry = byProvider.get(provider) ?? { count: 0, total: 0 };
+    entry.count += 1;
+    entry.total += amount;
+    byProvider.set(provider, entry);
+  }
+  const providers = [...byProvider.entries()]
+    .map(([provider, entry]) => ({ provider, count: entry.count, total: entry.total, sharePct: total > 0 ? Math.round((entry.total / total) * 1000) / 10 : 0 }))
+    .sort((a, b) => b.total - a.total);
+  const dateOf = (item: InvoiceItem) => item.invoice_date ?? item.created_at ?? '';
+  const latest = [...items].sort((a, b) => dateOf(b).localeCompare(dateOf(a))).slice(0, limit);
+  return { count: items.length, total, providers, latest };
 }
 
 export interface MspProviderRow {

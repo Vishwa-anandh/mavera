@@ -1,31 +1,33 @@
-import { useState } from 'react';
-import { SAP_ABAP_RUNTIME_ERRORS, SAP_BACKGROUND_JOBS, type BackgroundJob } from '../../../demo/sap/mockSapPerformance';
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { sapRepository, type SapJob } from '../../../data-access';
 import { DetailDrawer, DetailList } from '../../../shared/ui/DetailDrawer';
 import { CopyButton } from '../../../shared/ui/CopyButton';
 import { EmptyState } from '../../../shared/ui/EmptyState';
-import { AlertTriangleIcon, ClockIcon } from '../../../shared/ui/icons';
+import { AlertTriangleIcon } from '../../../shared/ui/icons';
 import { useScrollToHash } from '../../../shared/lib/useScrollToHash';
+import { BackgroundJobsPanel } from '../components/BackgroundJobsPanel';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
+import { TcodeBadge } from '../components/TcodeBadge';
+import { JOB_FILTERS, JOB_STATUS_LABEL, JOB_STATUS_TONE, type JobFilter } from '../model/sapPerformance';
 import { PageHeader } from '../../../shared/ui/PageHeader';
-
-const STATUS_TONE: Record<BackgroundJob['status'], string> = {
-  Scheduled: 'neutral',
-  Running: 'info',
-  Finished: 'success',
-  Cancelled: 'danger',
-};
 
 /**
  * Jobs & Dumps: background jobs (SM37) and ABAP short dumps (ST22) side by side — the two
  * operational tables an SAP admin checks together. Replaces the separate Jobs and Dumps pages;
- * `/sap/dumps` redirects to `#dumps`.
+ * `/sap/dumps` redirects to `#dumps`. The job list is filtered here (status chips, search, show more);
+ * Performance links in with `?status=` instead of keeping its own copy.
  */
 export function SapJobsPage() {
   useScrollToHash();
-  const [openName, setOpenName] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  const requested = params.get('status');
+  const initialFilter: JobFilter = JOB_FILTERS.find((f) => f === requested) ?? 'All';
+  const jobs = useMemo(() => sapRepository.listJobs(), []);
+  const dumps = useMemo(() => sapRepository.listDumps(), []);
+  const [openJob, setOpenJob] = useState<SapJob | null>(null);
   const [openDumpId, setOpenDumpId] = useState<string | null>(null);
-  const openJob = SAP_BACKGROUND_JOBS.find((job) => job.name === openName);
-  const openDump = SAP_ABAP_RUNTIME_ERRORS.find((err) => err.id === openDumpId);
+  const openDump = dumps.find((err) => err.id === openDumpId);
 
   return (
     <div>
@@ -34,36 +36,14 @@ export function SapJobsPage() {
       </PageHeader>
 
       <div className="mv-columns-16-8" style={{ '--mv-cols': '5fr 2fr' } as React.CSSProperties}>
-        <section className="mv-panel" id="jobs" aria-labelledby="sap-jobs-title">
-          <div className="mv-panel-header">
-            <h2 id="sap-jobs-title" className="mv-panel-title"><ClockIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />Background Jobs <span className="mv-muted" style={{ fontWeight: 400 }}>SM37</span></h2>
-            <span className="mv-muted">{SAP_BACKGROUND_JOBS.length} jobs</span>
-          </div>
-          <div className="mv-table-wrap">
-            <table className="mv-table">
-              <thead><tr><th>Job Name</th><th>Status</th><th>Started</th><th>Finished</th><th className="mv-num">Duration</th><th>User</th></tr></thead>
-              <tbody>
-                {SAP_BACKGROUND_JOBS.map((job) => (
-                  <tr key={job.name}>
-                    <td><button type="button" className="mv-link-button" onClick={() => setOpenName(job.name)}>{job.name}</button></td>
-                    <td><span className={`mv-status mv-status--${STATUS_TONE[job.status]}`}>{job.status}</span></td>
-                    <td className="mv-muted mv-date">{job.startedAt}</td>
-                    <td className="mv-muted mv-date">{job.finishedAt ?? '—'}</td>
-                    <td className="mv-num">{job.durationSec !== null ? `${job.durationSec}s` : '—'}</td>
-                    <td>{job.user}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <BackgroundJobsPanel key={initialFilter} jobs={jobs} initialFilter={initialFilter} onOpenJob={setOpenJob} />
 
         <section className="mv-panel" id="dumps" aria-labelledby="sap-dumps-title">
           <div className="mv-panel-header">
-            <h2 id="sap-dumps-title" className="mv-panel-title"><AlertTriangleIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />Short Dumps <span className="mv-muted" style={{ fontWeight: 400 }}>ST22</span></h2>
-            <span className="mv-muted">{SAP_ABAP_RUNTIME_ERRORS.length} dumps</span>
+            <h2 id="sap-dumps-title" className="mv-panel-title"><AlertTriangleIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />Short Dumps <TcodeBadge code="ST22" /></h2>
+            <span className="mv-muted">{dumps.length} dumps</span>
           </div>
-          {SAP_ABAP_RUNTIME_ERRORS.length === 0 ? (
+          {dumps.length === 0 ? (
             <EmptyState
               icon={<AlertTriangleIcon size={28} />}
               heading="No runtime errors"
@@ -74,7 +54,7 @@ export function SapJobsPage() {
               <table className="mv-table">
                 <thead><tr><th>Program</th><th>Error Type</th><th>Occurred</th><th>User</th></tr></thead>
                 <tbody>
-                  {SAP_ABAP_RUNTIME_ERRORS.map((err) => (
+                  {dumps.map((err) => (
                     <tr key={err.id}>
                       <td><button type="button" className="mv-link-button" onClick={() => setOpenDumpId(err.id)}>{err.program}</button></td>
                       <td>{err.errorType}</td>
@@ -92,8 +72,8 @@ export function SapJobsPage() {
       {openJob && (
         <DetailDrawer
           title={openJob.name}
-          subtitle={<span className={`mv-status mv-status--${STATUS_TONE[openJob.status]}`}>{openJob.status}</span>}
-          onClose={() => setOpenName(null)}
+          subtitle={<span className={`mv-status mv-status--${JOB_STATUS_TONE[openJob.status]}`}>{JOB_STATUS_LABEL[openJob.status]}</span>}
+          onClose={() => setOpenJob(null)}
           footer={<CopyButton value={openJob.name} label="Copy job name" />}
         >
           <h3 className="mv-detail-heading">Run</h3>
@@ -103,6 +83,7 @@ export function SapJobsPage() {
               { label: 'Finished', value: openJob.finishedAt ?? 'Not finished' },
               { label: 'Duration', value: openJob.durationSec !== null ? `${openJob.durationSec}s` : '—' },
               { label: 'User', value: openJob.user },
+              { label: 'Client', value: openJob.client },
             ]}
           />
         </DetailDrawer>

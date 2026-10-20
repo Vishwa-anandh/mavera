@@ -11,6 +11,8 @@ interface DonutChartProps {
   title: string;
   data: DonutSlice[];
   totalLabel?: string;
+  /** Formats values in the centre, legend, tooltip and data table (e.g. as currency). Defaults to a plain number. */
+  format?: (value: number) => string;
 }
 
 /**
@@ -18,7 +20,7 @@ interface DonutChartProps {
  * of a real whole. Every analytical chart needs a keyboard-accessible "View
  * data" table alternative (§9.1) alongside the visual.
  */
-export function DonutChart({ title, data, totalLabel }: DonutChartProps) {
+export function DonutChart({ title, data, totalLabel, format = (value) => value.toLocaleString() }: DonutChartProps) {
   const [tableOpen, setTableOpen] = useState(false);
   const total = data.reduce((sum, slice) => sum + slice.value, 0);
 
@@ -37,11 +39,11 @@ export function DonutChart({ title, data, totalLabel }: DonutChartProps) {
                   <Cell key={slice.label} fill={slice.color} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value, name) => [Number(value).toLocaleString(), String(name)]} />
+              <Tooltip formatter={(value, name) => [format(Number(value)), String(name)]} />
             </PieChart>
           </ResponsiveContainer>
           <div className="mv-donut-total-label" aria-hidden>
-            <strong>{total.toLocaleString()}</strong>
+            <strong>{format(total)}</strong>
             <span>{totalLabel ?? 'Total'}</span>
           </div>
         </div>
@@ -50,7 +52,7 @@ export function DonutChart({ title, data, totalLabel }: DonutChartProps) {
             <div className="mv-donut-legend-row" key={slice.label}>
               <span className="mv-donut-swatch" style={{ background: slice.color }} aria-hidden />
               <span>{slice.label}</span>
-              <strong>{slice.value.toLocaleString()}</strong>
+              <strong>{format(slice.value)}</strong>
             </div>
           ))}
         </div>
@@ -72,7 +74,7 @@ export function DonutChart({ title, data, totalLabel }: DonutChartProps) {
                 </thead>
                 <tbody>
                   {data.map((slice) => (
-                    <tr key={slice.label}><td>{slice.label}</td><td className="mv-num">{slice.value.toLocaleString()}</td></tr>
+                    <tr key={slice.label}><td>{slice.label}</td><td className="mv-num">{format(slice.value)}</td></tr>
                   ))}
                 </tbody>
               </table>

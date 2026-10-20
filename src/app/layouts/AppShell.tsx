@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, Outlet } from 'react-router-dom';
+import { Link, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
 import { ModuleNavigation } from './ModuleNavigation';
 import { MobileNav } from './MobileNav';
@@ -8,6 +8,8 @@ import { NotificationsDrawer } from './NotificationsDrawer';
 import { ProfileMenu } from './ProfileMenu';
 import { formatBadgeCount, useNotifications } from './notifications';
 import { AssistantWidget } from '../../features/assistant';
+import { PreviewBanner, RouteAccessGuard } from '../../features/access';
+import { routeModuleFor } from '../router/route-manifest';
 import { SearchIcon, BellIcon, HelpIcon, MenuIcon } from '../../shared/ui/icons';
 import maveraLogo from '../../../assets/brand/mavera-logo.png';
 
@@ -15,6 +17,7 @@ type Overlay = 'search' | 'notifications' | 'mobile-nav' | null;
 
 export function AppShell() {
   const { isAuthenticated, loading, modules } = useAuth();
+  const { pathname } = useLocation();
   const [overlay, setOverlay] = useState<Overlay>(null);
   const notifications = useNotifications(modules);
   const unread = notifications.unreadCount;
@@ -84,7 +87,10 @@ export function AppShell() {
             <ProfileMenu />
           </div>
         </header>
-        <main className="mv-content" id="mv-main" tabIndex={-1}><Outlet /></main>
+        <PreviewBanner />
+        <main className="mv-content" id="mv-main" tabIndex={-1}>
+          <RouteAccessGuard module={routeModuleFor(pathname)}><Outlet /></RouteAccessGuard>
+        </main>
       </div>
       {overlay === 'mobile-nav' && <MobileNav onClose={close} />}
       {overlay === 'search' && <SearchDialog onClose={close} />}

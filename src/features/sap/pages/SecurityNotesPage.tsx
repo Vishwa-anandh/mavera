@@ -1,231 +1,187 @@
-import { useRef, useState } from 'react';
-import { useRememberedState } from '../../../shared/lib/useRememberedState';
-import { MOCK_SECURITY_NOTES, MOCK_NOTE_UPLOAD_HISTORY, securityNoteCounts, type SecurityNote, type SecurityNoteStatus, type NoteUploadHistoryEntry } from '../../../demo/sap/mockSecurityNotes';
-import { Select } from '../../../shared/ui/Select';
-import { RefreshIcon, UploadIcon, ClockIcon, SearchIcon, FileTextIcon, CloseIcon, TrashIcon } from '../../../shared/ui/icons';
-import { DestinationSwitcher } from '../components/DestinationSwitcher';
+import { useState } from 'react';
+import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { fireToast } from '../../../shared/lib/toastEvents';
+import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { Pagination } from '../../../shared/ui/Pagination';
+import { Select } from '../../../shared/ui/Select';
+import { StatusTag } from '../../../shared/ui/StatusTag';
+import { Tooltip } from '../../../shared/ui/Tooltip';
+import { usePagination } from '../../../shared/ui/usePagination';
+import { ClockIcon, RefreshIcon, SearchIcon, TrashIcon, UploadIcon } from '../../../shared/ui/icons';
+import { DestinationSwitcher } from '../components/DestinationSwitcher';
+import { NotesHistoryDrawer } from '../components/NotesHistoryDrawer';
+import { UploadNotesDialog } from '../components/UploadNotesDialog';
+import { formatNoteRelease, plural } from '../model/sapFormat';
+import {
+  DOWNLOAD_TONE, NOTE_DOWNLOAD_STATUSES, NOTE_PRIORITIES, NOTE_STATUSES, PRIORITY_TONE, STATUS_TONE, filterNotes, securityNoteCounts, type NoteFilters,
+} from '../model/securityNotes';
+import { useSecurityNotes } from '../model/useSecurityNotes';
 
-const STATUS_TONE: Record<SecurityNoteStatus, string> = {
-  'Completely Implemented': 'success',
-  'Can Be Implemented': 'info',
-  'Cannot Be Implemented': 'danger',
-  'Incompletely Implemented': 'warning',
-  Obsolete: 'neutral',
-  Unknown: 'neutral',
+const KPI_HELP: Record<(typeof NOTE_STATUSES)[number], string> = {
+  'Completely Implemented': 'Fully applied',
+  'Can Be Implemented': 'Actionable — apply now',
+  'Cannot Be Implemented': 'Not feasible',
+  'Incompletely Implemented': 'Partially applied',
+  Obsolete: 'No longer applicable',
+  Unknown: 'Not yet checked',
 };
-const PRIORITY_TONE: Record<SecurityNote['priority'], string> = { 'Hot News': 'danger', 'High Priority': 'warning', Correction: 'info' };
-const KPI_ORDER: Array<{ key: SecurityNoteStatus; label: string; help: string }> = [
-  { key: 'Completely Implemented', label: 'Completely Implemented', help: 'Fully applied' },
-  { key: 'Can Be Implemented', label: 'Can Be Implemented', help: 'Actionable — apply now' },
-  { key: 'Cannot Be Implemented', label: 'Cannot Be Implemented', help: 'Not feasible' },
-  { key: 'Incompletely Implemented', label: 'Incompletely Implemented', help: 'Partially applied' },
-  { key: 'Obsolete', label: 'Obsolete', help: 'No longer applicable' },
-  { key: 'Unknown', label: 'Unknown', help: 'Not yet checked' },
-];
-const CHECK_DESTINATIONS = ['GRC', 'MSQ', 'GRQ', 'EMP'];
 
-function HistoryModal({ entries, onClose }: { entries: NoteUploadHistoryEntry[]; onClose: () => void }) {
-  return (
-    <div className="mv-dialog-backdrop" onClick={onClose}>
-      <section className="mv-dialog mv-dialog--wide" role="dialog" aria-modal="true" aria-label="Upload history" onClick={(e) => e.stopPropagation()}>
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Upload history</h2>
-          <button className="mv-icon-button" aria-label="Close" onClick={onClose}><CloseIcon size={18} /></button>
-        </div>
-        <div style={{ display: 'grid', gap: '0.75rem' }}>
-          {entries.map((entry, i) => (
-            <div key={i} className="mv-panel" style={{ background: 'var(--mv-surface-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.625rem' }}>
-                <FileTextIcon size={18} />
-                <div><strong>{entry.fileName}</strong><p className="mv-muted" style={{ margin: 0, fontSize: '0.75rem' }}>{entry.uploadedAt}</p></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.625rem', textAlign: 'center' }}>
-                <div><strong style={{ fontSize: '1.125rem' }}>{entry.total}</strong><p className="mv-muted" style={{ margin: 0, fontSize: '0.6875rem' }}>Total</p></div>
-                <div><strong style={{ fontSize: '1.125rem' }}>{entry.inserted}</strong><p className="mv-muted" style={{ margin: 0, fontSize: '0.6875rem' }}>Inserted</p></div>
-                <div><strong style={{ fontSize: '1.125rem' }}>{entry.updated}</strong><p className="mv-muted" style={{ margin: 0, fontSize: '0.6875rem' }}>Updated</p></div>
-                <div><strong style={{ fontSize: '1.125rem' }}>{entry.errors}</strong><p className="mv-muted" style={{ margin: 0, fontSize: '0.6875rem' }}>Errors</p></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded: (fileName: string) => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  return (
-    <div className="mv-dialog-backdrop" onClick={onClose}>
-      <section className="mv-dialog" role="dialog" aria-modal="true" aria-label="Upload security notes" onClick={(e) => e.stopPropagation()}>
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Upload security notes</h2>
-          <button className="mv-icon-button" aria-label="Close" onClick={onClose}><CloseIcon size={18} /></button>
-        </div>
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          style={{ width: '100%', padding: '1.875rem', border: '2px dashed var(--mv-border)', borderRadius: '0.625rem', background: 'transparent', textAlign: 'center', cursor: 'pointer' }}
-        >
-          <FileTextIcon size={28} style={{ marginBottom: '0.5rem', color: 'var(--mv-text-muted)' }} />
-          <p style={{ margin: 0, fontWeight: 500 }}>{file ? file.name : 'Drag & drop Excel file here'}</p>
-          <p className="mv-muted" style={{ margin: '0.25rem 0 0', fontSize: '0.75rem' }}>.xlsx only · max 10 MB</p>
-        </button>
-        <input ref={inputRef} type="file" accept=".xlsx" style={{ display: 'none' }} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-        <div className="mv-dialog-actions">
-          <button className="mv-secondary-button" onClick={onClose}>Cancel</button>
-          <button className="mv-primary-button" disabled={!file} onClick={() => file && onUploaded(file.name)}><UploadIcon size={14} style={{ marginRight: '0.375rem' }} />Upload</button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-/** SAP's own CVE/patch advisory tracker — replicates MIO's Security Notes
- * (/snote) page: KPI band by implementation status, then a filterable,
- * searchable table of notes, plus the History/Check Status/Upload flows. */
+/**
+ * SAP's own CVE/patch advisory tracker (MIO /snote): a band of counts by implementation status, then a
+ * filterable, searchable, paged table of notes. Upload, Check Status and History sit in the page header;
+ * every row can be rechecked against SAP or deleted. SAP itself is simulated in the data-access store.
+ */
 export function SecurityNotesPage() {
-  const [notes, setNotes] = useState(MOCK_SECURITY_NOTES);
+  const confirm = useConfirm();
+  const { notes, history, busy, upload, checkStatus, recheck, remove } = useSecurityNotes();
   const [search, setSearch] = useState('');
-  const [priority, setPriority] = useRememberedState('sap', 'security-notes-priority', 'All');
-  const [status, setStatus] = useRememberedState('sap', 'security-notes-status', 'All');
+  const [priority, setPriority] = useRememberedState<NoteFilters['priority']>('sap', 'security-notes-priority', 'All', oneOf(['All', ...NOTE_PRIORITIES]));
+  const [status, setStatus] = useRememberedState<NoteFilters['status']>('sap', 'security-notes-status', 'All', oneOf(['All', ...NOTE_STATUSES]));
+  const [download, setDownload] = useRememberedState<NoteFilters['download']>('sap', 'security-notes-download', 'All', oneOf(['All', ...NOTE_DOWNLOAD_STATUSES]));
   const [historyOpen, setHistoryOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [checkedCount, setCheckedCount] = useState(0);
-  const [recheckingNote, setRecheckingNote] = useState<string | null>(null);
-  const [history, setHistory] = useState(MOCK_NOTE_UPLOAD_HISTORY);
 
   const counts = securityNoteCounts(notes);
-  const filtered = notes.filter((note) => {
-    if (priority !== 'All' && note.priority !== priority) return false;
-    if (status !== 'All' && note.status !== status) return false;
-    if (search && !`${note.noteNumber} ${note.title} ${note.component}`.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const filtered = filterNotes(notes, { search, priority, status, download });
+  const filtersActive = Boolean(search.trim()) || priority !== 'All' || status !== 'All' || download !== 'All';
+  const paging = usePagination(filtered, 10, `${search}|${priority}|${status}|${download}`);
+  const clearFilters = () => { setSearch(''); setPriority('All'); setStatus('All'); setDownload('All'); };
+  const working = busy !== null;
 
-  const runCheckStatus = () => {
-    setChecking(true);
-    setCheckedCount(0);
-    const total = notes.length * CHECK_DESTINATIONS.length;
-    const step = Math.ceil(total / 12);
-    let current = 0;
-    const timer = window.setInterval(() => {
-      current = Math.min(current + step, total);
-      setCheckedCount(current);
-      if (current >= total) {
-        window.clearInterval(timer);
-        setChecking(false);
-        fireToast({ type: 'success', message: 'Status check complete across all active destinations.' });
-      }
-    }, 150);
-  };
-
-  const recheckNote = (noteNumber: string) => {
-    setRecheckingNote(noteNumber);
-    window.setTimeout(() => {
-      setRecheckingNote(null);
-      fireToast({ type: 'info', message: `Note ${noteNumber} status rechecked from SAP.` });
-    }, 900);
-  };
-
-  const deleteNote = (noteNumber: string) => setNotes((cur) => cur.filter((n) => n.noteNumber !== noteNumber));
-
-  const handleUploaded = (fileName: string) => {
-    setHistory((cur) => [{ fileName, uploadedAt: new Date().toLocaleString(), total: notes.length, inserted: 0, updated: notes.length, errors: 0 }, ...cur]);
+  const onUpload = async (numbers: string[]) => {
+    const { added, updated } = await upload(numbers);
     setUploadOpen(false);
-    fireToast({ type: 'success', message: `${fileName} uploaded — ${notes.length} notes processed.` });
+    fireToast({
+      type: 'success',
+      message: added.length > 0
+        ? `${plural(added.length, 'note')} added as Unknown${updated.length ? `, ${updated.length} already tracked` : ''}. Run Check Status to resolve them.`
+        : `${plural(updated.length, 'note')} already tracked; nothing new to add.`,
+    });
+  };
+
+  const onCheck = async () => {
+    const result = await checkStatus();
+    if (result.checked === 0) {
+      fireToast({ type: 'info', message: 'No notes are waiting for a status. Everything has already been checked.' });
+    } else {
+      fireToast({
+        type: result.failed > 0 ? 'warning' : 'success',
+        message: `Checked ${plural(result.checked, 'note')}: ${result.resolved} resolved${result.failed > 0 ? `, ${result.failed} could not be downloaded from SAP` : ''}.`,
+      });
+    }
+  };
+
+  const onRecheck = async (noteNumber: string) => {
+    const note = await recheck(noteNumber);
+    if (note) fireToast({ type: note.status === 'Unknown' ? 'warning' : 'info', message: `Note ${noteNumber} rechecked from SAP: ${note.status}.` });
+  };
+
+  const onDelete = async (noteNumber: string) => {
+    const ok = await confirm({
+      title: `Delete note ${noteNumber}?`,
+      description: 'The note stops being tracked in Mavera and the counts update. SAP itself is not changed.',
+      variant: 'delete',
+      okText: 'Delete note',
+    });
+    if (!ok) return;
+    if (await remove(noteNumber)) fireToast({ type: 'success', message: `Note ${noteNumber} deleted.` });
   };
 
   return (
     <div>
-      <PageHeader title="Security Notes" subtitle={<>SAP Security Notes tracking & management.</>}>
+      <PageHeader title="Security Notes" subtitle="SAP Security Notes tracking & management.">
+        <div className="mv-actions-wrap">
         <DestinationSwitcher />
+        <button type="button" className="mv-secondary-button" onClick={() => setHistoryOpen(true)}><ClockIcon size={14} style={{ marginRight: '0.375rem' }} />History</button>
+        <button type="button" className="mv-secondary-button" disabled={working} onClick={onCheck}>
+          <RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />{busy?.kind === 'check' ? 'Checking…' : 'Check Status'}
+        </button>
+        <button type="button" className="mv-primary-button" disabled={working} onClick={() => setUploadOpen(true)}><UploadIcon size={14} style={{ marginRight: '0.375rem' }} />Upload</button>
+        </div>
       </PageHeader>
 
       <div className="mv-kpi-row-5" style={{ marginBottom: '1.25rem' }}>
         <article className="mv-kpi"><span className="mv-kpi-label">Total Notes</span><strong className="mv-kpi-value">{notes.length}</strong><span className="mv-muted">All uploaded notes</span></article>
-        {KPI_ORDER.map(({ key, label, help }) => (
-          <article className="mv-kpi" key={key}><span className="mv-kpi-label">{label}</span><strong className="mv-kpi-value">{counts[key]}</strong><span className="mv-muted">{help}</span></article>
+        {NOTE_STATUSES.map((key) => (
+          <article className="mv-kpi" key={key}><span className="mv-kpi-label">{key}</span><strong className="mv-kpi-value">{counts[key]}</strong><span className="mv-muted">{KPI_HELP[key]}</span></article>
         ))}
       </div>
 
-      <section className="mv-panel">
-        <div style={{ display: 'flex', gap: '0.625rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: '1 1 16.25rem' }}>
-            <SearchIcon size={15} style={{ position: 'absolute', left: 10, top: 12, color: 'var(--mv-text-muted)' }} />
-            <input className="mv-select" style={{ paddingLeft: '2rem', width: '100%' }} placeholder="Search by note number, title, component..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </div>
-          <Select label="Priority" hideLabel value={priority} onChange={setPriority} options={['All', 'Hot News', 'High Priority', 'Correction'].map((v) => ({ value: v, label: v === 'All' ? 'All Priorities' : v }))} style={{ width: '11.25rem' }} />
-          <Select label="Status" hideLabel value={status} onChange={setStatus} options={['All', ...KPI_ORDER.map((k) => k.key)].map((v) => ({ value: v, label: v === 'All' ? 'All Statuses' : v }))} style={{ width: '13.75rem' }} />
-          <button className="mv-secondary-button" onClick={() => setHistoryOpen(true)}><ClockIcon size={14} style={{ marginRight: '0.375rem' }} />History</button>
-          <button className="mv-secondary-button" disabled={checking} onClick={runCheckStatus}><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />{checking ? 'Checking…' : 'Check Status'}</button>
-          <button className="mv-primary-button" onClick={() => setUploadOpen(true)}><UploadIcon size={14} style={{ marginRight: '0.375rem' }} />Upload</button>
+      <section className="mv-panel" aria-label="Security notes">
+        <div className="mv-filter-bar" role="search" aria-label="Filter security notes">
+          <label className="mv-filter-search">
+            <SearchIcon size={16} aria-hidden />
+            <input aria-label="Search by note number, title or component" placeholder="Search by note number, title, component..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </label>
+          <Select label="Priority" hideLabel value={priority} onChange={setPriority} options={[{ value: 'All', label: 'All Priorities' }, ...NOTE_PRIORITIES.map((v) => ({ value: v, label: v }))]} />
+          <Select label="Status" hideLabel value={status} onChange={setStatus} options={[{ value: 'All', label: 'All Statuses' }, ...NOTE_STATUSES.map((v) => ({ value: v, label: v }))]} />
+          <Select label="SAP download" hideLabel value={download} onChange={setDownload} options={[{ value: 'All', label: 'All Downloads' }, ...NOTE_DOWNLOAD_STATUSES.map((v) => ({ value: v, label: v }))]} />
+          {filtersActive && <button type="button" className="mv-quiet-button" onClick={clearFilters}>Clear filters</button>}
         </div>
 
-        {checking && (
-          <div className="mv-panel" style={{ background: 'var(--mv-surface-subtle)', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.8125rem' }}>
-              <span>Checking SAP status across active destinations…</span>
-              <strong>{checkedCount} / {notes.length * CHECK_DESTINATIONS.length}</strong>
-            </div>
-            <div style={{ display: 'flex', gap: '0.375rem', marginBottom: '0.625rem' }}>
-              {CHECK_DESTINATIONS.map((d) => <span key={d} className="mv-status mv-status--danger" style={{ fontSize: '0.6875rem' }}>{d}</span>)}
-            </div>
-            <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-border)', overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(100, (checkedCount / (notes.length * CHECK_DESTINATIONS.length)) * 100)}%`, height: '100%', background: 'var(--mv-primary)', transition: 'width 150ms linear' }} />
-            </div>
+        <p className="mv-sr-only" role="status" aria-live="polite">{busy?.kind === 'check' ? 'Checking unknown notes against SAP' : busy?.kind === 'upload' ? 'Uploading notes' : ''}</p>
+        {busy?.kind === 'check' && <p className="mv-muted mv-working-line" aria-hidden>Checking unknown notes against SAP…</p>}
+
+        {notes.length === 0 ? (
+          <div className="mv-empty-inline">
+            <p><strong>No security notes are tracked yet.</strong></p>
+            <p>Upload note numbers to start tracking them.</p>
+            <button type="button" className="mv-primary-button" onClick={() => setUploadOpen(true)}>Upload notes</button>
           </div>
+        ) : filtered.length === 0 ? (
+          <div className="mv-empty-inline"><p><strong>No notes match this filter.</strong></p><button type="button" className="mv-quiet-button" onClick={clearFilters}>Clear filters</button></div>
+        ) : (
+          <>
+            <div className="mv-table-wrap">
+              <table className="mv-table mv-table--stack mv-sap-table">
+                <caption className="mv-sr-only">SAP security notes</caption>
+                <thead>
+                  <tr>
+                    <th>Note Number</th><th>Title</th><th>Priority</th><th className="mv-hide-phone">Component</th><th className="mv-num">CVSS</th>
+                    <th className="mv-hide-phone">Released On</th><th>SAP Download</th><th>Status</th><th><span className="mv-sr-only">Actions</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paging.pageItems.map((note) => {
+                    const rowBusy = busy !== null && 'noteNumber' in busy && busy.noteNumber === note.noteNumber;
+                    return (
+                      <tr key={note.noteNumber}>
+                        <td data-label="Note Number" className="mv-stack-title"><strong>{note.noteNumber}</strong></td>
+                        <td data-label="Title" className="mv-note-title">{note.title}</td>
+                        <td data-label="Priority">{note.priority ? <StatusTag tone={PRIORITY_TONE[note.priority]}>{note.priority}</StatusTag> : <span className="mv-muted">—</span>}</td>
+                        <td data-label="Component" className="mv-muted mv-hide-phone">{note.component ?? '—'}</td>
+                        <td data-label="CVSS" className="mv-num">{note.cvss === null ? <span className="mv-muted">—</span> : note.cvss.toFixed(1)}</td>
+                        <td data-label="Released On" className="mv-muted mv-hide-phone">{note.releasedOn ? formatNoteRelease(note.releasedOn) : '—'}</td>
+                        <td data-label="SAP Download"><StatusTag tone={DOWNLOAD_TONE[note.downloadStatus]}>{note.downloadStatus}</StatusTag></td>
+                        <td data-label="Status"><StatusTag tone={STATUS_TONE[note.status]}>{note.status}</StatusTag></td>
+                        <td className="mv-stack-actions">
+                          <div className="mv-row-actions">
+                            <Tooltip content="Recheck status from SAP">
+                              <button type="button" className="mv-icon-button" aria-label={`Recheck status from SAP for note ${note.noteNumber}`} disabled={working} aria-busy={rowBusy && busy?.kind === 'recheck'} onClick={() => onRecheck(note.noteNumber)}>
+                                <RefreshIcon size={14} />
+                              </button>
+                            </Tooltip>
+                            <Tooltip content="Delete note">
+                              <button type="button" className="mv-icon-button" aria-label={`Delete note ${note.noteNumber}`} disabled={working} onClick={() => onDelete(note.noteNumber)}>
+                                <TrashIcon size={14} />
+                              </button>
+                            </Tooltip>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.onPageChange} onPageSizeChange={paging.onPageSizeChange} noun="notes" />
+          </>
         )}
-
-        <div className="mv-table-wrap">
-          <table className="mv-table">
-            <thead>
-              <tr>
-                <th>Note Number</th><th>Title</th><th>Priority</th><th>Component</th><th className="mv-num">CVSS</th>
-                <th>Released On</th><th>SAP Download</th><th>Status</th><th aria-label="Actions" />
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((note) => (
-                <tr key={note.noteNumber}>
-                  <td><strong>{note.noteNumber}</strong></td>
-                  <td style={{ maxWidth: '20rem' }}>{note.title}</td>
-                  <td><span className={`mv-status mv-status--${PRIORITY_TONE[note.priority]}`}>{note.priority}</span></td>
-                  <td className="mv-muted">{note.component}</td>
-                  <td className="mv-num">{note.cvss.toFixed(1)}</td>
-                  <td className="mv-muted">{note.releasedOn}</td>
-                  <td><span className={`mv-status ${note.downloadStatus === 'Not Downloaded' ? 'mv-status--neutral' : 'mv-status--success'}`}>{note.downloadStatus === 'Success' ? 'SUCCESS' : note.downloadStatus}</span></td>
-                  <td><span className={`mv-status mv-status--${STATUS_TONE[note.status]}`}>{note.status}</span></td>
-                  <td><div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'flex-end' }}>
-                    <button
-                      className="mv-icon-button"
-                      aria-label={`Recheck status for ${note.noteNumber} from SAP`}
-                      disabled={recheckingNote === note.noteNumber}
-                      onClick={() => recheckNote(note.noteNumber)}
-                    >
-                      <RefreshIcon size={14} />
-                    </button>
-                    <button className="mv-icon-button" aria-label={`Delete note ${note.noteNumber}`} onClick={() => deleteNote(note.noteNumber)}>
-                      <TrashIcon size={14} />
-                    </button>
-                  </div></td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={9} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No notes match this filter.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
       </section>
 
-      {historyOpen && <HistoryModal entries={history} onClose={() => setHistoryOpen(false)} />}
-      {uploadOpen && <UploadModal onClose={() => setUploadOpen(false)} onUploaded={handleUploaded} />}
+      {historyOpen && <NotesHistoryDrawer entries={history} onClose={() => setHistoryOpen(false)} />}
+      {uploadOpen && <UploadNotesDialog trackedNumbers={notes.map((n) => n.noteNumber)} busy={busy?.kind === 'upload'} onClose={() => setUploadOpen(false)} onSubmit={onUpload} />}
     </div>
   );
 }

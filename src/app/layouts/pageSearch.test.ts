@@ -44,3 +44,26 @@ describe('page search', () => {
     expect(searchPages(index, '   ')).toEqual([]);
   });
 });
+
+describe('page search and role-based access', () => {
+  it('lists Audit Trail, found by name and by plain-language words', () => {
+    expect(labels('audit trail')).toEqual(['Audit Trail']);
+    expect(searchPages(index, 'audit')[0]).toMatchObject({ path: '/audit-trail', where: 'Administration' });
+    expect(labels('who did what')).toContain('Audit Trail');
+  });
+
+  it('drops pages the role cannot view, including the extras outside the menus', () => {
+    const canView = (m: string) => m !== 'audit' && m !== 'subscription';
+    const entries = resolveNav(derivePermissions(admin, ['azure'], false), {
+      features: { budgets: true, smartAlerts: true, syncLogs: true, recommendations: true, cloudManagement: true, invoices: true },
+      invoiceOnly: false,
+      modules: { cloudCost: true, sapMonitoring: true },
+      canView,
+    });
+    const restricted = buildPageIndex(entries, canView);
+    expect(searchPages(restricted, 'audit trail')).toEqual([]);
+    expect(searchPages(restricted, 'subscription').map((p) => p.path)).not.toContain('/subscription');
+    expect(searchPages(index, 'subscription').map((p) => p.path)).toContain('/subscription');
+    expect(searchPages(restricted, 'account').map((p) => p.label)).toEqual(['Account']);
+  });
+});

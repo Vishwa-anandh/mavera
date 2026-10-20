@@ -266,3 +266,12 @@ describe('RegisterPage', () => {
     expect(screen.getByLabelText('Invitation token')).toBeVisible();
   });
 });
+
+describe('RegisterPage company link', () => {
+  it('offers Register company for a business with a license', () => {
+    useAuthMock.mockReturnValue(auth());
+    renderPage();
+    expect(screen.getByRole('link', { name: 'Register company' })).toHaveAttribute('href', '/company-signup');
+    expect(screen.getByRole('link', { name: 'Already have an account? Sign in' })).toHaveAttribute('href', '/login');
+  });
+});

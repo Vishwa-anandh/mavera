@@ -40,12 +40,12 @@ describe('fleetInsights', () => {
   });
 
   it('reports cancelled and running jobs, dumps, full disks and notes', () => {
-    const job = (name: string, status: 'Cancelled' | 'Running') => ({ name, status, startedAt: '', finishedAt: null, durationSec: null, user: 'U' });
+    const job = (name: string, status: 'Cancelled' | 'Running') => ({ name, status, startedAt: '', finishedAt: null, durationSec: null, user: 'U', client: '000' });
     const out = fleetInsights({
       ...base,
       jobs: [job('A', 'Cancelled'), job('B', 'Running')],
       dumps: [{ id: 'd', program: 'ZPROG', errorType: 'X', occurredAt: '', user: 'U' }],
-      disks: [{ path: '/backup', usedMb: 94, freeMb: 6, totalMb: 100, percent: 94 }],
+      disks: [{ path: '/backup', usedGb: 94, freeGb: 6, totalGb: 100, percent: 94 }],
       notes: { total: 3, actionable: 1, hotNews: 1 },
     });
     const ids = out.map((i) => i.id);
@@ -60,7 +60,7 @@ const hana = (over: Partial<HanaSystem> = {}): HanaSystem => ({
   memory: { usedGb: 55, totalGb: 106, freeGb: 51, percent: 52, condition: 'healthy' },
   cpu: { loadPercent: 0.3, swapUsedGb: 0, services: 9, peak24h: 1.1, condition: 'stable' },
   alerts: { active: 0, highPriority: 0, critical: 0, high: 0, medium: 0, low: 0 },
-  sessions: { active: 1, uniqueUsers: 1 },
+  sessions: { active: 1, uniqueUsers: 1, byUser: [{ user: 'SYSTEM', sessions: 1 }] },
   ...over,
 });
 
@@ -71,8 +71,8 @@ describe('hanaFacts / hanaInsights', () => {
     { time: '12:00', cpuPercent: 0.3, memoryPercent: 29 },
   ];
   const services = [
-    { name: 'idx', status: 'running' as const, memoryMb: 100 },
-    { name: 'di', status: 'stopped' as const, memoryMb: 0 },
+    { name: 'idx', status: 'running' as const, memoryMb: 100, allocatedMb: 150, sharedMb: 10 },
+    { name: 'di', status: 'stopped' as const, memoryMb: 0, allocatedMb: 0, sharedMb: 0 },
   ];
 
   it('finds the CPU peak, the memory range and the stopped services', () => {

@@ -4,7 +4,7 @@ import { useAuth, DEMO_EMAIL, DEMO_PASSWORD } from '../model/AuthContext';
 import { useSuperAdminAuth, DEMO_USERNAME as SA_DEMO_USERNAME, DEMO_PASSWORD as SA_DEMO_PASSWORD } from '../../superAdmin';
 import { LoginBackdrop } from '../components/LoginBackdrop';
 import { PasswordField } from '../../../shared/ui/PasswordField';
-import { LockIcon, MailIcon, ShieldIcon } from '../../../shared/ui/icons';
+import { BuildingIcon, LockIcon, MailIcon, ShieldIcon } from '../../../shared/ui/icons';
 import maveraLogo from '../../../../assets/brand/mavera-logo.png';
 import maitsysLogo from '../../../../assets/brand/maitsys.png';
 
@@ -100,6 +100,11 @@ export function LoginPage() {
   return (
     <main className="mv-login-page">
       <LoginBackdrop />
+
+      <Link to="/company-signup" className="mv-register-pill">
+        <span className="mv-register-pill-icon" aria-hidden="true"><BuildingIcon size={16} /></span>
+        <span className="mv-register-pill-text"><strong>Register company</strong><small>For business</small></span>
+      </Link>
 
       <div className="mv-login-stage">
         <section className="mv-signin-card" aria-labelledby="signin-title">

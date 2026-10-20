@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LockIcon, SearchIcon } from '../../shared/ui/icons';
+import { useAccess } from '../../features/access';
 import { useResolvedNav } from '../router/useResolvedNav';
 import { buildPageIndex, searchPages, type PageResult } from './pageSearch';
 import { useModalOverlay } from '../../shared/ui/useOverlay';
@@ -17,9 +18,10 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const navigate = useNavigate();
   const entries = useResolvedNav();
+  const { can, enforced } = useAccess();
   const panelRef = useModalOverlay<HTMLElement>(onClose);
 
-  const index = useMemo(() => buildPageIndex(entries), [entries]);
+  const index = useMemo(() => buildPageIndex(entries, enforced ? (module) => can(module, 'VIEW') : undefined), [entries, can, enforced]);
   const hasQuery = query.trim().length > 0;
   const results = useMemo(() => {
     if (hasQuery) return searchPages(index, query);

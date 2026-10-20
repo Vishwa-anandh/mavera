@@ -6,7 +6,9 @@ import { DonutChart } from '../../../shared/ui/DonutChart';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { useBtpAccounts } from '../model/BtpAccountContext';
+import { ServiceCategoryTable } from '../components/ServiceCategoryTable';
 import { btpAccountSummaries, btpTopServices } from '../../../demo/btp/mockBtpData';
+import { serviceCategoryOf } from '../model/btpDerivations';
 
 function formatCurrency(value: number, currency = 'EUR'): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
@@ -133,13 +135,23 @@ export function BtpOverallDashboard() {
           </div>
         </section>
 
-        {accounts.length > 0 && (
-          <section className="mv-panel" aria-labelledby="btp-trend-title">
-            <div className="mv-panel-header"><h2 id="btp-trend-title" className="mv-panel-title">Cost Trend</h2></div>
-            <SpendTrendChart title="Per-account spend trend" data={summaries.map((s) => ({ date: accounts.find((a) => a.id === s.id)?.name ?? s.id, amount: s.totalCost }))} />
-          </section>
-        )}
+        <section className="mv-panel" aria-labelledby="btp-category-title">
+          <div className="mv-panel-header">
+            <div>
+              <h2 id="btp-category-title" className="mv-panel-title">Service Category Summary</h2>
+              <p className="mv-muted">{topServices.length} services in {new Set(topServices.map((s) => serviceCategoryOf(s.name))).size} categories</p>
+            </div>
+          </div>
+          <ServiceCategoryTable services={topServices} currency="EUR" />
+        </section>
       </div>
+
+      {accounts.length > 0 && (
+        <section className="mv-panel" aria-labelledby="btp-trend-title">
+          <div className="mv-panel-header"><h2 id="btp-trend-title" className="mv-panel-title">Cost Trend</h2></div>
+          <SpendTrendChart title="Per-account spend trend" data={summaries.map((s) => ({ date: accounts.find((a) => a.id === s.id)?.name ?? s.id, amount: s.totalCost }))} />
+        </section>
+      )}
     </div>
   );
 }

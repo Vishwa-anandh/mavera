@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { subscriptionRepository } from '../../../data-access';
+import { fireToast } from '../../../shared/lib/toastEvents';
 import { useAuth } from '../../auth';
 import { cssVars } from '../../../shared/lib/cssVars';
 import {
@@ -11,13 +13,13 @@ import {
   FileTextIcon,
   BellIcon,
   TrendUpIcon,
-  StarIcon,
   CreditCardIcon,
   LockIcon,
   ServerIcon,
   } from '../../../shared/ui/icons';
-import { CLOUD_PROVIDER_INFO, MSP_BADGE, PLANS, isCurrentPlan } from '../model/subscriptionData';
+import { CLOUD_PROVIDER_INFO, MSP_BADGE, PLANS, isCurrentPlan, planNameOf, type PlanDefinition } from '../model/subscriptionData';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { PlanRequestDialog } from '../components/PlanRequestDialog';
 
 const MODULE_LABELS = [
   { key: 'sapMonitoring', label: 'SAP Monitoring', icon: <ServerIcon size={16} /> },
@@ -109,6 +111,16 @@ function ProviderToggleRow({ info, selected, onToggle }: { info: (typeof CLOUD_P
 export function SubscriptionPage() {
   const { user, cloudAccess, invoiceOnly, modules, planType, subscriptionStartsAt, subscriptionExpiresAt, subscriptionActive, subscriptionNotes, maxUsers } = useAuth();
   const aiEnabled = user?.aiEnabled ?? false;
+  const [requests, setRequests] = useState(() => subscriptionRepository.listPlanRequests());
+  const [requesting, setRequesting] = useState<PlanDefinition | null>(null);
+
+  // Any member can ask; only Maitsys changes the plan, so nothing here touches modules or seats.
+  const sendRequest = (plan: PlanDefinition, note: string) => {
+    subscriptionRepository.requestPlanChange({ planId: plan.id, requestedBy: user?.email ?? 'unknown', note });
+    setRequests(subscriptionRepository.listPlanRequests());
+    setRequesting(null);
+    fireToast({ type: 'success', message: 'Request sent to Maitsys' });
+  };
 
   const includedFeatures: Array<{ label: string; icon: ReactNode; enabled: boolean }> = [
     { label: 'Cost Dashboard', icon: <CloudIcon size={16} />, enabled: true },
@@ -130,7 +142,7 @@ export function SubscriptionPage() {
             <CreditCardIcon size={22} />
             <div>
               <p className="mv-eyebrow" style={{ marginBottom: 2 }}>Current Plan</p>
-              <h2 className="mv-panel-title" style={{ textTransform: 'capitalize' }}>{planType === 'basic' ? 'Free' : planType}</h2>
+              <h2 className="mv-panel-title">{planNameOf(planType)}</h2>
             </div>
           </div>
           <span className={`mv-status mv-status--${subscriptionActive ? 'success' : 'danger'}`}>{subscriptionActive ? 'Active' : 'Inactive'}</span>
@@ -195,51 +207,52 @@ export function SubscriptionPage() {
       </section>
 
       {/* Available Plans */}
-      <section style={{ marginBottom: '1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-          <StarIcon size={16} />
-          <h2 className="mv-panel-title" style={{ margin: 0 }}>Available Plans</h2>
+      <section id="available-plans" aria-labelledby="available-plans-title" style={{ marginBottom: '1rem' }}>
+        <div className="mv-section-head">
+          <div>
+            <h2 id="available-plans-title" className="mv-section-title">Available plans</h2>
+            <p className="mv-muted">Compare what each plan includes. Choosing a plan sends Maitsys a request; nothing changes until Maitsys confirms.</p>
+          </div>
         </div>
-        <div className="mv-row-3col">
+        <div className="mv-plan-grid">
           {PLANS.map((plan) => {
             const current = isCurrentPlan(planType, plan.id);
+            const request = requests.find((r) => r.planId === plan.id);
             return (
-              <article key={plan.id} className="mv-panel" style={{ display: 'flex', flexDirection: 'column', border: current ? '2px solid var(--mv-success)' : plan.badge === 'Most Popular' ? '2px solid var(--mv-primary)' : undefined }}>
-                {plan.badge && (
-                  <span className={`mv-status ${current ? 'mv-status--success' : 'mv-status--info'}`} style={{ alignSelf: 'flex-start', marginBottom: '0.5rem' }}>{plan.badge}</span>
-                )}
-                {!plan.badge && current && (
-                  <span className="mv-status mv-status--success" style={{ alignSelf: 'flex-start', marginBottom: '0.5rem' }}>Current</span>
-                )}
-                <h3 style={{ margin: '0 0 0.25rem', fontSize: '1.125rem', fontFamily: 'var(--mv-font-heading)' }}>{plan.name}</h3>
-                <p className="mv-muted" style={{ marginBottom: '0.75rem' }}>{plan.tagline}</p>
-                <span className="mv-status mv-status--neutral" style={{ alignSelf: 'flex-start', marginBottom: '1rem' }}>Pricing coming soon</span>
-                <div style={{ flex: 1, marginBottom: '1rem' }}>
-                  {plan.features.map((f) => (
-                    <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                      <CheckIcon size={15} style={{ color: 'var(--mv-success)', flex: 'none', marginTop: 2 }} />
-                      <span style={{ fontSize: '0.8125rem' }}>{f}</span>
-                    </div>
-                  ))}
+              <article key={plan.id} className={`mv-plan-card${current ? ' is-current' : ''}`} aria-labelledby={`plan-${plan.id}-name`}>
+                <div className="mv-plan-badges">
+                  {current && <span className="mv-status mv-status--success">Current</span>}
+                  {!current && plan.badge && <span className="mv-status mv-status--info">{plan.badge}</span>}
+                  {request && <span className="mv-status mv-status--neutral">Requested {new Date(request.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
                 </div>
+                <h3 id={`plan-${plan.id}-name`} className="mv-plan-name">{plan.name}</h3>
+                <p className="mv-muted">{plan.tagline}</p>
+                <p className="mv-plan-price">Pricing coming soon</p>
+                <ul className="mv-plan-features" aria-label={`${plan.name} plan features`}>
+                  {plan.features.map((f) => (
+                    <li key={f}><CheckIcon size={15} aria-hidden /><span>{f}</span></li>
+                  ))}
+                </ul>
                 {current ? (
-                  <div className="mv-secondary-button" style={{ justifyContent: 'center', pointerEvents: 'none' }}>
-                    <CheckIcon size={16} style={{ marginRight: '0.375rem', color: 'var(--mv-success)' }} />Current Plan
-                  </div>
+                  <button type="button" className="mv-secondary-button" disabled aria-label={`${plan.name} is your current plan`}>
+                    <CheckIcon size={16} style={{ marginRight: '0.375rem', color: 'var(--mv-success)' }} />Current plan
+                  </button>
+                ) : request ? (
+                  <button type="button" className="mv-secondary-button" disabled>Request sent</button>
                 ) : (
-                  <a className="mv-secondary-button" style={{ justifyContent: 'center' }} href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">
-                    Contact Maitsys to switch
-                  </a>
+                  <button type="button" className="mv-secondary-button" aria-label={`Choose plan ${plan.name}`} onClick={() => setRequesting(plan)}>Choose plan</button>
                 )}
               </article>
             );
           })}
         </div>
-        <p className="mv-muted" style={{ textAlign: 'center', marginTop: '1rem' }}>
-          All plans include full access to multi-cloud monitoring, invoice upload, budgets, and alerts. Contact{' '}
-          <a href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">Maitsys</a> to upgrade.
+        <p className="mv-muted">
+          All plans include full access to multi-cloud monitoring, invoice upload, budgets, and alerts. Prefer to talk it through?{' '}
+          <a href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">Contact Maitsys</a>.
         </p>
       </section>
+
+      {requesting && <PlanRequestDialog plan={requesting} currentPlanName={planNameOf(planType)} onSend={(note) => sendRequest(requesting, note)} onClose={() => setRequesting(null)} />}
 
       {/* Admin Note */}
       {subscriptionNotes && (

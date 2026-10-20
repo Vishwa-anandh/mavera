@@ -1,9 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { THEME_STORAGE_KEY, resolveStoredMode, type ThemeMode } from './resolveInitialTheme';
+import { THEME_STORAGE_KEY, prefersDarkSystemTheme, resolveMode, resolveStoredPreference, type ThemeMode, type ThemePreference } from './resolveInitialTheme';
 import { lightColors, darkColors } from './tokens';
 
 interface MaveraThemeContextValue {
+  /** The theme in force (never 'system'): the preference resolved against the device. */
   mode: ThemeMode;
+  /** What was chosen: light, dark, or follow the device. */
+  preference: ThemePreference;
+  setPreference: (preference: ThemePreference) => void;
   setMode: (mode: ThemeMode) => void;
   toggleMode: () => void;
 }
@@ -37,22 +41,35 @@ function applyCssVariables(mode: ThemeMode) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>(() => resolveStoredMode(readStorage(THEME_STORAGE_KEY)));
+  const [preference, setPreferenceState] = useState<ThemePreference>(() => resolveStoredPreference(readStorage(THEME_STORAGE_KEY)));
+  const [systemDark, setSystemDark] = useState<boolean>(prefersDarkSystemTheme);
+  const mode = resolveMode(preference, systemDark);
+
+  // "System" follows the device live, including when it switches at sunset.
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (event: MediaQueryListEvent) => setSystemDark(event.matches);
+    query.addEventListener?.('change', onChange);
+    return () => query.removeEventListener?.('change', onChange);
+  }, []);
 
   useEffect(() => {
     applyCssVariables(mode);
   }, [mode]);
 
-  const setMode = useCallback((next: ThemeMode) => {
-    setModeState(next);
+  const setPreference = useCallback((next: ThemePreference) => {
+    setPreferenceState(next);
     writeStorage(THEME_STORAGE_KEY, next);
   }, []);
+
+  const setMode = useCallback((next: ThemeMode) => setPreference(next), [setPreference]);
 
   const toggleMode = useCallback(() => setMode(mode === 'dark' ? 'light' : 'dark'), [mode, setMode]);
 
   const value = useMemo<MaveraThemeContextValue>(
-    () => ({ mode, setMode, toggleMode }),
-    [mode, setMode, toggleMode],
+    () => ({ mode, preference, setPreference, setMode, toggleMode }),
+    [mode, preference, setPreference, setMode, toggleMode],
   );
 
   return <MaveraThemeContext.Provider value={value}>{children}</MaveraThemeContext.Provider>;

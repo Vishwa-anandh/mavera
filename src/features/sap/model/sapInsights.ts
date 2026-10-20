@@ -101,7 +101,7 @@ export function fleetInsights({ systems, alerts, jobs, dumps, disks, notes }: Fl
       id: `disk-${disk.path}`,
       tone: 'warning',
       title: `${disk.path} is ${disk.percent}% full`,
-      detail: `${disk.freeMb.toLocaleString()} MB free of ${disk.totalMb.toLocaleString()} MB.`,
+      detail: `${disk.freeGb.toLocaleString()} GB free of ${disk.totalGb.toLocaleString()} GB.`,
       to: '/sap/performance',
     });
   }

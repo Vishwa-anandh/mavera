@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { PermissionSet } from '../../shared/lib/permissions';
 import type { AuthContextValue } from '../../features/auth';
+import type { ModuleId } from '../../features/access';
 import { ServerIcon, CloudIcon, HomeIcon } from '../../shared/ui/icons';
 
 export type NavFeatures = AuthContextValue['features'];
@@ -16,6 +17,12 @@ export interface NavContext {
   features: NavFeatures;
   invoiceOnly: boolean;
   modules: NavModules;
+  /**
+   * Role-based access: true when the signed-in member's role may VIEW the module. Left out (tests, or
+   * outside the provider) every destination is shown; the administration pages then fall back to the
+   * legacy owner/admin check. Hiding a link is a convenience, never the security boundary.
+   */
+  canView?: (module: ModuleId) => boolean;
 }
 
 const ALL_FEATURES: NavFeatures = {
@@ -30,6 +37,42 @@ const ALL_FEATURES: NavFeatures = {
 const ALL_MODULES: NavModules = { cloudCost: true, sapMonitoring: true };
 
 type NavPredicate = (permissions: PermissionSet, context: NavContext) => boolean;
+
+/**
+ * The access-control module behind each destination (keys are the leaf keys below); a leaf whose
+ * module the member's role cannot VIEW is hidden. Kept in step with the route manifest by a test.
+ */
+export const NAV_MODULES: Record<string, ModuleId> = {
+  dashboard: 'dashboard',
+  'sap-systems': 'sap.overview',
+  'sap-databases': 'sap.hana',
+  'sap-performance': 'sap.performance',
+  'sap-jobs': 'sap.jobs',
+  'sap-alerts': 'sap.alerts',
+  'sap-transport': 'sap.transport',
+  'sap-security-notes': 'sap.securityNotes',
+  'sap-btp-security': 'sap.btpSecurity',
+  'sap-config': 'sap.configuration',
+  'cloud-overview': 'cost.overview',
+  'cloud-analytics': 'cost.analytics',
+  azure: 'provider.azure',
+  aws: 'provider.aws',
+  btp: 'provider.btp',
+  gcp: 'provider.gcp',
+  'cloud-optimization': 'cost.optimization',
+  'cloud-reservations': 'cost.reservations',
+  'cloud-resources': 'cost.resources',
+  budgets: 'budgets',
+  'smart-alerts': 'smartAlerts',
+  invoices: 'invoices',
+  billing: 'billing',
+  users: 'users',
+  'audit-trail': 'audit',
+  'sync-logs': 'syncLogs',
+};
+
+/** Administration pages: the role decides when roles are in force, otherwise only owners and admins see them. */
+const adminPage: NavPredicate = (p, c) => (c.canView ? true : p.isPrivileged);
 
 /** Hybrid = invoice-only flag but cloud providers also configured. */
 const isPureInvoiceOnly: NavPredicate = (p, c) => c.invoiceOnly && !p.isHybridOrg;
@@ -151,11 +194,11 @@ const NAV_TREE: NavNodeDef[] = [
     type: 'group',
     key: 'administration',
     label: 'Administration',
-    visible: (p) => p.isPrivileged,
     // Invoice Builder is a Maitsys super-admin tool (Super Admin portal › Billing), not an org page.
     children: [
-      { key: 'users', label: 'User Management', path: '/users', keywords: 'invite people roles permissions' },
-      { key: 'sync-logs', label: 'Sync Logs', path: '/sync-logs', locked: (_p, c) => !c.features.syncLogs, keywords: 'data import history' },
+      { key: 'users', label: 'User Management', path: '/users', visible: adminPage, keywords: 'invite people roles permissions members seats' },
+      { key: 'audit-trail', label: 'Audit Trail', path: '/audit-trail', visible: adminPage, keywords: 'audit log signal timeline governance ledger activity history who did what security events' },
+      { key: 'sync-logs', label: 'Sync Logs', path: '/sync-logs', visible: adminPage, locked: (_p, c) => !c.features.syncLogs, keywords: 'data import history' },
     ],
   },
 ];
@@ -243,7 +286,11 @@ export function resolveNav(
   permissions: PermissionSet,
   context: NavContext = { features: ALL_FEATURES, invoiceOnly: false, modules: ALL_MODULES },
 ): ResolvedNavEntry[] {
-  const isVisible = (node: { visible?: NavPredicate }) => node.visible?.(permissions, context) ?? true;
+  const isVisible = (node: { key: string; visible?: NavPredicate }) => {
+    if (!(node.visible?.(permissions, context) ?? true)) return false;
+    const module = NAV_MODULES[node.key];
+    return !module || !context.canView || context.canView(module);
+  };
 
   return NAV_TREE.filter(isVisible).flatMap((node): ResolvedNavEntry[] => {
     if (node.type === 'leaf') {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
-import type { HanaVitalPoint } from '../../../demo/sap/mockHanaData';
+import type { HanaVitalPoint } from '../../../data-access';
 
 /** CPU & Memory over 24h — same "chart + keyboard-accessible View data table"
  * pattern as SpendTrendChart, adapted to two series instead of one. */

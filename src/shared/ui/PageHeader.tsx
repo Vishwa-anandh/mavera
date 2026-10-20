@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { relativeTime } from '../lib/relativeTime';
 import {
-  BellIcon, BuildingIcon, CloudIcon, ClockIcon, ServerIcon, SettingsIcon, SparkleIcon,
+  BellIcon, BuildingIcon, CloudIcon, ClockIcon, ServerIcon, SettingsIcon, ShieldIcon, SparkleIcon,
 } from './icons';
 
 const MODULE_ICONS: Array<[prefix: string, icon: typeof CloudIcon]> = [
@@ -11,6 +11,7 @@ const MODULE_ICONS: Array<[prefix: string, icon: typeof CloudIcon]> = [
   ['/alerts', BellIcon],
   ['/ai-assistant', SparkleIcon],
   ['/users', SettingsIcon],
+  ['/audit-trail', ShieldIcon],
   ['/sync-logs', SettingsIcon],
   ['/account', SettingsIcon],
   ['/subscription', SettingsIcon],

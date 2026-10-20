@@ -144,6 +144,8 @@ export interface BtpYearlyMonth {
 export interface BtpTopService {
   name: string;
   cost: number;
+  /** Same service last month; absent when there is nothing to compare with. */
+  previousCost?: number;
 }
 
 export interface BtpAccountSummary {

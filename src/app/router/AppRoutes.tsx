@@ -1,7 +1,7 @@
 import { Suspense, lazy, type ComponentType, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from '../layouts/AppShell';
-import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, SubscriptionExpiredPage } from '../../features/auth';
+import { CompanySignupPage, ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, SubscriptionExpiredPage } from '../../features/auth';
 import { NotFoundPage } from '../../features/system';
 import { PublicInvoicePage } from '../../features/billing';
 import { SuperAdminGuard, SuperAdminShell } from '../../features/superAdmin';
@@ -43,6 +43,7 @@ const BudgetsPage = lazyPage(() => import('../../features/budgets'), 'BudgetsPag
 const SmartAlertsPage = lazyPage(() => import('../../features/smartAlerts'), 'SmartAlertsPage');
 const SubscriptionPage = lazyPage(() => import('../../features/subscription'), 'SubscriptionPage');
 const UserManagementPage = lazyPage(() => import('../../features/users'), 'UserManagementPage');
+const AuditTrailPage = lazyPage(() => import('../../features/audit'), 'AuditTrailPage');
 const SyncLogsPage = lazyPage(() => import('../../features/syncLogs'), 'SyncLogsPage');
 const InvoicesPage = lazyPage(() => import('../../features/invoices'), 'InvoicesPage');
 const BillingPage = lazyPage(() => import('../../features/billing'), 'BillingPage');
@@ -68,6 +69,7 @@ export function AppRoutes() {
     <Routes>
       <Route path={appPaths.login} element={<LoginPage />} />
       <Route path={appPaths.register} element={<RegisterPage />} />
+      <Route path={appPaths.companySignup} element={<CompanySignupPage />} />
       <Route path={appPaths.forgotPassword} element={<ForgotPasswordPage />} />
       <Route path={appPaths.resetPassword} element={<ResetPasswordPage />} />
       <Route path={appPaths.subscriptionExpired} element={<SubscriptionExpiredPage />} />
@@ -125,6 +127,7 @@ export function AppRoutes() {
         <Route path={appPaths.account} element={<Page><AccountPage /></Page>} />
         <Route path={appPaths.subscription} element={<Page><SubscriptionPage /></Page>} />
         <Route path={appPaths.users} element={<Page variant="table"><UserManagementPage /></Page>} />
+        <Route path={appPaths.auditTrail} element={<Page variant="table"><AuditTrailPage /></Page>} />
         <Route path={appPaths.syncLogs} element={<Page variant="table"><SyncLogsPage /></Page>} />
         <Route path={appPaths.invoices} element={<Page variant="table"><InvoicesPage /></Page>} />
         <Route path={appPaths.billing} element={<Page><BillingPage /></Page>} />

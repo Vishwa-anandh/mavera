@@ -1,0 +1,53 @@
+import type { CustomRoleRecord } from '../../data-access';
+
+/** Roles an organisation might build for itself on top of the four built-in ones. */
+export const MOCK_CUSTOM_ROLES: CustomRoleRecord[] = [
+  {
+    id: 'role-cost-auditor',
+    name: 'Cost Auditor',
+    description: 'Reads and exports cost, invoice and audit records for finance reviews. Cannot change anything.',
+    permissions: {
+      dashboard: ['VIEW'],
+      'cost.overview': ['VIEW', 'EXPORT'],
+      'cost.analytics': ['VIEW', 'EXPORT'],
+      'cost.optimization': ['VIEW', 'EXPORT'],
+      'cost.reservations': ['VIEW', 'EXPORT'],
+      'cost.resources': ['VIEW', 'EXPORT'],
+      'provider.azure': ['VIEW'],
+      'provider.aws': ['VIEW'],
+      'provider.gcp': ['VIEW'],
+      'provider.btp': ['VIEW'],
+      budgets: ['VIEW'],
+      invoices: ['VIEW', 'EXPORT'],
+      billing: ['VIEW'],
+      audit: ['VIEW', 'EXPORT'],
+      subscription: ['VIEW'],
+    },
+    createdAt: '2026-08-12T09:30:00.000Z',
+    updatedAt: '2026-09-21T14:05:00.000Z',
+    updatedBy: 'Sarah Johnson',
+  },
+  {
+    id: 'role-sap-operator',
+    name: 'SAP Operator',
+    description: 'Runs day-to-day SAP operations: works alerts, jobs and transports, but cannot change system connections.',
+    permissions: {
+      dashboard: ['VIEW'],
+      assistant: ['VIEW'],
+      'sap.overview': ['VIEW', 'EXPORT'],
+      'sap.hana': ['VIEW', 'EXPORT'],
+      'sap.performance': ['VIEW', 'EXPORT'],
+      'sap.jobs': ['VIEW', 'EDIT', 'EXPORT'],
+      'sap.alerts': ['VIEW', 'EDIT', 'EXPORT'],
+      'sap.transport': ['VIEW', 'EDIT', 'EXPORT'],
+      'sap.securityNotes': ['VIEW', 'EDIT'],
+      'sap.btpSecurity': ['VIEW'],
+      'sap.configuration': ['VIEW'],
+      smartAlerts: ['VIEW', 'EDIT'],
+      subscription: ['VIEW'],
+    },
+    createdAt: '2026-08-30T11:10:00.000Z',
+    updatedAt: '2026-10-02T08:45:00.000Z',
+    updatedBy: 'Sarah Johnson',
+  },
+];

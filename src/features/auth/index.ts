@@ -2,6 +2,7 @@
 export { AuthProvider, useAuth } from './model/AuthContext';
 export type { AuthContextValue } from './model/AuthContext';
 export { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+export { CompanySignupPage } from './pages/CompanySignupPage';
 export { LoginPage } from './pages/LoginPage';
 export { RegisterPage } from './pages/RegisterPage';
 export { ResetPasswordPage } from './pages/ResetPasswordPage';

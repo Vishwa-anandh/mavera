@@ -1,22 +1,34 @@
-export type MemberStatus = 'active' | 'inactive';
-export type MemberRole = 'admin' | 'owner' | 'member';
+import type { LegacyMemberRole, MemberRecord, MemberStatusKey } from '../../../data-access';
+import { legacyRoleToRoleId } from '../../access';
 
-export interface OrgMember {
-  userId: string;
-  fullName: string;
-  email: string;
-  role: MemberRole;
-  status: MemberStatus;
-  canViewAzure?: boolean;
-  canViewAws?: boolean;
-  /** Reference quirk, kept intentionally: BTP view defaults to true (undefined
-   * counts as viewable) — every other provider defaults to false. */
-  canViewBtp?: boolean;
-  canViewGcp?: boolean;
-  azureReadOnly?: boolean;
-  awsReadOnly?: boolean;
-  btpReadOnly?: boolean;
-  gcpReadOnly?: boolean;
+export type MemberStatus = MemberStatusKey;
+export type MemberRole = LegacyMemberRole;
+
+/**
+ * A member of the organisation. `role` is the three-way role the organisation API still sends;
+ * `roleId` is the finer-grained role (built-in or custom) that decides what they can do. Where only
+ * `role` is known, the role id is derived from it.
+ */
+export type OrgMember = MemberRecord;
+
+/** The role id in force for a member: their own, or the one implied by the legacy role. */
+export function memberRoleId(member: Pick<OrgMember, 'role' | 'roleId'>): string {
+  return member.roleId ?? legacyRoleToRoleId(member.role);
+}
+
+/** How many members hold each role id. */
+export function countMembersByRole(members: readonly OrgMember[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const member of members) {
+    const id = memberRoleId(member);
+    counts[id] = (counts[id] ?? 0) + 1;
+  }
+  return counts;
+}
+
+/** Members who receive alert e-mails, among those who can still sign in. */
+export function alertRecipients(members: readonly OrgMember[]): number {
+  return members.filter((member) => member.status === 'active' && member.alertsEnabled).length;
 }
 
 export function isMemberPrivileged(member: OrgMember): boolean {
@@ -58,7 +70,8 @@ export function seatSummary(members: OrgMember[], maxUsers: number | undefined):
 export interface NewMemberInput {
   fullName: string;
   email: string;
-  role: MemberRole;
+  role?: MemberRole;
+  roleId?: string;
 }
 
 export type NewMemberErrors = Partial<Record<keyof NewMemberInput, string>>;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
@@ -138,7 +138,8 @@ describe('CostOverviewPage', () => {
     useAuthMock.mockReturnValue(auth());
     useDashboardDataMock.mockReturnValue(dashboardData());
     renderPage();
-    expect(screen.getByText('$12,000.00')).toBeInTheDocument();
+    // The trend summary repeats the 6-month total, so the spend KPI is read from its own card.
+    expect(kpiValue('Total Spend (Month-to-Date)')).toBe('$12,000.00');
     expect(screen.getByText('$800.00')).toBeInTheDocument();
     expect(kpiValue('Active Alerts')).toBe('1');
     expect(screen.getByText('4 recommendations')).toBeInTheDocument();
@@ -166,7 +167,7 @@ describe('CostOverviewPage', () => {
     );
     renderPage();
     expect(screen.getByText('Unable to load this data right now.')).toBeInTheDocument();
-    expect(screen.getByText('$12,000.00')).toBeInTheDocument();
+    expect(kpiValue('Total Spend (Month-to-Date)')).toBe('$12,000.00');
   });
 
   it('shows a "Connect a cloud account" button when the user can connect Azure', () => {
@@ -196,5 +197,116 @@ describe('CostOverviewPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Connect cloud account' }));
     expect(screen.getByText('Wizard stub')).toBeInTheDocument();
+  });
+});
+
+function summaryWithHistory() {
+  // 70 days at 100 then 7 at 200 (so 7D doubles against the week before), and 24 months rising by 100.
+  const daily = Array.from({ length: 77 }, (_, i) => ({ key: new Date(Date.UTC(2026, 6, 14) + i * 86_400_000).toISOString().slice(0, 10), total: i < 70 ? 100 : 200 }));
+  const monthly = Array.from({ length: 24 }, (_, i) => ({ key: `${2024 + Math.floor((i + 9) / 12)}-${String(((i + 9) % 12) + 1).padStart(2, '0')}`, total: 1000 + i * 100 }));
+  return loadedSource({
+    totals: { azure: 8000, aws: 4000, btp: 0, gcp: 0, forecast: 13000 },
+    accounts: { azure: [{ id: 'az1' }], aws: [{ id: 'aw1' }] },
+    monthly,
+    daily,
+  });
+}
+
+describe('CostOverviewPage spend trend period', () => {
+  it('defaults to 6M and offers 7D, 30D, 3M, 6M and 1Y as pressed-state buttons', () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ summary: summaryWithHistory() }));
+    renderPage();
+    const group = screen.getByRole('group', { name: 'Spend trend period' });
+    expect(within(group).getAllByRole('button').map((b) => b.textContent)).toEqual(['7D', '30D', '3M', '6M', '1Y']);
+    expect(within(group).getByRole('button', { name: 'Last 6 months' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+  });
+
+  it('recomputes the total, the change against the previous range and the forecast for the chosen range', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ summary: summaryWithHistory() }));
+    const user = userEvent.setup();
+    renderPage();
+    const summary = () => screen.getByTestId('trend-summary');
+    expect(summary()).toHaveTextContent('Last 6 months');
+    expect(summary()).toHaveTextContent('vs previous 6 months');
+    expect(summary()).toHaveTextContent('Forecast, next 6 months');
+
+    await user.click(screen.getByRole('button', { name: 'Last 7 days' }));
+    expect(screen.getByRole('button', { name: 'Last 7 days' })).toHaveAttribute('aria-pressed', 'true');
+    expect(summary()).toHaveTextContent('Last 7 days');
+    expect(summary()).toHaveTextContent('$1,400.00');
+    expect(summary()).toHaveTextContent('100% vs previous 7 days');
+    expect(summary()).toHaveTextContent('Forecast, next 7 days');
+
+    await user.click(screen.getByRole('button', { name: 'Last 12 months' }));
+    expect(summary()).toHaveTextContent('Last 12 months');
+    expect(summary()).toHaveTextContent('vs previous 12 months');
+  });
+
+  it('explains when daily spend is not available instead of drawing an empty chart', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData());
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Last 30 days' }));
+    expect(screen.getByText(/Daily spend is not available for this account yet/)).toBeInTheDocument();
+    expect(screen.queryByTestId('trend-summary')).not.toBeInTheDocument();
+  });
+});
+
+describe('CostOverviewPage Cloud | Invoices view', () => {
+  const invoices = loadedSource({
+    data: [
+      { id: 'i1', invoice_number: 'MSFT-1', provider: 'azure', total_cost: 2000, invoice_date: '2026-09-01' },
+      { id: 'i2', invoice_number: 'AWS-1', provider: 'aws', total_cost: 1000, invoice_date: '2026-08-01' },
+      { id: 'i3', invoice_number: 'MSFT-0', provider: 'azure', total_cost: 1000, invoice_date: '2026-07-01' },
+    ],
+  });
+
+  it('is a toggle with pressed state, not tabs, and starts on Cloud', () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ invoices }));
+    renderPage();
+    const group = screen.getByRole('group', { name: 'Cost Overview view' });
+    expect(within(group).getByRole('button', { name: 'Cloud costs' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(group).getByRole('button', { name: 'Invoices summary' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.getByText('Total Spend (Month-to-Date)')).toBeInTheDocument();
+  });
+
+  it('switches the body to an invoices summary with count, total, provider split, latest invoices and an upload link', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ invoices }));
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Invoices summary' }));
+
+    const region = screen.getByRole('region', { name: 'Invoices summary' });
+    expect(screen.queryByText('Total Spend (Month-to-Date)')).not.toBeInTheDocument();
+    expect(within(region).getByText('Invoices').closest('.mv-kpi')).toHaveTextContent('3');
+    expect(within(region).getByText('Total invoiced').closest('.mv-kpi')).toHaveTextContent('$4,000.00');
+    const split = within(region).getByRole('list', { name: 'Invoiced amount by provider' });
+    expect(within(split).getByText('Azure')).toBeInTheDocument();
+    expect(split).toHaveTextContent('2 invoices · 75% of total');
+    expect(split).toHaveTextContent('1 invoice · 25% of total');
+    const rows = within(region).getAllByRole('row').slice(1).map((r) => r.textContent);
+    expect(rows[0]).toContain('MSFT-1');
+    expect(rows).toHaveLength(3);
+    expect(within(region).getByRole('link', { name: 'Upload more invoices' })).toHaveAttribute('href', '/invoices');
+
+    await user.click(screen.getByRole('button', { name: 'Cloud costs' }));
+    expect(screen.getByText('Total Spend (Month-to-Date)')).toBeInTheDocument();
+  });
+
+  it('invites an upload when there are no invoices', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ invoices: loadedSource({ data: [] }) }));
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Invoices summary' }));
+    expect(screen.getByText('No invoices uploaded yet')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Upload invoices' })).toHaveAttribute('href', '/invoices');
   });
 });

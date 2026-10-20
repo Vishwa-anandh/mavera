@@ -1,19 +1,26 @@
-import type { OrgMember } from '../../features/users';
+import type { MemberRecord } from '../../data-access';
 
-export const MOCK_MEMBERS: OrgMember[] = [
+/** The colleagues shown beside the signed-in user. The signed-in user is added by the repository. */
+export const MOCK_MEMBERS: MemberRecord[] = [
   {
     userId: 'user-sarah-owner',
     fullName: 'Sarah Johnson',
     email: 'sarah.johnson@maitsys.com',
-    role: 'owner',
+    role: 'admin',
+    roleId: 'admin',
     status: 'active',
+    alertsEnabled: true,
+    lastActiveAt: '2026-10-15T16:20:00.000Z',
   },
   {
     userId: 'user-marcus',
     fullName: 'Marcus Chen',
     email: 'marcus.chen@maitsys.com',
     role: 'member',
+    roleId: 'analyst',
     status: 'active',
+    alertsEnabled: true,
+    lastActiveAt: '2026-10-15T11:02:00.000Z',
     canViewAzure: true,
     canViewAws: true,
     awsReadOnly: true,
@@ -24,7 +31,10 @@ export const MOCK_MEMBERS: OrgMember[] = [
     fullName: 'Priya Sharma',
     email: 'priya.sharma@maitsys.com',
     role: 'member',
+    roleId: 'role-cost-auditor',
     status: 'active',
+    alertsEnabled: false,
+    lastActiveAt: '2026-10-14T09:48:00.000Z',
     canViewAzure: false,
     canViewAws: true,
     canViewGcp: true,
@@ -35,7 +45,10 @@ export const MOCK_MEMBERS: OrgMember[] = [
     fullName: 'Diego Fernandez',
     email: 'diego.fernandez@maitsys.com',
     role: 'member',
+    roleId: 'viewer',
     status: 'inactive',
+    alertsEnabled: false,
+    lastActiveAt: '2026-09-02T13:15:00.000Z',
     canViewAzure: true,
     azureReadOnly: true,
   },
@@ -44,7 +57,10 @@ export const MOCK_MEMBERS: OrgMember[] = [
     fullName: 'Tom Wu',
     email: 'tom.wu@maitsys.com',
     role: 'member',
+    roleId: 'role-sap-operator',
     status: 'active',
+    alertsEnabled: true,
+    lastActiveAt: '2026-10-16T07:30:00.000Z',
     canViewBtp: false,
     canViewGcp: true,
   },
@@ -53,6 +69,9 @@ export const MOCK_MEMBERS: OrgMember[] = [
     fullName: 'Elena Petrova',
     email: 'elena.petrova@maitsys.com',
     role: 'member',
+    roleId: 'viewer',
     status: 'inactive',
+    alertsEnabled: false,
+    lastActiveAt: '2026-08-19T10:00:00.000Z',
   },
 ];

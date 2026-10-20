@@ -18,23 +18,13 @@
     "src/features/btp/pages/BtpCostPage.tsx",
     "src/features/btp/pages/BtpOverallDashboard.tsx",
     "src/features/btp/pages/BtpServiceInstancesPage.tsx",
-    "src/features/budgets/pages/BudgetsPage.tsx",
     "src/features/gcp/model/GcpAccountContext.tsx",
     "src/features/gcp/pages/GcpCostPage.tsx",
     "src/features/gcp/pages/GcpOverallDashboard.tsx",
     "src/features/invoices/pages/InvoicesPage.tsx",
     "src/features/recommendations/model/recommendationsDerivations.ts",
-    "src/features/sap/components/HanaVitalsChart.tsx",
     "src/features/sap/pages/BtpSecurityPage.tsx",
-    "src/features/sap/pages/SapAlertsPage.tsx",
-    "src/features/sap/pages/SapJobsPage.tsx",
-    "src/features/sap/pages/SapPerformancePage.tsx",
-    "src/features/sap/pages/SecurityNotesPage.tsx",
-    "src/features/sap/pages/SystemConfigurationPage.tsx",
-    "src/features/sap/pages/TransportManagementPage.tsx",
     "src/features/smartAlerts/pages/SmartAlertsPage.tsx",
-    "src/features/superAdmin/model/organizationsStore.ts",
-    "src/features/syncLogs/pages/SyncLogsPage.tsx",
-    "src/features/users/pages/UserManagementPage.tsx"
+    "src/features/syncLogs/pages/SyncLogsPage.tsx"
   ]
 }

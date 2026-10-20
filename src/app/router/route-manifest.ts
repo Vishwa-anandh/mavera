@@ -7,6 +7,8 @@
  * Access is enforced by the layout the route sits in (AppShell for `authenticated`,
  * SuperAdminGuard for `super-admin`) and by the API; UI visibility is never the security boundary.
  */
+import type { ModuleId } from '../../features/access';
+
 export type RouteAccess = { kind: 'public' } | { kind: 'authenticated' } | { kind: 'super-admin' };
 
 export type RouteLayout = 'full-screen' | 'app' | 'admin';
@@ -16,11 +18,14 @@ export interface AppRouteDefinition {
   path: string;
   access: RouteAccess;
   layout: RouteLayout;
+  /** The access-control module whose View permission opens this route (see features/access). Absent means open to every signed-in member. */
+  module?: ModuleId;
 }
 
 export const appPaths = {
   login: '/login',
   register: '/register',
+  companySignup: '/company-signup',
   forgotPassword: '/forgot-password',
   resetPassword: '/reset-password',
   subscriptionExpired: '/subscription-expired',
@@ -62,6 +67,7 @@ export const appPaths = {
   account: '/account',
   subscription: '/subscription',
   users: '/users',
+  auditTrail: '/audit-trail',
   syncLogs: '/sync-logs',
   invoices: '/invoices',
   invoiceBuilder: '/invoice-builder',
@@ -84,6 +90,7 @@ const superAdmin = { kind: 'super-admin' } as const;
 export const routeManifest: readonly AppRouteDefinition[] = [
   { id: 'login', path: appPaths.login, access: pub, layout: 'full-screen' },
   { id: 'register', path: appPaths.register, access: pub, layout: 'full-screen' },
+  { id: 'company-signup', path: appPaths.companySignup, access: pub, layout: 'full-screen' },
   { id: 'forgot-password', path: appPaths.forgotPassword, access: pub, layout: 'full-screen' },
   { id: 'reset-password', path: appPaths.resetPassword, access: pub, layout: 'full-screen' },
   { id: 'subscription-expired', path: appPaths.subscriptionExpired, access: pub, layout: 'full-screen' },
@@ -100,41 +107,42 @@ export const routeManifest: readonly AppRouteDefinition[] = [
   { id: 'admin-billing-generate', path: appPaths.adminBillingGenerate, access: superAdmin, layout: 'admin' },
   { id: 'admin-billing-customers', path: appPaths.adminBillingCustomers, access: superAdmin, layout: 'admin' },
 
-  { id: 'dashboard', path: appPaths.root, access: member, layout: 'app' },
-  { id: 'cost-overview', path: appPaths.costOverview, access: member, layout: 'app' },
-  { id: 'azure', path: appPaths.azure, access: member, layout: 'app' },
-  { id: 'azure-account', path: appPaths.azureAccount, access: member, layout: 'app' },
-  { id: 'aws', path: appPaths.aws, access: member, layout: 'app' },
-  { id: 'gcp', path: appPaths.gcp, access: member, layout: 'app' },
-  { id: 'btp', path: appPaths.btp, access: member, layout: 'app' },
-  { id: 'budgets', path: appPaths.budgets, access: member, layout: 'app' },
-  { id: 'recommendations', path: appPaths.recommendations, access: member, layout: 'app' },
-  { id: 'smart-alerts', path: appPaths.smartAlerts, access: member, layout: 'app' },
-  { id: 'sap-systems', path: appPaths.sapSystems, access: member, layout: 'app' },
-  { id: 'sap-databases', path: appPaths.sapDatabases, access: member, layout: 'app' },
-  { id: 'sap-health', path: appPaths.sapHealth, access: member, layout: 'app' },
-  { id: 'sap-jobs', path: appPaths.sapJobs, access: member, layout: 'app' },
-  { id: 'sap-dumps', path: appPaths.sapDumps, access: member, layout: 'app' },
-  { id: 'sap-performance', path: appPaths.sapPerformance, access: member, layout: 'app' },
-  { id: 'sap-alerts', path: appPaths.sapAlerts, access: member, layout: 'app' },
-  { id: 'sap-transport', path: appPaths.sapTransport, access: member, layout: 'app' },
-  { id: 'sap-security-notes', path: appPaths.sapSecurityNotes, access: member, layout: 'app' },
-  { id: 'sap-btp-security', path: appPaths.sapBtpSecurity, access: member, layout: 'app' },
-  { id: 'sap-configuration', path: appPaths.sapConfiguration, access: member, layout: 'app' },
+  { id: 'dashboard', path: appPaths.root, access: member, layout: 'app', module: 'dashboard' },
+  { id: 'cost-overview', path: appPaths.costOverview, access: member, layout: 'app', module: 'cost.overview' },
+  { id: 'azure', path: appPaths.azure, access: member, layout: 'app', module: 'provider.azure' },
+  { id: 'azure-account', path: appPaths.azureAccount, access: member, layout: 'app', module: 'provider.azure' },
+  { id: 'aws', path: appPaths.aws, access: member, layout: 'app', module: 'provider.aws' },
+  { id: 'gcp', path: appPaths.gcp, access: member, layout: 'app', module: 'provider.gcp' },
+  { id: 'btp', path: appPaths.btp, access: member, layout: 'app', module: 'provider.btp' },
+  { id: 'budgets', path: appPaths.budgets, access: member, layout: 'app', module: 'budgets' },
+  { id: 'recommendations', path: appPaths.recommendations, access: member, layout: 'app', module: 'cost.optimization' },
+  { id: 'smart-alerts', path: appPaths.smartAlerts, access: member, layout: 'app', module: 'smartAlerts' },
+  { id: 'sap-systems', path: appPaths.sapSystems, access: member, layout: 'app', module: 'sap.overview' },
+  { id: 'sap-databases', path: appPaths.sapDatabases, access: member, layout: 'app', module: 'sap.hana' },
+  { id: 'sap-health', path: appPaths.sapHealth, access: member, layout: 'app', module: 'sap.overview' },
+  { id: 'sap-jobs', path: appPaths.sapJobs, access: member, layout: 'app', module: 'sap.jobs' },
+  { id: 'sap-dumps', path: appPaths.sapDumps, access: member, layout: 'app', module: 'sap.jobs' },
+  { id: 'sap-performance', path: appPaths.sapPerformance, access: member, layout: 'app', module: 'sap.performance' },
+  { id: 'sap-alerts', path: appPaths.sapAlerts, access: member, layout: 'app', module: 'sap.alerts' },
+  { id: 'sap-transport', path: appPaths.sapTransport, access: member, layout: 'app', module: 'sap.transport' },
+  { id: 'sap-security-notes', path: appPaths.sapSecurityNotes, access: member, layout: 'app', module: 'sap.securityNotes' },
+  { id: 'sap-btp-security', path: appPaths.sapBtpSecurity, access: member, layout: 'app', module: 'sap.btpSecurity' },
+  { id: 'sap-configuration', path: appPaths.sapConfiguration, access: member, layout: 'app', module: 'sap.configuration' },
   { id: 'alerts', path: appPaths.alerts, access: member, layout: 'app' },
-  { id: 'reports', path: appPaths.reports, access: member, layout: 'app' },
-  { id: 'ai-assistant', path: appPaths.aiAssistant, access: member, layout: 'app' },
+  { id: 'reports', path: appPaths.reports, access: member, layout: 'app', module: 'cost.analytics' },
+  { id: 'ai-assistant', path: appPaths.aiAssistant, access: member, layout: 'app', module: 'assistant' },
   { id: 'account', path: appPaths.account, access: member, layout: 'app' },
-  { id: 'subscription', path: appPaths.subscription, access: member, layout: 'app' },
-  { id: 'users', path: appPaths.users, access: member, layout: 'app' },
-  { id: 'sync-logs', path: appPaths.syncLogs, access: member, layout: 'app' },
-  { id: 'invoices', path: appPaths.invoices, access: member, layout: 'app' },
-  { id: 'billing', path: appPaths.billing, access: member, layout: 'app' },
+  { id: 'subscription', path: appPaths.subscription, access: member, layout: 'app', module: 'subscription' },
+  { id: 'users', path: appPaths.users, access: member, layout: 'app', module: 'users' },
+  { id: 'audit-trail', path: appPaths.auditTrail, access: member, layout: 'app', module: 'audit' },
+  { id: 'sync-logs', path: appPaths.syncLogs, access: member, layout: 'app', module: 'syncLogs' },
+  { id: 'invoices', path: appPaths.invoices, access: member, layout: 'app', module: 'invoices' },
+  { id: 'billing', path: appPaths.billing, access: member, layout: 'app', module: 'billing' },
 
-  { id: 'cloud-analytics', path: appPaths.cloudAnalytics, access: member, layout: 'app' },
-  { id: 'cloud-optimization', path: appPaths.cloudOptimization, access: member, layout: 'app' },
-  { id: 'cloud-reservations', path: appPaths.cloudReservations, access: member, layout: 'app' },
-  { id: 'cloud-resources', path: appPaths.cloudResources, access: member, layout: 'app' },
+  { id: 'cloud-analytics', path: appPaths.cloudAnalytics, access: member, layout: 'app', module: 'cost.analytics' },
+  { id: 'cloud-optimization', path: appPaths.cloudOptimization, access: member, layout: 'app', module: 'cost.optimization' },
+  { id: 'cloud-reservations', path: appPaths.cloudReservations, access: member, layout: 'app', module: 'cost.reservations' },
+  { id: 'cloud-resources', path: appPaths.cloudResources, access: member, layout: 'app', module: 'cost.resources' },
 
   { id: 'not-found', path: appPaths.catchAll, access: pub, layout: 'full-screen' },
 ];
@@ -155,4 +163,24 @@ export function isRegisteredPath(path: string): boolean {
     }
     return false;
   });
+}
+
+const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Route path (with `:param` and trailing `/*`) as a matcher for a concrete pathname. */
+function pathMatcher(routePath: string): RegExp {
+  const splat = routePath.endsWith('/*');
+  const base = splat ? routePath.slice(0, -2) : routePath;
+  const body = base
+    .split('/')
+    .map((segment) => (segment.startsWith(':') ? '[^/]+' : escapeRegex(segment)))
+    .join('/');
+  return new RegExp(`^${body}${splat ? '(?:/.*)?' : '/?'}$`);
+}
+
+const matchers = routeManifest.filter((route) => route.module).map((route) => ({ module: route.module as ModuleId, regex: pathMatcher(route.path) }));
+
+/** The access-control module that guards `pathname`, if any (`/azure/123` is guarded like `/azure`). */
+export function routeModuleFor(pathname: string): ModuleId | undefined {
+  return matchers.find((entry) => entry.regex.test(pathname))?.module;
 }

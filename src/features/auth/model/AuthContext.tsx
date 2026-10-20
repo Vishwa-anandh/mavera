@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, clearCloudSummaryCaches, TOKEN_KEY, REFRESH_TOKEN_KEY } from '../../../data-access';
+import { api, clearCloudSummaryCaches, licenseRepository, TOKEN_KEY, REFRESH_TOKEN_KEY, type CompanySession } from '../../../data-access';
 import type { User, CloudProvider } from '../../../shared/types/auth';
 import { isDevelopment } from '../../../app/config/environment';
 
@@ -73,11 +73,15 @@ const DEFAULT_MODULES: Modules = { cloudCost: true, sapMonitoring: true };
  */
 export const DEMO_EMAIL = 'demo@mavera.local';
 export const DEMO_PASSWORD = 'Mavera@2026';
+/** The id of the local demo session's user; it has no backend account. */
+const DEMO_USER_ID = 'dev-preview-user';
 
 export interface AuthContextValue {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
+  /** True for the local demo session (no backend account); gates prototype-only affordances such as "Preview as role". */
+  isDemoSession?: boolean;
   invoiceOnly: boolean;
   cloudAccess: CloudProvider[];
   features: Features;
@@ -155,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // PROTOTYPE ONLY — see the doc comment on DEMO_EMAIL/DEMO_PASSWORD above.
   const applyDemoSession = useCallback(() => {
     setUser({
-      id: 'dev-preview-user',
+      id: DEMO_USER_ID,
       email: DEMO_EMAIL,
       name: 'Dev Preview',
       orgName: 'Maitsys Demo Org',
@@ -170,11 +174,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  // PROTOTYPE ONLY: the administrator of a company registered through /company-signup signs in
+  // as an Admin of that organization, with the modules and seat limit its license granted.
+  const applyCompanySession = useCallback((session: CompanySession) => {
+    setUser({
+      id: session.userId,
+      email: session.email,
+      name: session.name,
+      orgName: session.organizationName,
+      role: 'admin',
+      canViewAzure: session.cloudAccess.includes('azure'),
+      canViewAws: session.cloudAccess.includes('aws'),
+      canViewBtp: session.cloudAccess.includes('btp'),
+      canViewGcp: session.cloudAccess.includes('gcp'),
+      cloudAccess: session.cloudAccess,
+      invoiceOnly: session.invoiceOnly,
+      aiEnabled: session.aiEnabled,
+      modules: session.modules,
+      maxUsers: session.seats,
+      planType: session.plan,
+      subscriptionStartsAt: session.startsAt,
+      subscriptionExpiresAt: session.expiresAt,
+      subscriptionActive: true,
+    });
+    setLoading(false);
+  }, []);
+
   const login = useCallback(
     async (email: string, password: string) => {
       if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
         await new Promise((resolve) => setTimeout(resolve, 400));
         applyDemoSession();
+        return;
+      }
+      const company = licenseRepository.authenticate(email, password);
+      if (company) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        if (!company.ok) throw { response: { data: { error: 'Incorrect email or password.' } } };
+        applyCompanySession(company.session);
         return;
       }
       const { data } = await api.post<{ token: string; refreshToken: string }>('/auth/login', {
@@ -187,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // payload, which can lag the database.
       await fetchMe();
     },
-    [fetchMe, applyDemoSession],
+    [fetchMe, applyDemoSession, applyCompanySession],
   );
 
   const register = useCallback(async (payload: RegisterPayload) => {
@@ -232,24 +269,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const sendOtp = useCallback(async (email: string): Promise<SendOtpResult> => {
+    // PROTOTYPE ONLY: a company sign-up in progress ("Register company") has no backend to email
+    // the code, so the license repository issues and checks it in memory.
+    if (licenseRepository.hasPendingSignup(email)) return licenseRepository.sendVerificationCode(email);
     const { data } = await api.post<SendOtpResult>('/auth/send-otp', { email });
     return { orgExists: Boolean(data?.orgExists), orgName: data?.orgName };
   }, []);
 
   const verifyOtp = useCallback(async (email: string, otp: string) => {
+    if (licenseRepository.hasPendingSignup(email)) return licenseRepository.verifyVerificationCode(email, otp);
     await api.post('/auth/verify-otp', { email, otp });
   }, []);
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     // PROTOTYPE ONLY: the demo session has no backend account, so it only checks the current
     // password and stores nothing.
-    if (user?.id === 'dev-preview-user') {
+    if (user?.id === DEMO_USER_ID) {
       await new Promise((resolve) => setTimeout(resolve, 400));
       if (currentPassword !== DEMO_PASSWORD) throw { response: { data: { error: 'Your current password is incorrect.' } } };
       return;
     }
+    if (user?.id.startsWith('company-')) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      licenseRepository.changePassword(user.email, currentPassword, newPassword);
+      return;
+    }
     await api.post('/auth/change-password', { currentPassword, newPassword });
-  }, [user?.id]);
+  }, [user?.id, user?.email]);
 
   // PROTOTYPE ONLY — see the doc comment on AuthContextValue.devLogin.
   const devLogin = useCallback(() => {
@@ -261,6 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       isAuthenticated: Boolean(user),
+      isDemoSession: user?.id === DEMO_USER_ID,
       invoiceOnly: user?.invoiceOnly ?? false,
       cloudAccess: user?.cloudAccess ?? [],
       features: { ...DEFAULT_FEATURES, ...user?.features },

@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
@@ -63,7 +63,8 @@ describe('Cloud Cost pages', () => {
 
   it('Optimization Advisor leaves overlapping recommendations out of the total', () => {
     wrap(<OptimizationAdvisorPage />);
-    const all = cloudInsightsRepository.listOptimizationOpportunities();
+    // The test organisation is subscribed to Azure and AWS only, so SAP BTP and Google Cloud findings stay out.
+    const all = cloudInsightsRepository.listOptimizationOpportunities().filter((o) => o.provider === 'azure' || o.provider === 'aws');
     const expected = all.filter((o) => !o.overlapsWith || !all.some((x) => x.id === o.overlapsWith)).reduce((s, o) => s + o.monthlySaving, 0);
     expect(screen.getByText(formatMoney(expected, 'USD'))).toBeInTheDocument();
     expect(screen.getByText(/1 overlapping not double-counted/)).toBeInTheDocument();
@@ -74,13 +75,16 @@ describe('Cloud Cost pages', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Savings & Optimization' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Savings overview' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Opportunities' })).toBeInTheDocument();
-    expect(screen.queryByText('Top Recommendations')).not.toBeInTheDocument();
+    // The top recommendations are part of the overview now, once.
+    expect(screen.getAllByRole('heading', { name: 'Top recommendations' })).toHaveLength(1);
   });
 
   it('Optimization Advisor dismisses with a reason and only records the decision', async () => {
     const user = userEvent.setup();
     wrap(<OptimizationAdvisorPage />);
-    await user.click(screen.getByRole('button', { name: 'Merge App Service plans' }));
+    // The opportunity also appears under Top recommendations, so pick it from the opportunities table.
+    const table = screen.getByRole('table', { name: 'Optimization opportunities, highest saving first' });
+    await user.click(within(table).getByRole('button', { name: 'Merge App Service plans' }));
     const drawer = screen.getByRole('dialog', { name: 'Merge App Service plans' });
     expect(within(drawer).getByText(/doesn’t change cloud resources/)).toBeInTheDocument();
     await user.click(within(drawer).getByRole('button', { name: 'Dismiss' }));
@@ -94,5 +98,91 @@ describe('Cloud Cost pages', () => {
     const ends = cloudInsightsRepository.listReservations().sort((a, b) => a.end.localeCompare(b.end)).map((r) => r.name);
     expect(names).toEqual(ends);
     expect(screen.getByText(/Not a purchase/)).toBeInTheDocument();
+  });
+
+  it('Savings overview has the trend, category donut, top recommendations, optimization breakdown and MSP rates', () => {
+    wrap(<OptimizationAdvisorPage />);
+    for (const name of ['Savings trend', 'Savings by category', 'Top recommendations', 'Savings by Optimization (you can control)', 'Maitsys MSP Savings (per-provider rates)']) {
+      expect(screen.getByRole('heading', { name })).toBeInTheDocument();
+    }
+    const msp = screen.getByRole('table', { name: /Maitsys discount rate, monthly spend and monthly saving per provider/ });
+    const rows = within(msp).getAllByRole('row').map((r) => r.textContent ?? '');
+    expect(rows.find((r) => r.startsWith('Azure'))).toContain('7.0%');
+    expect(rows.find((r) => r.startsWith('AWS'))).toContain('3.5%');
+    expect(rows.find((r) => r.startsWith('SAP BTP'))).toContain('2.0%');
+    expect(rows.find((r) => r.startsWith('Google Cloud'))).toContain('2.0%');
+    expect(rows[rows.length - 1]).toMatch(/^Total/);
+  });
+
+  it('Top recommendations are ranked by monthly saving and open the opportunity detail', async () => {
+    const user = userEvent.setup();
+    wrap(<OptimizationAdvisorPage />);
+    const list = screen.getByRole('list', { name: 'Top recommendations by monthly saving' });
+    const savings = within(list).getAllByRole('listitem').map((li) => Number((li.querySelector('strong')?.textContent ?? '').replace(/[^0-9.]/g, '')));
+    expect(savings.length).toBe(5);
+    expect([...savings].sort((a, b) => b - a)).toEqual(savings);
+    const first = within(list).getAllByRole('listitem')[0];
+    expect(first).toHaveTextContent(/Effort: (Low|Medium|High)/);
+    await user.click(within(first).getByRole('button'));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('the provider filter limits every figure on the page', async () => {
+    const user = userEvent.setup();
+    wrap(<OptimizationAdvisorPage />);
+    const totalAmount = () => screen.getByText('Total Amount').closest('.mv-kpi')?.querySelector('.mv-kpi-value')?.textContent;
+    const allTotal = totalAmount();
+    await user.click(screen.getByLabelText('Provider'));
+    await user.click(screen.getByRole('option', { name: 'Amazon AWS' }));
+
+    expect(totalAmount()).not.toBe(allTotal);
+    const msp = screen.getByRole('table', { name: /Maitsys discount rate/ });
+    expect(within(msp).queryByText('Azure')).not.toBeInTheDocument();
+    expect(within(msp).getByText('AWS')).toBeInTheDocument();
+    const list = screen.getByRole('list', { name: 'Top recommendations by monthly saving' });
+    expect(within(list).queryByText(/Azure ·/)).not.toBeInTheDocument();
+    expect(within(list).getAllByText(/AWS ·/).length).toBeGreaterThan(0);
+    // The opportunity list below follows the same filter.
+    const table = screen.getByRole('table', { name: 'Optimization opportunities, highest saving first' });
+    expect(within(table).queryByText('Merge App Service plans')).not.toBeInTheDocument();
+    expect(within(table).getByText('Buy a 1-year Compute Savings Plan')).toBeInTheDocument();
+  });
+
+  it('keeps SAP BTP and Google Cloud out of an organisation that is not subscribed to them', () => {
+    wrap(<OptimizationAdvisorPage />);
+    const msp = screen.getByRole('table', { name: /Maitsys discount rate/ });
+    expect(msp).toBeInTheDocument();
+    const table = screen.getByRole('table', { name: 'Optimization opportunities, highest saving first' });
+    expect(within(table).queryByText(/Move from pay-as-you-go to the CPEA/)).not.toBeInTheDocument();
+    expect(within(table).queryByText(/Delete idle Compute Engine/)).not.toBeInTheDocument();
+  });
+
+  describe('Recalculate savings', () => {
+    beforeEach(() => { vi.useFakeTimers(); });
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('shows progress, then updates the last recalculated time, nudges optimisation numbers and fires a toast', () => {
+      const toasts: string[] = [];
+      const listener = (e: Event) => toasts.push((e as CustomEvent<{ message: string }>).detail.message);
+      window.addEventListener('ccm:toast', listener);
+      wrap(<OptimizationAdvisorPage />);
+      const potential = () => screen.getByText('Total Savings (Potential)').closest('.mv-kpi')?.querySelector('.mv-kpi-value')?.textContent;
+      const before = potential();
+      const mspBefore = screen.getByRole('table', { name: /Maitsys discount rate/ }).textContent;
+
+      fireEvent.click(screen.getByRole('button', { name: 'Recalculate savings' }));
+      expect(screen.getByRole('button', { name: 'Recalculating…' })).toBeDisabled();
+      expect(screen.getByRole('progressbar', { name: 'Recalculating savings' })).toBeInTheDocument();
+      expect(screen.getByRole('status')).toHaveTextContent('Recalculating savings…');
+
+      act(() => { vi.advanceTimersByTime(1300); });
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Recalculate savings' })).toBeEnabled();
+      expect(screen.getByRole('status')).toHaveTextContent(/Last recalculated \d{1,2}:\d{2}/);
+      expect(potential()).not.toBe(before);
+      expect(screen.getByRole('table', { name: /Maitsys discount rate/ }).textContent).toBe(mspBefore);
+      expect(toasts).toContain('Savings recalculated.');
+      window.removeEventListener('ccm:toast', listener);
+    });
   });
 });

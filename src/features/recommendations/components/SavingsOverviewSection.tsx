@@ -1,41 +1,59 @@
-import { useState } from 'react';
-import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
-import { useAuth } from '../../auth';
-import { derivePermissions } from '../../../shared/lib/permissions';
+import { useMemo, useState } from 'react';
+import type { OptimizationOpportunity } from '../../../data-access';
+import { useOpportunityStates } from '../../../shared/lib/opportunityStore';
 import { DonutChart } from '../../../shared/ui/DonutChart';
 import { Select } from '../../../shared/ui/Select';
-import { RefreshIcon, TrendUpIcon, CreditCardIcon, LockIcon } from '../../../shared/ui/icons';
+import { RefreshIcon, TrendUpIcon, CreditCardIcon, LockIcon, ClockIcon } from '../../../shared/ui/icons';
 import { DetailDrawer, DetailList } from '../../../shared/ui/DetailDrawer';
 import { EmptyState } from '../../../shared/ui/EmptyState';
+import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
+import { chartColors } from '../../../shared/theme/tokens';
 import { buildRecommendationsView, type ProviderFilter } from '../model/recommendationsDerivations';
 import type { SavingsCategory } from '../model/recommendationsTypes';
+import { applyRecalculation, groupSmallAreas, mspRowsOf, savingsByArea, topRecommendationsOf, visibleOpportunities } from '../model/savingsInsights';
+import type { SavingsScope } from '../model/useSavingsScope';
+import { MspSavingsPanel } from './MspSavingsPanel';
+import { SavingsTrendPanel } from './SavingsTrendPanel';
+import { TopRecommendationsPanel } from './TopRecommendationsPanel';
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+function formatCurrency(value: number, fractionDigits = 2): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits }).format(value);
 }
 
 const PROVIDER_LABELS: Record<ProviderFilter, string> = { '': 'All Providers', azure: 'Microsoft Azure', aws: 'Amazon AWS', btp: 'SAP BTP', gcp: 'Google Cloud' };
 
+interface SavingsOverviewSectionProps {
+  /** Provider filter, recalculation and access, owned by the page so the opportunity list below agrees with it. */
+  scope: SavingsScope;
+  /** Every optimisation opportunity; the section limits them to the selected provider and what the person may see. */
+  opportunities: OptimizationOpportunity[];
+  /** Opens one opportunity's detail (the drawer on the page below). */
+  onOpenOpportunity: (id: string) => void;
+}
+
 /**
  * Savings overview (the former Recommendations page, ported from the reference CCM app's
- * RecommendationsPage.jsx): month-to-date spend and potential savings, the savings breakdown, and
- * the two category groups — optimizations you can make and Maitsys MSP savings already applied.
- * BTP gets its own data-driven savings model (CPEA/plan/unused/consolidation) — see
- * recommendationsDerivations.ts. It is the first section of Savings & Optimization; the individual
- * opportunities are listed below it, so the old "Top Recommendations" list isn't repeated here.
+ * RecommendationsPage.jsx): month-to-date spend and potential savings, the potential-versus-realised
+ * trend, savings by category, the top recommendations, the savings you can control, and the Maitsys
+ * MSP savings per provider. Everything follows one provider filter, and "Recalculate savings" re-runs
+ * the (simulated) calculation. BTP has its own data-driven savings model, see recommendationsDerivations.ts.
  */
-export function SavingsOverviewSection() {
-  const { user, cloudAccess, invoiceOnly, features } = useAuth();
-  const permissions = derivePermissions(user, cloudAccess, invoiceOnly);
-  const hasAnyAccess = permissions.azure.canView || permissions.aws.canView || permissions.btp.canView || permissions.gcp.canView;
-
-  const [storedProvider, setProviderFilter] = useRememberedState<ProviderFilter>('cloud', 'recommendations-provider', '', oneOf(['', 'azure', 'aws', 'btp', 'gcp']));
+export function SavingsOverviewSection({ scope, opportunities, onOpenOpportunity }: SavingsOverviewSectionProps) {
+  const { provider, setProvider, providerOptions, allowedProviders, hasAnyAccess, overviewEnabled, recalculation } = scope;
+  const { mode } = useMaveraTheme();
+  const colors = chartColors[mode];
+  const states = useOpportunityStates();
   const [selectedCategory, setSelectedCategory] = useState<SavingsCategory | null>(null);
-  const [recalculating, setRecalculating] = useState(false);
-  const recalculate = () => { setRecalculating(true); window.setTimeout(() => setRecalculating(false), 500); };
+
+  const view = useMemo(() => applyRecalculation(buildRecommendationsView(provider), recalculation.factor), [provider, recalculation.factor]);
+  const { countable } = useMemo(() => visibleOpportunities(opportunities, states, provider, allowedProviders), [opportunities, states, provider, allowedProviders]);
+  const areas = useMemo(() => groupSmallAreas(savingsByArea(countable)), [countable]);
+  const top = useMemo(() => topRecommendationsOf(countable, 5), [countable]);
+  const mspRows = mspRowsOf(view.effectiveSpend, provider);
+  const mspTotal = mspRows.reduce((sum, r) => sum + r.saving, 0);
 
   // The savings overview is a plan feature; without it the page shows only the opportunities.
-  if (!features.recommendations) return null;
+  if (!overviewEnabled) return null;
 
   if (!hasAnyAccess) {
     return (
@@ -47,12 +65,11 @@ export function SavingsOverviewSection() {
     );
   }
 
-  const availableProviders: ProviderFilter[] = ['', 'azure', 'aws', 'btp', 'gcp'].filter((p) => p === '' || permissions[p as 'azure' | 'aws' | 'btp' | 'gcp'].canView) as ProviderFilter[];
-  const providerFilter: ProviderFilter = availableProviders.includes(storedProvider) ? storedProvider : '';
-  const view = buildRecommendationsView(providerFilter);
+  const areaColors = [colors.primary, colors.secondary, colors.tertiary, colors.axis, 'color-mix(in srgb, var(--mv-primary) 38%, var(--mv-surface))'];
+  const annualised = view.totalCurrent * 12;
 
   return (
-    <section id="savings" aria-labelledby="savings-overview-title" style={{ marginBottom: '1.5rem' }}>
+    <section id="savings" aria-labelledby="savings-overview-title" className="mv-savings-overview" aria-busy={recalculation.running}>
       <div className="mv-section-head">
         <div>
           <h2 id="savings-overview-title" className="mv-section-title">Savings overview</h2>
@@ -62,15 +79,20 @@ export function SavingsOverviewSection() {
           <Select
             label="Provider"
             hideLabel
-            value={providerFilter}
-            onChange={setProviderFilter}
-            options={availableProviders.map((p) => ({ value: p, label: PROVIDER_LABELS[p] }))}
+            value={provider}
+            onChange={setProvider}
+            options={providerOptions.map((p) => ({ value: p, label: PROVIDER_LABELS[p] }))}
           />
-          <button type="button" className="mv-secondary-button" onClick={recalculate} disabled={recalculating}>
-            <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{recalculating ? 'Recalculating…' : 'Recalculate'}
+          <button type="button" className="mv-secondary-button" onClick={recalculation.start} disabled={recalculation.running}>
+            <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{recalculation.running ? 'Recalculating…' : 'Recalculate savings'}
           </button>
         </div>
       </div>
+      <p className="mv-recalc-status" role="status">
+        <ClockIcon size={13} aria-hidden />
+        {recalculation.running ? 'Recalculating savings…' : `Last recalculated ${recalculation.lastAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+      </p>
+      {recalculation.running && <div className="mv-progress" role="progressbar" aria-label="Recalculating savings" aria-valuetext="In progress"><span /></div>}
 
       <div className="mv-kpi-row-4" style={{ marginBottom: '1rem' }}>
         <article className="mv-kpi"><span className="mv-kpi-label">Total Amount</span><strong className="mv-kpi-value">{formatCurrency(view.totalCurrent)}</strong><span className="mv-muted">USD, Month-to-Date</span></article>
@@ -87,30 +109,40 @@ export function SavingsOverviewSection() {
         <article className="mv-kpi"><span className="mv-kpi-label">Total Savings (Potential)</span><strong className="mv-kpi-value" style={{ color: 'var(--mv-success)' }}>{formatCurrency(view.totalSavings)}</strong><span className="mv-muted">{view.savingsPct.toFixed(2)}% of annualised spend</span></article>
       </div>
 
-      <div className="mv-row-3col">
-        <section className="mv-panel">
-          <div className="mv-panel-header"><h3 className="mv-panel-title">Savings Breakdown</h3></div>
-          {view.donutData.length === 0 ? (
-            <p className="mv-muted">No savings identified for this selection.</p>
+      <div className="mv-pair">
+        <SavingsTrendPanel provider={provider} currentPotential={view.totalSavings} />
+        <section className="mv-panel" aria-labelledby="savings-category-title">
+          <div className="mv-panel-header">
+            <div>
+              <h3 id="savings-category-title" className="mv-panel-title">Savings by category</h3>
+              <p className="mv-muted">Open opportunities by area, per month</p>
+            </div>
+          </div>
+          {areas.length === 0 ? (
+            <p className="mv-muted">No open opportunities for this selection.</p>
           ) : (
-            <DonutChart title="Savings breakdown" totalLabel="Savings" data={view.donutData.map((d, i) => ({ label: d.name, value: d.value, color: ['var(--mv-primary)', 'var(--mv-success)', 'var(--mv-warning)', 'var(--mv-danger)', 'var(--mv-text-muted)'][i % 5] }))} />
+            <DonutChart
+              title="Savings by category"
+              totalLabel="Per month"
+              format={(v) => formatCurrency(v, 0)}
+              data={areas.map((a, i) => ({ label: a.area, value: a.saving, color: areaColors[i % areaColors.length] }))}
+            />
           )}
         </section>
+      </div>
+
+      <div className="mv-pair">
+        <TopRecommendationsPanel items={top} onOpen={onOpenOpportunity} />
         <CategoryCard
-          title={view.isBtpOnly ? 'BTP Optimization Opportunities' : 'Savings You Can Control'}
+          title={view.isBtpOnly ? 'BTP Optimization Opportunities' : 'Savings by Optimization (you can control)'}
           amount={view.isBtpOnly ? view.btpOptTotal : view.optTotal}
-          subtitle={view.isBtpOnly ? 'CPEA commitment model · service plan downgrades · unused instances · consolidation' : `Maitsys rates: RI 15% · Right-sizing 8% · Orphaned disks 2% · Idle IPs 1% · Other 4% of your ${providerFilter ? providerFilter.toUpperCase() : 'total'} spend.`}
+          subtitle={view.isBtpOnly ? 'CPEA commitment model · service plan downgrades · unused instances · consolidation' : `Maitsys rates: RI 15% · Right-sizing 8% · Orphaned disks 2% · Idle IPs 1% · Other 4% of your ${provider ? provider.toUpperCase() : 'total'} spend.`}
           categories={view.isBtpOnly ? view.btpOptCategories : view.optimizationCategories}
           onSelect={setSelectedCategory}
         />
-        <CategoryCard
-          title="Maitsys MSP Savings"
-          amount={view.cspCategories.reduce((s, c) => s + c.amount, 0)}
-          subtitle={view.isBtpOnly ? "Maitsys' SAP partnership provides a 2% reduction on SAP BTP consumption — applied automatically." : 'Applied automatically through Maitsys contracted MSP/CSP rates.'}
-          categories={view.cspCategories}
-          onSelect={setSelectedCategory}
-        />
       </div>
+
+      <MspSavingsPanel rows={mspRows} annualisedPct={annualised > 0 ? (mspTotal / annualised) * 100 : 0} />
 
       {selectedCategory && (
         <DetailDrawer
@@ -148,7 +180,7 @@ export function SavingsOverviewSection() {
 
 function CategoryCard({ title, amount, subtitle, categories, onSelect }: { title: string; amount: number; subtitle: string; categories: SavingsCategory[]; onSelect: (c: SavingsCategory) => void }) {
   return (
-    <section className="mv-panel">
+    <section className="mv-panel" aria-label={title}>
       <div className="mv-panel-header">
         <h3 className="mv-panel-title">{title}</h3>
         <strong style={{ color: 'var(--mv-success)' }}>{formatCurrency(amount)}</strong>

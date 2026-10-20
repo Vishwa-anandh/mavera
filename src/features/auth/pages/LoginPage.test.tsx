@@ -246,3 +246,14 @@ describe('LoginPage', () => {
     expect(logo).toHaveAttribute('width', '300');
   });
 });
+
+describe('LoginPage register company entry', () => {
+  it('has a Register company pill (for business) at the top right that opens the company sign-up', () => {
+    useAuthMock.mockReturnValue(auth());
+    renderAt('/login');
+    const pill = screen.getByRole('link', { name: /Register company/ });
+    expect(pill).toHaveAttribute('href', '/company-signup');
+    expect(pill).toHaveTextContent('For business');
+    expect(pill).toHaveClass('mv-register-pill');
+  });
+});

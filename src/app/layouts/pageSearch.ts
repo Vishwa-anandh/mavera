@@ -1,3 +1,4 @@
+import type { ModuleId } from '../../features/access';
 import type { ResolvedNavEntry } from '../router/navConfig';
 
 export interface PageResult {
@@ -11,15 +12,18 @@ export interface PageResult {
 }
 
 /** Pages reachable outside the module menus (header utilities, profile, dashboard links). */
-const EXTRA_PAGES: PageResult[] = [
+const EXTRA_PAGES: Array<PageResult & { module?: ModuleId }> = [
   { key: 'alerts', label: 'All alerts', path: '/alerts', where: 'Across modules', locked: false, keywords: 'alarms incidents critical warnings' },
-  { key: 'ai-assistant', label: 'AI Assistant', path: '/ai-assistant', where: 'Across modules', locked: false, keywords: 'ask chat help copilot' },
+  { key: 'ai-assistant', label: 'AI Assistant', path: '/ai-assistant', where: 'Across modules', locked: false, keywords: 'ask chat help copilot', module: 'assistant' },
   { key: 'account', label: 'Account', path: '/account', where: 'Your profile', locked: false, keywords: 'profile password email settings preferences' },
-  { key: 'subscription', label: 'Subscription', path: '/subscription', where: 'Your profile', locked: false, keywords: 'plan upgrade modules seats licence license expiry renewal' },
+  { key: 'subscription', label: 'Subscription', path: '/subscription', where: 'Your profile', locked: false, keywords: 'plan upgrade modules seats licence license expiry renewal', module: 'subscription' },
 ];
 
-/** Flattens the user's resolved navigation — so search only ever offers pages their menus offer. */
-export function buildPageIndex(entries: ResolvedNavEntry[]): PageResult[] {
+/**
+ * Flattens the user's resolved navigation — so search only ever offers pages their menus offer.
+ * `canView` (role-based access) also filters the extra pages that sit outside the menus.
+ */
+export function buildPageIndex(entries: ResolvedNavEntry[], canView?: (module: ModuleId) => boolean): PageResult[] {
   const pages: PageResult[] = [];
   for (const entry of entries) {
     if (entry.type === 'leaf') {
@@ -38,7 +42,8 @@ export function buildPageIndex(entries: ResolvedNavEntry[]): PageResult[] {
     }
   }
   const seen = new Set(pages.map((page) => page.path));
-  return [...pages, ...EXTRA_PAGES.filter((page) => !seen.has(page.path))];
+  const extras = EXTRA_PAGES.filter((page) => !seen.has(page.path) && (!page.module || !canView || canView(page.module)));
+  return [...pages, ...extras.map(({ module: _module, ...page }) => page)];
 }
 
 /**

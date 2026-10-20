@@ -1,189 +1,155 @@
 import { useState } from 'react';
-import { MOCK_SAP_ALERTS, SAP_ALERTS_META, HANA_ALERT_THRESHOLDS, SAP_ALERT_THRESHOLDS, type SapAlert, type AlertThresholdConfig } from '../../../demo/sap/mockSapAlerts';
-import { BellIcon, CheckIcon, RefreshIcon, EyeSlashIcon, ServerIcon, TrendUpIcon, UsersIcon } from '../../../shared/ui/icons';
-import { DestinationSwitcher } from '../components/DestinationSwitcher';
+import { sapAdminRepository, type SapSmartAlert } from '../../../data-access';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { Pagination } from '../../../shared/ui/Pagination';
+import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
+import { Select } from '../../../shared/ui/Select';
+import { StatusTag, type StatusTone } from '../../../shared/ui/StatusTag';
+import { Tooltip } from '../../../shared/ui/Tooltip';
+import { usePagination } from '../../../shared/ui/usePagination';
+import { CheckIcon, EyeSlashIcon, MailIcon, RefreshIcon, SettingsIcon } from '../../../shared/ui/icons';
+import { AlertRecipientsDialog } from '../components/AlertRecipientsDialog';
+import { AlertSettingsDrawer } from '../components/AlertSettingsDrawer';
+import { DestinationSwitcher } from '../components/DestinationSwitcher';
+import { ALERT_TYPES, ALERT_VIEWS, SEVERITY_TONE, alertCounts, alertSummary, filterAlerts, type AlertFilters, type SourceFilter } from '../model/sapAlerts';
+import { formatStamp } from '../model/sapFormat';
 
-const SEVERITY_TONE: Record<SapAlert['severity'], string> = { Critical: 'danger', High: 'warning', Medium: 'info', Low: 'neutral' };
-const TYPE_FILTERS = ['All', 'CPU', 'Memory', 'Disk', 'Sessions', 'Dumps', 'Jobs', 'Locks', 'Work Processes'] as const;
-const STATUS_FILTERS = ['All', 'Unread', 'Critical', 'High+'] as const;
-const TOP_TABS = ['Alerts List', 'HANA Monitoring', 'SAP Monitoring'] as const;
-const SUB_TABS = ['Alerts', 'Recipients', 'Settings'] as const;
+const repo = sapAdminRepository.alerts;
+const SOURCES: Array<{ value: SourceFilter; label: string }> = [
+  { value: 'All', label: 'All sources' },
+  { value: 'HANA', label: 'HANA Monitoring' },
+  { value: 'SAP', label: 'SAP Monitoring' },
+];
 
-function ThresholdCard({ config, onToggle, onThresholdChange }: { config: AlertThresholdConfig; onToggle: () => void; onThresholdChange: (value: number) => void }) {
-  return (
-    <article className="mv-panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-        <div><strong>{config.label}</strong><p className="mv-muted" style={{ margin: '2px 0 0', fontSize: '0.75rem' }}>{config.description}</p></div>
-        <button type="button" className="mv-toggle" role="switch" aria-checked={config.enabled} aria-label={`Enable ${config.label} alerting`} onClick={onToggle} />
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem', opacity: config.enabled ? 1 : 0.5 }}>
-        <span className="mv-muted">Trigger Threshold</span>
-        <strong>{config.thresholdPercent} {config.unit}</strong>
-      </div>
-      <input
-        type="range"
-        min={1}
-        max={100}
-        value={config.thresholdPercent}
-        disabled={!config.enabled}
-        onChange={(e) => onThresholdChange(Number(e.target.value))}
-        style={{ width: '100%', opacity: config.enabled ? 1 : 0.5 }}
-      />
-    </article>
-  );
+function statusOf(alert: SapSmartAlert): { label: string; tone: StatusTone } {
+  if (alert.state === 'resolved') return { label: 'Resolved', tone: 'success' };
+  if (alert.state === 'ignored') return { label: 'Ignored', tone: 'neutral' };
+  return alert.read ? { label: 'Read', tone: 'neutral' } : { label: 'Unread', tone: 'info' };
 }
 
-function ThresholdSettings({ title, thresholds, onSave }: { title: string; thresholds: AlertThresholdConfig[]; onSave: (next: AlertThresholdConfig[]) => void }) {
-  const [drafts, setDrafts] = useState(thresholds);
-  const toggle = (key: string) => setDrafts((cur) => cur.map((c) => (c.key === key ? { ...c, enabled: !c.enabled } : c)));
-  const setThreshold = (key: string, value: number) => setDrafts((cur) => cur.map((c) => (c.key === key ? { ...c, thresholdPercent: value } : c)));
-
-  return (
-    <section className="mv-panel">
-      <div className="mv-panel-header">
-        <h2 className="mv-panel-title"><ServerIcon size={16} style={{ verticalAlign: -3, marginRight: '0.375rem' }} />{title}</h2>
-        <button className="mv-primary-button" onClick={() => onSave(drafts)}><CheckIcon size={14} style={{ marginRight: '0.375rem' }} />Save Changes</button>
-      </div>
-      <p className="mv-muted" style={{ fontSize: '0.75rem', marginBottom: '1rem' }}>Alerts are sent by email once a metric crosses its threshold.</p>
-      <div className="mv-card-grid" style={{ gap: '1rem' }}>
-        {drafts.map((c) => (
-          <ThresholdCard key={c.key} config={c} onToggle={() => toggle(c.key)} onThresholdChange={(v) => setThreshold(c.key, v)} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ComingSoon({ icon: Icon, label }: { icon: typeof UsersIcon; label: string }) {
-  return (
-    <div style={{ display: 'grid', placeItems: 'center', padding: '3.75rem 0', textAlign: 'center' }}>
-      <Icon size={32} style={{ color: 'var(--mv-text-muted)', marginBottom: '0.625rem' }} />
-      <strong>{label}</strong>
-      <p className="mv-muted" style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem' }}>Coming soon</p>
-    </div>
-  );
-}
-
-/** Maps to MIO's "Smart Alerts" — SAP/HANA anomaly detection, distinct from
- * the org-wide /smart-alerts feature (cloud cost). Three top-level tabs:
- * the alerts list itself, and per-metric threshold configuration for HANA
- * and ABAP. */
+/**
+ * SAP and HANA anomaly alerts (MIO /smart-alerts), distinct from the org-wide cost alerts. A source switch
+ * narrows everything on the page to HANA or SAP Monitoring; alerts can be marked read, resolved or ignored
+ * and brought back. Detection settings and recipients open from the header. State lives in the data-access
+ * store, so it survives moving between pages.
+ */
 export function SapAlertsPage() {
-  const [topTab, setTopTab] = useState<(typeof TOP_TABS)[number]>('Alerts List');
-  const [subTab, setSubTab] = useState<(typeof SUB_TABS)[number]>('Alerts');
-  const [alerts, setAlerts] = useState(MOCK_SAP_ALERTS);
-  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>('All');
-  const [typeFilter, setTypeFilter] = useState<(typeof TYPE_FILTERS)[number]>('All');
-  const [hanaThresholds, setHanaThresholds] = useState(HANA_ALERT_THRESHOLDS);
-  const [sapThresholds, setSapThresholds] = useState(SAP_ALERT_THRESHOLDS);
+  const [alerts, setAlerts] = useState<SapSmartAlert[]>(() => repo.list());
+  const [adjustments, setAdjustments] = useState<string[]>(() => repo.listAdjustments());
+  const [source, setSource] = useState<SourceFilter>('All');
+  const [view, setView] = useState<AlertFilters['view']>('active');
+  const [type, setType] = useState<AlertFilters['type']>('All');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [recipientsOpen, setRecipientsOpen] = useState(false);
 
-  const filtered = alerts.filter((a) => {
-    if (typeFilter !== 'All' && a.type !== typeFilter) return false;
-    if (statusFilter === 'Unread' && a.read) return false;
-    if (statusFilter === 'Critical' && a.severity !== 'Critical') return false;
-    if (statusFilter === 'High+' && !['Critical', 'High'].includes(a.severity)) return false;
-    return true;
-  });
+  const reload = () => { setAlerts(repo.list()); setAdjustments(repo.listAdjustments()); };
+  const counts = alertCounts(alerts, source);
+  const summary = alertSummary(alerts, source, adjustments);
+  const filtered = filterAlerts(alerts, { source, view, type });
+  const paging = usePagination(filtered, 10, `${source}|${view}|${type}`);
+  const filtersActive = view !== 'active' || type !== 'All';
 
-  const markRead = (id: string) => setAlerts((cur) => cur.map((a) => (a.id === id ? { ...a, read: true } : a)));
-  const dismiss = (id: string) => setAlerts((cur) => cur.filter((a) => a.id !== id));
+  const act = (change: () => unknown, message: string) => {
+    change();
+    reload();
+    fireToast({ type: 'success', message });
+  };
 
-  const totalActive = alerts.length;
-  const unread = alerts.filter((a) => !a.read).length;
-  const critical = alerts.filter((a) => a.severity === 'Critical').length;
+  const markAll = () => {
+    const changed = repo.markAllRead(source === 'All' ? undefined : source);
+    reload();
+    fireToast({ type: changed > 0 ? 'success' : 'info', message: changed > 0 ? `${changed} alert${changed === 1 ? '' : 's'} marked as read.` : 'There are no unread alerts.' });
+  };
+
+  const refresh = () => {
+    reload();
+    fireToast({ type: 'info', message: 'Alerts refreshed. Detection runs nightly, so there is nothing newer yet.' });
+  };
 
   return (
     <div>
-      <PageHeader title={<>Alerts & Escalations</>} subtitle="Automated detection of threshold breaches across SAP HANA and ABAP monitoring metrics.">
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <DestinationSwitcher />
-          {topTab === 'Alerts List' && (
-            <>
-              <button className="mv-secondary-button" onClick={() => setAlerts((cur) => cur.map((a) => ({ ...a, read: true })))}><CheckIcon size={14} style={{ marginRight: '0.375rem' }} />Mark All Read</button>
-              <button className="mv-secondary-button"><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
-            </>
-          )}
+      <PageHeader title="Alerts & Escalations" subtitle="Automated detection of threshold breaches across SAP HANA and ABAP monitoring metrics.">
+        <div className="mv-actions-wrap">
+        <DestinationSwitcher />
+        <button type="button" className="mv-secondary-button" onClick={() => setRecipientsOpen(true)}><MailIcon size={14} style={{ marginRight: '0.375rem' }} />Recipients</button>
+        <button type="button" className="mv-secondary-button" onClick={() => setSettingsOpen(true)}><SettingsIcon size={14} style={{ marginRight: '0.375rem' }} />Settings</button>
+        <button type="button" className="mv-secondary-button" onClick={markAll}><CheckIcon size={14} style={{ marginRight: '0.375rem' }} />Mark All Read</button>
+        <button type="button" className="mv-secondary-button" onClick={refresh}><RefreshIcon size={14} style={{ marginRight: '0.375rem' }} />Refresh</button>
         </div>
       </PageHeader>
 
-      <div className="mv-segmented" style={{ marginBottom: '1.25rem' }}>
-        {TOP_TABS.map((t) => (
-          <button key={t} className={`mv-segmented-btn${topTab === t ? ' is-active' : ''}`} onClick={() => setTopTab(t)}>{t === 'Alerts List' && <BellIcon size={13} style={{ marginRight: '0.375rem' }} />}{t === 'HANA Monitoring' && <ServerIcon size={13} style={{ marginRight: '0.375rem' }} />}{t === 'SAP Monitoring' && <TrendUpIcon size={13} style={{ marginRight: '0.375rem' }} />}{t}</button>
-        ))}
+      <div className="mv-alert-scope">
+        <SegmentedToggle<SourceFilter> label="Alert source" value={source} onChange={setSource} options={SOURCES} />
+        <p className="mv-muted mv-alert-summary" aria-live="polite">
+          Last alert: <strong>{summary.lastAlert ?? 'none yet'}</strong>. Ignored this month: <strong>{summary.ignoredThisMonth}</strong>. Threshold adjustments: <strong>{summary.adjustmentsThisMonth}</strong>. Detection {repo.detectionSchedule()}.
+        </p>
       </div>
 
-      {topTab === 'HANA Monitoring' && <ThresholdSettings title="HANA Monitoring Thresholds" thresholds={hanaThresholds} onSave={(next) => { setHanaThresholds(next); fireToast({ type: 'success', message: 'HANA alert thresholds saved.' }); }} />}
-      {topTab === 'SAP Monitoring' && <ThresholdSettings title="SAP Monitoring Thresholds" thresholds={sapThresholds} onSave={(next) => { setSapThresholds(next); fireToast({ type: 'success', message: 'SAP alert thresholds saved.' }); }} />}
+      <div className="mv-kpi-row-4" style={{ marginBottom: '1.25rem' }}>
+        <article className="mv-kpi"><span className="mv-kpi-label">Total Active</span><strong className="mv-kpi-value">{counts.totalActive}</strong></article>
+        <article className="mv-kpi"><span className="mv-kpi-label">Unread</span><strong className="mv-kpi-value">{counts.unread}</strong></article>
+        <article className="mv-kpi"><span className="mv-kpi-label">Critical</span><strong className="mv-kpi-value">{counts.critical}</strong></article>
+        <article className="mv-kpi"><span className="mv-kpi-label">New Breaches</span><strong className="mv-kpi-value">{counts.newBreaches}</strong><span className="mv-muted">Unread, last 24 hours</span></article>
+      </div>
 
-      {topTab === 'Alerts List' && (
-        <>
-          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.75rem', marginBottom: '1rem' }} className="mv-muted">
-            <span>Last alert <strong style={{ color: 'var(--mv-text)' }}>{SAP_ALERTS_META.lastAlert}</strong></span>
-            <span>Ignored this month <strong style={{ color: 'var(--mv-text)' }}>{SAP_ALERTS_META.ignoredThisMonth}</strong></span>
-            <span>Threshold adjustments <strong style={{ color: 'var(--mv-text)' }}>{SAP_ALERTS_META.thresholdAdjustments}</strong></span>
-            <span><BellIcon size={12} style={{ verticalAlign: -1, marginRight: '0.1875rem' }} />Detection: <strong style={{ color: 'var(--mv-text)' }}>{SAP_ALERTS_META.detectionSchedule}</strong></span>
+      <section className="mv-panel" aria-label="Smart Alerts & Anomalies">
+        <div className="mv-filter-bar" role="search" aria-label="Filter alerts">
+          <Select label="Status" hideLabel value={view} onChange={setView} options={ALERT_VIEWS.map((v) => ({ value: v.value, label: v.label }))} />
+          <Select label="Type" hideLabel value={type} onChange={setType} options={[{ value: 'All', label: 'All types' }, ...ALERT_TYPES.map((t) => ({ value: t, label: t }))]} />
+          {filtersActive && <button type="button" className="mv-quiet-button" onClick={() => { setView('active'); setType('All'); }}>Clear filters</button>}
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="mv-empty-inline">
+            <p><strong>{view === 'resolved' ? 'No resolved alerts.' : view === 'ignored' ? 'No ignored alerts.' : 'No alerts match this filter.'}</strong></p>
+            {filtersActive && <button type="button" className="mv-quiet-button" onClick={() => { setView('active'); setType('All'); }}>Show active alerts</button>}
           </div>
-
-          <div className="mv-kpi-row-4" style={{ marginBottom: '1.25rem' }}>
-            <article className="mv-kpi"><span className="mv-kpi-label">Total Active</span><strong className="mv-kpi-value">{totalActive}</strong></article>
-            <article className="mv-kpi"><span className="mv-kpi-label">Unread</span><strong className="mv-kpi-value">{unread}</strong></article>
-            <article className="mv-kpi"><span className="mv-kpi-label">Critical</span><strong className="mv-kpi-value">{critical}</strong></article>
-            <article className="mv-kpi"><span className="mv-kpi-label">New Breaches</span><strong className="mv-kpi-value">0</strong></article>
-          </div>
-
-          <section className="mv-panel">
-            <div className="mv-segmented" style={{ marginBottom: '1rem' }}>
-              {SUB_TABS.map((t) => <button key={t} className={`mv-segmented-btn${subTab === t ? ' is-active' : ''}`} onClick={() => setSubTab(t)}>{t}</button>)}
+        ) : (
+          <>
+            <div className="mv-table-wrap">
+              <table className="mv-table mv-table--stack mv-sap-table">
+                <caption className="mv-sr-only">SAP and HANA alerts</caption>
+                <thead><tr><th>Type</th><th>Severity</th><th>System</th><th>Message</th><th>Detected</th><th>Status</th><th><span className="mv-sr-only">Actions</span></th></tr></thead>
+                <tbody>
+                  {paging.pageItems.map((alert) => {
+                    const status = statusOf(alert);
+                    return (
+                      <tr key={alert.id}>
+                        <td data-label="Type" className="mv-stack-title"><strong>{alert.type}</strong> <span className="mv-muted">{alert.source === 'HANA' ? 'HANA' : 'SAP'}</span></td>
+                        <td data-label="Severity"><StatusTag tone={SEVERITY_TONE[alert.severity]}>{alert.severity}</StatusTag></td>
+                        <td data-label="System" className="mv-muted mv-alert-system">{alert.system}</td>
+                        <td data-label="Message" className="mv-alert-message">{alert.message}</td>
+                        <td data-label="Detected" className="mv-muted">{formatStamp(alert.detectedAt)}</td>
+                        <td data-label="Status"><StatusTag tone={status.tone}>{status.label}</StatusTag></td>
+                        <td className="mv-stack-actions">
+                          <div className="mv-row-actions">
+                            {alert.state === 'active' ? (
+                              <>
+                                {!alert.read && <button type="button" className="mv-quiet-button" aria-label={`Mark ${alert.type} alert on ${alert.system} as read`} onClick={() => act(() => repo.markRead(alert.id), 'Alert marked as read.')}>Read</button>}
+                                <button type="button" className="mv-secondary-button" aria-label={`Resolve ${alert.type} alert on ${alert.system}`} onClick={() => act(() => repo.resolve(alert.id), 'Alert resolved. It no longer counts as active.')}>Resolve</button>
+                                <Tooltip content="Ignore this alert">
+                                  <button type="button" className="mv-icon-button" aria-label={`Ignore ${alert.type} alert on ${alert.system}`} onClick={() => act(() => repo.ignore(alert.id), 'Alert ignored.')}><EyeSlashIcon size={15} /></button>
+                                </Tooltip>
+                              </>
+                            ) : (
+                              <button type="button" className="mv-quiet-button" aria-label={`Reopen ${alert.type} alert on ${alert.system}`} onClick={() => act(() => repo.reopen(alert.id), 'Alert reopened.')}>Reopen</button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+            <Pagination page={paging.page} pageSize={paging.pageSize} total={paging.total} onPageChange={paging.onPageChange} onPageSizeChange={paging.onPageSizeChange} noun="alerts" />
+          </>
+        )}
+      </section>
 
-            {subTab === 'Recipients' && <ComingSoon icon={UsersIcon} label="Recipients" />}
-            {subTab === 'Settings' && <ComingSoon icon={RefreshIcon} label="Detection Settings" />}
-            {subTab === 'Alerts' && (
-              <>
-                <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                  <div className="mv-segmented">
-                    {STATUS_FILTERS.map((s) => (
-                      <button key={s} className={`mv-segmented-btn${statusFilter === s ? ' is-active' : ''}`} onClick={() => setStatusFilter(s)}>{s}</button>
-                    ))}
-                  </div>
-                  <div className="mv-segmented">
-                    {TYPE_FILTERS.map((t) => (
-                      <button key={t} className={`mv-segmented-btn${typeFilter === t ? ' is-active' : ''}`} onClick={() => setTypeFilter(t)}>{t}</button>
-                    ))}
-                  </div>
-                </div>
-
-                {filtered.length === 0 ? (
-                  <p className="mv-muted">No alerts match this filter.</p>
-                ) : (
-                  <div className="mv-table-wrap">
-                    <table className="mv-table">
-                      <thead><tr><th>Type</th><th>Severity</th><th>System</th><th>Message</th><th>Detected</th><th aria-label="Actions" /></tr></thead>
-                      <tbody>
-                        {filtered.map((alert) => (
-                          <tr key={alert.id}>
-                            <td>{alert.type}</td>
-                            <td><span className={`mv-status mv-status--${SEVERITY_TONE[alert.severity]}`}>{alert.severity}</span></td>
-                            <td className="mv-muted">{alert.system}</td>
-                            <td style={{ maxWidth: '26.25rem' }}>{alert.message}</td>
-                            <td className="mv-muted">{alert.detectedAt}</td>
-                            <td><div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end' }}>
-                              {!alert.read && <button className="mv-quiet-button" onClick={() => markRead(alert.id)}>Read</button>}
-                              <button className="mv-icon-button" aria-label={`Dismiss alert for ${alert.system}`} onClick={() => dismiss(alert.id)}><EyeSlashIcon size={15} /></button>
-                            </div></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
-            )}
-          </section>
-        </>
-      )}
+      {settingsOpen && <AlertSettingsDrawer onClose={() => setSettingsOpen(false)} onAdjusted={reload} />}
+      {recipientsOpen && <AlertRecipientsDialog onClose={() => setRecipientsOpen(false)} />}
     </div>
   );
 }

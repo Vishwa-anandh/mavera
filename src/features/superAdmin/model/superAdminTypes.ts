@@ -1,4 +1,5 @@
 import type { CloudProvider } from '../../../shared/types/auth';
+import type { OrganizationRecord } from '../../../data-access';
 
 /** The 3 platform modules a super admin subscribes an org to. Mirrors
  * User.modules in src/shared/types/auth.ts — the same shape the org-side app reads
@@ -16,25 +17,11 @@ export interface OrgModules {
  * Mavera's own 3-module subscription concept layered on top — the reference
  * app's Dashboard.jsx has no equivalent (it's a single-product tool), so
  * there's no prior art to match field names against for that one field.
- * There is no plan-tier concept: an org's entitlement is fully described by
- * its module subscriptions and seat limit.
+ * An org's entitlement is described by its module subscriptions and seat
+ * limit; `plan` (Basic or Premium) only records which license it registered
+ * with and is absent for orgs a super admin onboarded by hand.
  */
-export interface Organization {
-  id: string;
-  name: string;
-  memberCount: number;
-  modules: OrgModules;
-  /** Seat limit; 0 means unlimited, matching the reference's own sentinel. */
-  maxUsers: number;
-  aiEnabled: boolean;
-  cloudAccess: CloudProvider[];
-  invoiceOnly: boolean;
-  startsAt: string;
-  /** null means the subscription never expires. */
-  expiresAt: string | null;
-  /** Optional note the organization sees on its (read-only) Subscription page. */
-  notes?: string;
-}
+export type Organization = OrganizationRecord;
 
 /** Platform-wide Maitsys CSP discount rate per provider — not per-org,
  * matching the reference app's separate global "MSP Rates" tab. */

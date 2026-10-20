@@ -88,7 +88,8 @@ export function HomePage() {
     caption: `${Math.round((spend / forecast) * 100)}% of the ${formatCurrency(forecast)} month-end forecast`,
   } : undefined;
 
-  const trend = monthlyTrendOf(summary.data ?? null).map((p) => p.amount);
+  // The summary now carries two years of months; the at-a-glance sparkline stays a six-month glance.
+  const trend = monthlyTrendOf(summary.data ?? null).map((p) => p.amount).slice(-6);
   const totalBudget = totalBudgetOf(budgets.data ?? null);
   const budgetUtilPct = budgetUtilPctOf(spend, totalBudget);
   const openCloudAlerts = activeAlertsOf(smartAlerts.data ?? null);

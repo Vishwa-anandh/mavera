@@ -10,8 +10,11 @@ import {
   forecastByProviderOf,
   forecastEomOf,
   invoiceStatsOf,
+  invoiceSummaryOf,
   monthlyByProviderOf,
-  monthlyTrendOf,
+  DEFAULT_SPEND_PERIOD,
+  SPEND_PERIOD_OPTIONS,
+  periodTrendOf,
   mspProviderRowsOf,
   mspSavingsTotalOf,
   providerMoversOf,
@@ -24,13 +27,16 @@ import {
   useDashboardData,
   type ProviderKey,
   type SmartAlertItem,
+  type SpendPeriod,
 } from '../../dashboard';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { BarSeriesChart } from '../../../shared/ui/BarSeriesChart';
 import { DonutChart } from '../../../shared/ui/DonutChart';
 import { InsightList, type InsightItem } from '../../../shared/ui/InsightList';
+import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
 import { ConnectCloudAccountWizard } from '../components/ConnectCloudAccountWizard';
+import { InvoicesSummaryView } from '../components/InvoicesSummaryView';
 import {
   AlertTriangleIcon,
   BellIcon,
@@ -111,6 +117,8 @@ export function CostOverviewPage() {
   const [wizardProvider, setWizardProvider] = useState<'azure' | 'aws' | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const [view, setView] = useState<'cloud' | 'invoices'>('cloud');
+  const [period, setPeriod] = useState<SpendPeriod>(DEFAULT_SPEND_PERIOD);
 
   const loading = summary.loading || recommendations.loading || smartAlerts.loading || budgets.loading || mspSavings.loading || invoices.loading;
 
@@ -150,6 +158,8 @@ export function CostOverviewPage() {
   const totalAccounts = totalAccountsOf(summary.data);
   const connectedProviders = connectedProvidersOf(summary.data);
   const invoiceStats = invoiceStatsOf(invoices.data);
+  const invoiceSummary = invoiceSummaryOf(invoices.data);
+  const trend = periodTrendOf(summary.data, period);
   const mspRows = mspProviderRowsOf(mspSavings.data);
   const recsCount = recommendations.data ? recommendationCountOf(recommendations.data) : 0;
   const insights = buildOverviewInsights({ totalSpend, spendChangePct, budgetUtilPct, totalBudget, forecastEom, criticalCount, totalSavings, recsCount });
@@ -162,7 +172,13 @@ export function CostOverviewPage() {
 
   return <div>
     <PageHeader title="Cost Overview" subtitle="Track, analyze and optimize your cloud spend in real time.">
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <SegmentedToggle
+          label="Cost Overview view"
+          value={view}
+          onChange={setView}
+          options={[{ value: 'cloud', label: 'Cloud', ariaLabel: 'Cloud costs' }, { value: 'invoices', label: 'Invoices', ariaLabel: 'Invoices summary' }]}
+        />
         <button className="mv-secondary-button" disabled={refreshing} onClick={handleRefresh}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh'}</button>
         {connectableProvider && <button className="mv-primary-button" onClick={() => setWizardProvider(connectableProvider)}>Connect cloud account</button>}
       </div>
@@ -175,6 +191,9 @@ export function CostOverviewPage() {
       </p>
     )}
 
+    {view === 'invoices' ? (
+      <InvoicesSummaryView summary={invoiceSummary} loading={invoices.loading} error={invoices.error} />
+    ) : <>
     <div className="mv-kpi-row-4">
       <KpiShell loading={summary.loading} error={summary.error} icon={<CloudIcon size={22} />} tone="info">
         <div className="mv-kpi-label" style={{ display: 'flex', justifyContent: 'space-between' }}>Total Spend (Month-to-Date)</div>
@@ -245,38 +264,59 @@ export function CostOverviewPage() {
       <div className="mv-glance-grid">
     <section className="mv-glance-col" aria-labelledby="monthly-spend-title">
       <p className="mv-eyebrow-accent">Trend</p>
-      <div className="mv-panel-header"><h2 id="monthly-spend-title" className="mv-panel-title">Monthly spend trend</h2><span className="mv-kpi-label">Current billing period</span></div>
-      {!summary.loading && !summary.error && forecastEom !== null && (
-        <p style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '2px 0.5rem', margin: '-0.25rem 0 0.75rem' }}>
-          <span className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>End-of-month forecast</span>
-          <strong style={{ fontSize: '1.125rem' }}>{formatCurrency(forecastEom)}</strong>
-          {totalBudget > 0 && <span style={{ fontSize: '0.75rem', fontWeight: 500, color: forecastEom > totalBudget ? 'var(--mv-danger)' : 'var(--mv-success)' }}>{((forecastEom / totalBudget) * 100).toFixed(1)}% vs budget{forecastEom > totalBudget ? ' — over budget' : ''}</span>}
-        </p>
-      )}
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 100%', minWidth: 0 }}>
-          {summary.loading ? <div className="mv-loading" aria-label="Loading monthly spend trend" /> : summary.error ? <div className="mv-inline-error" role="alert">{summary.error}</div> : <SpendTrendChart height={190} title="Monthly spend trend" data={monthlyTrendOf(summary.data)} />}
-        </div>
-        {!summary.loading && !summary.error && (
-          <div style={{ flex: '1 1 100%', display: 'grid', gap: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--mv-divider)' }}>
-            {forecastEom !== null ? (
-              <>
-                <span className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>Forecast by provider</span>
-                {(Object.keys(forecastByProvider) as ProviderKey[]).length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-                    {(Object.keys(forecastByProvider) as ProviderKey[]).map((p) => (
-                      <span key={p} style={{ display: 'inline-flex', gap: '0.375rem', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', background: 'var(--mv-surface-subtle)', fontSize: '0.6875rem' }}>
-                        <span style={{ fontWeight: 500 }}>{PROVIDER_META[p].label}</span>
-                        <span style={{ fontWeight: 500 }}>{formatCurrency(forecastByProvider[p] ?? 0)}</span>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : <p className="mv-muted" style={{ fontSize: '0.8125rem' }}>Not enough data for a forecast.</p>}
+      <div className="mv-panel-header mv-trend-head">
+        <h2 id="monthly-spend-title" className="mv-panel-title">Spend trend</h2>
+        <SegmentedToggle label="Spend trend period" value={period} onChange={setPeriod} options={SPEND_PERIOD_OPTIONS} />
+      </div>
+      {!summary.loading && !summary.error && trend.available && (
+        <div className="mv-trend-summary" aria-live="polite" data-testid="trend-summary">
+          <div className="mv-trend-figure">
+            <span className="mv-muted">Last {trend.periodWords}</span>
+            <strong>{formatCurrency(trend.total)}</strong>
+            {trend.changePct !== null ? (
+              <span className={`mv-trend-delta ${trend.changePct > 0 ? 'is-up' : 'is-down'}`}>
+                {trend.changePct > 0 ? <TrendUpIcon size={13} /> : <TrendDownIcon size={13} />}
+                <span className="mv-sr-only">{trend.changePct > 0 ? 'Up ' : 'Down '}</span>
+                {Math.abs(trend.changePct)}% <span className="mv-muted">vs previous {trend.periodWords}</span>
+              </span>
+            ) : <span className="mv-muted">No earlier {trend.periodWords} to compare with</span>}
           </div>
+          <div className="mv-trend-figure">
+            <span className="mv-muted">Forecast, next {trend.periodWords}</span>
+            {trend.forecast !== null ? <strong>{formatCurrency(trend.forecast)}</strong> : <span className="mv-muted">Not enough data</span>}
+          </div>
+        </div>
+      )}
+      <div>
+        {summary.loading ? <div className="mv-loading" aria-label="Loading spend trend" /> : summary.error ? <div className="mv-inline-error" role="alert">{summary.error}</div> : trend.available ? (
+          <SpendTrendChart height={190} title={`Spend trend, last ${trend.periodWords}`} data={trend.points} />
+        ) : (
+          <p className="mv-muted">{trend.unit === 'day' ? 'Daily spend is not available for this account yet. Choose 3M or longer.' : 'No monthly spend history is available yet.'}</p>
         )}
       </div>
+      {!summary.loading && !summary.error && (
+        <div className="mv-trend-eom">
+          {forecastEom !== null ? (
+            <>
+              <p style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '2px 0.5rem', margin: 0 }}>
+                <span className="mv-muted" style={{ fontSize: '0.75rem', fontWeight: 500 }}>End-of-month forecast</span>
+                <strong style={{ fontSize: '1.125rem' }}>{formatCurrency(forecastEom)}</strong>
+                {totalBudget > 0 && <span style={{ fontSize: '0.75rem', fontWeight: 500, color: forecastEom > totalBudget ? 'var(--mv-danger)' : 'var(--mv-success)' }}>{((forecastEom / totalBudget) * 100).toFixed(1)}% vs budget{forecastEom > totalBudget ? ' — over budget' : ''}</span>}
+              </p>
+              {(Object.keys(forecastByProvider) as ProviderKey[]).length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                  {(Object.keys(forecastByProvider) as ProviderKey[]).map((p) => (
+                    <span key={p} style={{ display: 'inline-flex', gap: '0.375rem', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', background: 'var(--mv-surface-subtle)', fontSize: '0.6875rem' }}>
+                      <span style={{ fontWeight: 500 }}>{PROVIDER_META[p].label}</span>
+                      <span style={{ fontWeight: 500 }}>{formatCurrency(forecastByProvider[p] ?? 0)}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : <p className="mv-muted" style={{ fontSize: '0.8125rem', margin: 0 }}>Not enough data for an end-of-month forecast.</p>}
+        </div>
+      )}
     </section>
 
       <section className="mv-glance-col">
@@ -440,6 +480,8 @@ export function CostOverviewPage() {
       </div>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3125rem' }}><ClockIcon size={13} />{lastSynced ? `Last synced ${lastSynced.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}` : 'Not synced yet'}</span>
     </div>
+
+    </>}
 
     {wizardProvider && <ConnectCloudAccountWizard provider={wizardProvider} open onClose={() => setWizardProvider(null)} />}
   </div>;

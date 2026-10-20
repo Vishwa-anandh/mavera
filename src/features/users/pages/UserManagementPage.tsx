@@ -4,7 +4,8 @@ import { useAuth } from '../../auth';
 import { Can, buildSelfMember, useAccessDirectory, usePermission } from '../../access';
 import { SearchIcon, PlusIcon } from '../../../shared/ui/icons';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
-import { useScrollToHash } from '../../../shared/lib/useScrollToHash';
+import { TabBar } from '../../../shared/ui/TabBar';
+import { useHashTab } from '../../../shared/lib/useHashTab';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { alertRecipients, seatSummary, type OrgMember } from '../model/userManagementTypes';
@@ -17,12 +18,15 @@ import { RolesSection } from '../components/RolesSection';
 
 const DEFAULT_PERMISSIONS_ROLE = 'analyst';
 
+type UsersTab = 'members' | 'roles' | 'permissions';
+const TABS: UsersTab[] = ['members', 'roles', 'permissions'];
+
 /**
- * One page for people and what they may do, stacked rather than tabbed: the members (role, cloud
- * access, alerts, status), the roles (system and custom), and the permission matrix for the role
- * you pick. Provider columns are derived from the org's own `cloudAccess` (the same subscription
- * source of truth the Subscription page edits), so members of an org without GCP, for instance,
- * don't get a GCP column. Data lives in the in-memory access directory (data-access).
+ * One page for people and what they may do, in three tabs (the owner asked for tabs here): the members
+ * (role, cloud access, alerts, status), the roles (system and custom), and the permission matrix for the
+ * role you pick. The active tab lives in the URL hash (#members, #roles, #permissions) so it can be linked to.
+ * Provider columns are derived from the org's own `cloudAccess` (the same subscription source of truth the
+ * Subscription page edits). Data lives in the in-memory access directory (data-access).
  */
 export function UserManagementPage() {
   const { user, isDemoSession, cloudAccess, invoiceOnly, maxUsers } = useAuth();
@@ -36,7 +40,8 @@ export function UserManagementPage() {
   const [addingRole, setAddingRole] = useState(false);
   const [permissionsRoleId, setPermissionsRoleId] = useState(DEFAULT_PERMISSIONS_ROLE);
   const dirtyRef = useRef(false);
-  useScrollToHash();
+  const [hashTab, showTab] = useHashTab(TABS);
+  const tab: UsersTab = hashTab === 'members' || canViewRoles ? hashTab : 'members';
 
   // The signed-in user is always in the directory (the access provider adds them too; this covers isolated renders).
   useEffect(() => {
@@ -66,9 +71,9 @@ export function UserManagementPage() {
         dirtyRef.current = false;
       }
       setPermissionsRoleId(roleId);
-      if (scroll) window.setTimeout(() => document.getElementById('permissions')?.scrollIntoView?.({ block: 'start', behavior: 'smooth' }), 0);
+      if (scroll) showTab('permissions');
     },
-    [confirm, permissionsRoleId],
+    [confirm, permissionsRoleId, showTab],
   );
 
   const duplicateFromMatrix = (roleId: string) => {
@@ -84,10 +89,12 @@ export function UserManagementPage() {
     <div className="mv-users-page">
       <PageHeader title="User Management" subtitle="Manage your organisation’s members, their roles and what each role can do.">
         <div className="mv-heading-actions">
-          <label className="mv-filter-search mv-heading-search">
-            <SearchIcon size={16} />
-            <input type="search" aria-label="Search members" placeholder="Search members…" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          </label>
+          {tab === 'members' && (
+            <label className="mv-filter-search mv-heading-search">
+              <SearchIcon size={16} />
+              <input type="search" aria-label="Search members" placeholder="Search members…" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </label>
+          )}
           <Can module="users" action="CREATE">
             <button type="button" className="mv-primary-button" disabled={seats.full} onClick={() => setAdding(true)}>
               <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />
@@ -109,12 +116,17 @@ export function UserManagementPage() {
         )}
       </p>
       {canViewRoles && (
-        <p className="mv-section-jump" aria-label="On this page">
-          Jump to <a href="#members">Members</a><a href="#roles">Roles</a><a href="#permissions">Permissions</a>
-        </p>
+        <TabBar
+          idPrefix="users"
+          label="User management sections"
+          activeId={tab}
+          onChange={(id) => showTab(id as UsersTab)}
+          items={[{ id: 'members', label: 'Members', count: members.length }, { id: 'roles', label: 'Roles', count: roles.length }, { id: 'permissions', label: 'Permissions' }]}
+        />
       )}
 
-      <section id="members" className="mv-users-section" aria-labelledby="members-title">
+      {tab === 'members' && (
+      <section id="users-panel-members" role={canViewRoles ? 'tabpanel' : undefined} aria-labelledby={canViewRoles ? 'users-tab-members' : 'members-title'} className="mv-users-section">
         <div className="mv-section-head">
           <h2 className="mv-section-title" id="members-title">Members</h2>
           <p className="mv-muted">Everyone in your organisation, their role and the cloud accounts they can reach.</p>
@@ -133,9 +145,10 @@ export function UserManagementPage() {
           />
         </div>
       </section>
+      )}
 
-      {canViewRoles && (
-        <section id="roles" className="mv-users-section" aria-labelledby="roles-title">
+      {canViewRoles && tab === 'roles' && (
+        <section id="users-panel-roles" role="tabpanel" aria-labelledby="users-tab-roles" className="mv-users-section">
           <div className="mv-section-head">
             <div>
               <h2 className="mv-section-title" id="roles-title">Roles</h2>
@@ -160,8 +173,8 @@ export function UserManagementPage() {
         </section>
       )}
 
-      {canViewRoles && (
-        <section id="permissions" className="mv-users-section" aria-labelledby="permissions-title">
+      {canViewRoles && tab === 'permissions' && (
+        <section id="users-panel-permissions" role="tabpanel" aria-labelledby="users-tab-permissions" className="mv-users-section">
           <div className="mv-section-head">
             <div>
               <h2 className="mv-section-title" id="permissions-title">Permissions</h2>

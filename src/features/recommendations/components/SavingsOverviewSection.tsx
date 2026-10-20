@@ -158,7 +158,7 @@ export function SavingsOverviewSection({ scope, opportunities, onOpenOpportunity
               {selectedCategory.recommendations.map((rec) => (
                 <div key={rec.id} style={{ border: '1px solid var(--mv-divider)', borderRadius: '0.75rem', padding: '0.75rem', display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
                   <div>
-                    <p style={{ margin: 0, fontWeight: 500 }}>{rec.action || 'Optimize'} <span className="mv-status mv-status--neutral" style={{ marginLeft: '0.375rem', textTransform: 'uppercase' }}>{rec.provider}</span></p>
+                    <p style={{ margin: 0, fontWeight: 500 }}>{rec.action || 'Optimize'} <span className="mv-status mv-status--neutral" style={{ marginLeft: '0.375rem' }}>{rec.provider}</span></p>
                     <p className="mv-muted" style={{ margin: '0.25rem 0 0' }}>{rec.description}</p>
                   </div>
                   <strong style={{ color: 'var(--mv-success)', flex: 'none' }}>+{formatCurrency(rec.estimated_savings)}</strong>

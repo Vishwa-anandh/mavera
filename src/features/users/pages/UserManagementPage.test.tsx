@@ -20,9 +20,9 @@ function auth(over: Partial<AuthContextValue> = {}): Partial<AuthContextValue> {
   return { user: owner, isDemoSession: true, cloudAccess: ['azure', 'aws'], invoiceOnly: false, maxUsers: undefined, ...over };
 }
 
-function setup() {
+function setup(tab: 'members' | 'roles' | 'permissions' = 'members') {
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[`/users#${tab}`]}>
       <ConfirmProvider>
         <AccessProvider><UserManagementPage /></AccessProvider>
       </ConfirmProvider>
@@ -37,6 +37,12 @@ async function pickRole(user: ReturnType<typeof userEvent.setup>, selectName: st
   await user.click(screen.getByRole('option', { name: option }));
 }
 
+/** The permissions section shows one module at a time: pick its product area, then the module. */
+async function openModule(user: ReturnType<typeof userEvent.setup>, area: string, module: string) {
+  await user.click(within(screen.getByRole('navigation', { name: 'Product areas' })).getByRole('button', { name: new RegExp(`^${area}`) }));
+  await user.click(within(screen.getByRole('navigation', { name: /^Modules for the/ })).getByRole('button', { name: new RegExp(`^${module}`) }));
+}
+
 const rolesTable = () => screen.getByRole('table', { name: /Roles, who holds them/ });
 const lastAudit = () => auditRepository.getSnapshot()[0];
 
@@ -47,13 +53,46 @@ beforeEach(() => {
   useAuthMock.mockReturnValue(auth());
 });
 
-describe('UserManagementPage: one page, three stacked sections', () => {
-  it('shows members, roles and permissions on a single page, with no tabs', () => {
-    setup();
+describe('UserManagementPage: members, roles and permissions in three tabs', () => {
+  it('opens on Members and switches tabs, showing only the active panel', async () => {
+    const user = setup();
     expect(screen.getByRole('heading', { name: 'User Management' })).toBeInTheDocument();
-    for (const name of ['Members', 'Roles', 'Permissions']) expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument();
-    expect(screen.queryByRole('tab')).toBeNull();
-    expect(screen.queryByRole('tablist')).toBeNull();
+    const tabs = screen.getByRole('tablist', { name: 'User management sections' });
+    expect(within(tabs).getAllByRole('tab').map((t) => t.textContent?.replace(/\d+$/, ''))).toEqual(['Members', 'Roles', 'Permissions']);
+    expect(screen.getByRole('tab', { name: /Members/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { level: 2, name: 'Members' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Roles' })).toBeNull();
+
+    await user.click(screen.getByRole('tab', { name: /Roles/ }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Roles' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Members' })).toBeNull();
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName(/Roles/);
+
+    await user.click(screen.getByRole('tab', { name: /Permissions/ }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Permissions' })).toBeInTheDocument();
+  });
+
+  it('moves between tabs with the arrow keys', async () => {
+    const user = setup();
+    screen.getByRole('tab', { name: /Members/ }).focus();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: /Roles/ })).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{End}');
+    expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: /Members/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('opens the tab named in the URL hash', () => {
+    setup('permissions');
+    expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('hides the member search on the other tabs', async () => {
+    const user = setup();
+    expect(screen.getByRole('searchbox', { name: 'Search members' })).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: /Roles/ }));
+    expect(screen.queryByRole('searchbox', { name: 'Search members' })).toBeNull();
   });
 
   it('lists the signed-in demo user as the Owner, with role and Elevate controls locked for them', () => {
@@ -139,7 +178,7 @@ describe('members', () => {
 
 describe('roles', () => {
   it('lists built-in and custom roles with member counts', () => {
-    setup();
+    setup('roles');
     const table = rolesTable();
     expect(within(within(table).getByRole('row', { name: /Owner/ })).getByText('System')).toBeInTheDocument();
     const auditor = within(table).getByRole('row', { name: /Cost Auditor/ });
@@ -150,7 +189,7 @@ describe('roles', () => {
   });
 
   it('adds a role, refusing a duplicate name, and offers to start from an existing role', async () => {
-    const user = setup();
+    const user = setup('roles');
     await user.click(screen.getByRole('button', { name: 'Add role' }));
     const dialog = screen.getByRole('dialog', { name: 'Add role' });
     await user.type(within(dialog).getByLabelText(/Role name/), 'analyst');
@@ -161,16 +200,20 @@ describe('roles', () => {
     await pickRole(user, /Start from/, 'Copy of Viewer', dialog);
     await user.click(within(dialog).getByRole('button', { name: 'Add role' }));
     expect(screen.queryByRole('dialog', { name: 'Add role' })).toBeNull();
+    // Creating a role opens its permissions, so the matrix is the next thing you see.
+    expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveAttribute('aria-selected', 'true');
+    await user.click(screen.getByRole('tab', { name: /Roles/ }));
     const row = within(rolesTable()).getByRole('row', { name: /FinOps/ });
     expect(within(row).getByText('Custom')).toBeInTheDocument();
     expect(lastAudit().action).toBe('Role created');
     // The matrix switches to the new role, which started from the Viewer grants.
+    await user.click(screen.getByRole('tab', { name: /Permissions/ }));
     expect(screen.getByRole('button', { name: 'Role' })).toHaveTextContent('FinOps');
     expect(screen.getByRole('switch', { name: 'View: Dashboard' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('edits a custom role’s name', async () => {
-    const user = setup();
+    const user = setup('roles');
     await user.click(screen.getByRole('button', { name: 'Edit role Cost Auditor' }));
     const dialog = screen.getByRole('dialog', { name: 'Edit role' });
     await user.clear(within(dialog).getByLabelText(/Role name/));
@@ -181,8 +224,9 @@ describe('roles', () => {
   });
 
   it('duplicates any role, including a built-in one', async () => {
-    const user = setup();
+    const user = setup('roles');
     await user.click(screen.getByRole('button', { name: 'Duplicate role Analyst' }));
+    await user.click(screen.getByRole('tab', { name: /Roles/ }));
     const row = within(rolesTable()).getByRole('row', { name: /Copy of Analyst/ });
     expect(within(row).getByText('Custom')).toBeInTheDocument();
     expect(within(row).getByRole('cell', { name: '0' })).toBeInTheDocument();
@@ -190,11 +234,13 @@ describe('roles', () => {
   });
 
   it('blocks deleting a role members still hold, then deletes it with confirmation once free', async () => {
-    const user = setup();
+    const user = setup('roles');
     await user.click(screen.getByRole('button', { name: 'Delete role Cost Auditor' }));
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(within(rolesTable()).getByRole('button', { name: 'View role details: Cost Auditor' })).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: /Members/ }));
     await pickRole(user, 'Role for Priya Sharma', 'Viewer');
+    await user.click(screen.getByRole('tab', { name: /Roles/ }));
     await user.click(screen.getByRole('button', { name: 'Delete role Cost Auditor' }));
     expect(screen.getByRole('alertdialog')).toHaveTextContent('Delete the Cost Auditor role?');
     await user.click(screen.getByRole('button', { name: 'Delete role' }));
@@ -203,7 +249,7 @@ describe('roles', () => {
   });
 
   it('opens a details drawer with holders and grants', async () => {
-    const user = setup();
+    const user = setup('roles');
     await user.click(screen.getByRole('button', { name: 'View role details: SAP Operator' }));
     const drawer = screen.getByRole('dialog');
     expect(within(drawer).getByRole('heading', { name: 'SAP Operator' })).toBeInTheDocument();
@@ -215,8 +261,8 @@ describe('roles', () => {
 });
 
 describe('permissions', () => {
-  it('shows a built-in role read-only with the reason and a way to duplicate it', async () => {
-    const user = setup();
+  it('shows a built-in role read-only (reason for screen readers) with a way to duplicate it', async () => {
+    const user = setup('permissions');
     expect(screen.getByRole('switch', { name: 'View: Dashboard' })).toBeDisabled();
     expect(screen.getByRole('note')).toHaveTextContent(/built-in role/);
     await user.click(screen.getByRole('button', { name: 'Duplicate as a custom role' }));
@@ -224,9 +270,16 @@ describe('permissions', () => {
     expect(screen.getByRole('switch', { name: 'View: Dashboard' })).toBeEnabled();
   });
 
+  it('shows the legend beside the role picker', () => {
+    setup('permissions');
+    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Granted');
+    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Owner only');
+  });
+
   it('collects edits in an unsaved bar that can be discarded or saved', async () => {
-    const user = setup();
+    const user = setup('permissions');
     await pickRole(user, 'Role', 'SAP Operator (custom)');
+    await openModule(user, 'Budgets, alerts', 'Budgets');
     expect(screen.queryByRole('region', { name: 'Unsaved changes' })).toBeNull();
     await user.click(screen.getByRole('switch', { name: 'Delete: Budgets' }));
     const bar = screen.getByRole('region', { name: 'Unsaved changes' });
@@ -244,8 +297,9 @@ describe('permissions', () => {
   });
 
   it('asks before switching roles with unsaved changes', async () => {
-    const user = setup();
+    const user = setup('permissions');
     await pickRole(user, 'Role', 'SAP Operator (custom)');
+    await openModule(user, 'Budgets, alerts', 'Budgets');
     await user.click(screen.getByRole('switch', { name: 'Edit: Budgets' }));
     await pickRole(user, 'Role', 'Viewer');
     expect(screen.getByRole('alertdialog')).toHaveTextContent('Discard unsaved changes?');
@@ -259,9 +313,10 @@ describe('permissions', () => {
   });
 
   it('explains the Owner role and shows ownership transfer as Owner-only', async () => {
-    const user = setup();
+    const user = setup('permissions');
     await pickRole(user, 'Role', 'Owner');
     expect(screen.getByRole('note')).toHaveTextContent(/always holds every permission/);
+    await openModule(user, 'Administration', 'Ownership transfer');
     expect(screen.getByRole('switch', { name: 'Edit: Ownership transfer' })).toBeDisabled();
   });
 });

@@ -49,20 +49,20 @@ export function InvoicePreview({ invoiceNumber, invoiceDate, dueDate, serialNumb
           <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: '#666' }}>AI Cloud Intelligence Platform</p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <h2 style={{ margin: 0, fontSize: '1.625rem', letterSpacing: '.04em' }}>INVOICE</h2>
+          <h2 style={{ margin: 0, fontSize: '1.625rem', letterSpacing: '.04em' }}>Invoice</h2>
           <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#666' }}>{invoiceNumber}</p>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: showShipTo ? 'repeat(auto-fit, minmax(12.5rem, 1fr))' : '1fr', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
-          <p style={{ margin: 0, fontSize: '0.625rem', fontWeight: 500, color: '#999', letterSpacing: '.04em' }}>BILL TO</p>
+          <p style={{ margin: 0, fontSize: '0.625rem', fontWeight: 500, color: '#999', letterSpacing: '.04em' }}>Bill to</p>
           <p style={{ margin: '0.25rem 0 0', fontWeight: 500 }}>{billTo.name}</p>
           <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#444', whiteSpace: 'pre-line' }}>{billTo.address}</p>
         </div>
         {showShipTo && (
           <div>
-            <p style={{ margin: 0, fontSize: '0.625rem', fontWeight: 500, color: '#999', letterSpacing: '.04em' }}>SHIP TO</p>
+            <p style={{ margin: 0, fontSize: '0.625rem', fontWeight: 500, color: '#999', letterSpacing: '.04em' }}>Ship to</p>
             <p style={{ margin: '0.25rem 0 0', fontWeight: 500 }}>{shipTo!.name}</p>
             <p style={{ margin: '2px 0 0', fontSize: '0.8125rem', color: '#444', whiteSpace: 'pre-line' }}>{shipTo!.address}</p>
           </div>
@@ -71,16 +71,16 @@ export function InvoicePreview({ invoiceNumber, invoiceDate, dueDate, serialNumb
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.25rem', padding: '0.875rem', borderRadius: '0.625rem', background: '#f7f8fa' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(7.5rem, 1fr))', gap: '0.75rem', flex: 1 }}>
-          <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>INVOICE DATE</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{formatDate(invoiceDate)}</p></div>
+          <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>Invoice date</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{formatDate(invoiceDate)}</p></div>
           {serialNumber && <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>SERIAL #</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{serialNumber}</p></div>}
           {poNumber && <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>PO #</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{poNumber}</p></div>}
-          {paymentTermName && <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>PAYMENT TERM</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{paymentTermName}</p></div>}
+          {paymentTermName && <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>Payment term</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{paymentTermName}</p></div>}
           {customFields.filter((f) => f.label).map((f) => (
             <div key={f.id}><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>{f.label.toUpperCase()}</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{f.value}</p></div>
           ))}
         </div>
         <div style={{ textAlign: 'right', flex: 'none' }}>
-          <p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>TOTAL DUE</p>
+          <p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>Total due</p>
           <strong style={{ fontSize: '1.375rem' }}>{formatCurrency(totals.totalDue)}</strong>
           {dueDate && <p style={{ margin: '2px 0 0', fontSize: '0.6875rem', color: '#999' }}>Due {formatDate(dueDate)}</p>}
         </div>
@@ -126,7 +126,7 @@ export function InvoicePreview({ invoiceNumber, invoiceDate, dueDate, serialNumb
 
       {notes && (
         <div style={{ marginTop: '1.25rem', paddingTop: '0.875rem', borderTop: '1px solid #f0f0f0' }}>
-          <p style={{ margin: 0, fontSize: '0.625rem', fontWeight: 500, color: '#999' }}>NOTES</p>
+          <p style={{ margin: 0, fontSize: '0.625rem', fontWeight: 500, color: '#999' }}>Notes</p>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.75rem', color: '#444' }}>{notes}</p>
         </div>
       )}

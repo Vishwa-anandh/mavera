@@ -10,7 +10,7 @@ import { DestinationDialog } from '../components/DestinationDialog';
 import { CONNECTION_STRATEGIES, filterDestinations } from '../model/destinations';
 
 const repo = sapAdminRepository.destinations;
-const TYPE_LABEL = Object.fromEntries(CONNECTION_STRATEGIES.map((s) => [s.key, s.key === 'BTP_API' ? 'BTP_API' : s.label.toUpperCase()]));
+const TYPE_LABEL = Object.fromEntries(CONNECTION_STRATEGIES.map((s) => [s.key, s.label]));
 
 /**
  * Manage and connect SAP environment endpoints (MIO /settings). Destinations live in the data-access

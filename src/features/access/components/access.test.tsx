@@ -8,7 +8,7 @@ import type { AuthContextValue } from '../../auth';
 import { AccessProvider } from '../model/AccessProvider';
 import { useAccess } from '../model/accessContext';
 import { Can } from './Can';
-import { PermissionMatrix } from './PermissionMatrix';
+import { PermissionExplorer } from './PermissionExplorer';
 import { PreviewBanner } from './PreviewBanner';
 import { PreviewRoleMenu } from './PreviewRoleMenu';
 import { RouteAccessGuard } from './RouteAccessGuard';
@@ -37,54 +37,66 @@ beforeEach(() => {
   useAuthMock.mockReturnValue({ user: demoUser, isDemoSession: true });
 });
 
-describe('PermissionMatrix', () => {
+describe('PermissionExplorer', () => {
   function Harness({ roleId = 'role-x', readOnly = false, initial = {} as PermissionMatrixValue }) {
     const [value, setValue] = useState(initial);
-    return <PermissionMatrix roleId={roleId} roleName="Test role" value={value} onChange={setValue} readOnly={readOnly} />;
+    return <PermissionExplorer roleId={roleId} roleName="Test role" value={value} onChange={setValue} readOnly={readOnly} />;
   }
+  /** Picks the product area that holds the module (when it is not already open), then the module. */
+  const open = async (user: ReturnType<typeof userEvent.setup>, module: string, area?: string) => {
+    if (area) await user.click(within(screen.getByRole('navigation', { name: 'Product areas' })).getByRole('button', { name: new RegExp(`^${area}`) }));
+    await user.click(within(screen.getByRole('navigation', { name: /Modules for the Test role role/ })).getByRole('button', { name: new RegExp(`^${module}`) }));
+  };
 
-  it('toggles a cell, turning View on with it, and exposes switch semantics', async () => {
+  it('shows product areas, then their modules, then the chosen module’s switches', async () => {
     const user = userEvent.setup();
     render(<Harness />);
+    expect(screen.getByRole('heading', { level: 3, name: 'Dashboard' })).toBeInTheDocument();
+    await open(user, 'Budgets', 'Budgets, alerts');
+    expect(screen.getByRole('heading', { level: 3, name: 'Budgets' })).toBeInTheDocument();
+    for (const action of ['View', 'Create', 'Edit', 'Delete']) expect(screen.getByRole('switch', { name: `${action}: Budgets` })).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'View: Dashboard' })).toBeNull();
+  });
+
+  it('toggles a switch, turning View on with it, and shows the grant count beside the module', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await open(user, 'Budgets', 'Budgets, alerts');
     const edit = screen.getByRole('switch', { name: 'Edit: Budgets' });
     expect(edit).toHaveAttribute('aria-checked', 'false');
     await user.click(edit);
     expect(screen.getByRole('switch', { name: 'Edit: Budgets' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('switch', { name: 'View: Budgets' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(screen.getByRole('navigation', { name: /Modules for the Test role role/ })).getByRole('button', { name: /^Budgets/ })).toHaveTextContent('2/4');
   });
 
-  it('shows not-applicable and restricted cells as dashed images, not switches', () => {
+  it('shows not-applicable and restricted actions as dashed images, not switches', async () => {
+    const user = userEvent.setup();
     render(<Harness />);
+    await open(user, 'Cost Overview', 'Cloud Cost');
     expect(screen.getByRole('img', { name: 'Delete: Cost Overview: not applicable' })).toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'Delete: Cost Overview' })).toBeNull();
+    await open(user, 'Ownership transfer', 'Administration');
     expect(screen.getByRole('img', { name: /Edit: Ownership transfer: only the Owner role/ })).toBeInTheDocument();
   });
 
-  it('selects all in a row and all in a column, and clears them again', async () => {
+  it('grants every action on a module, and clears them again', async () => {
     const user = userEvent.setup();
     render(<Harness />);
+    await open(user, 'Budgets', 'Budgets, alerts');
     await user.click(screen.getByRole('button', { name: 'Grant all actions on Budgets' }));
     for (const action of ['View', 'Create', 'Edit', 'Delete']) {
       expect(screen.getByRole('switch', { name: `${action}: Budgets` })).toHaveAttribute('aria-checked', 'true');
     }
     await user.click(screen.getByRole('button', { name: 'Remove all actions on Budgets' }));
     expect(screen.getByRole('switch', { name: 'View: Budgets' })).toHaveAttribute('aria-checked', 'false');
-
-    await user.click(screen.getByRole('button', { name: 'Grant Export on every module' }));
-    expect(screen.getByRole('switch', { name: 'Export: Cost Analytics' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('button', { name: 'Remove Export on every module' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('is read-only for system roles: switches are disabled and no select-all controls appear', () => {
+  it('is read-only for system roles: switches are disabled and no grant-all control appears', () => {
     render(<Harness roleId="viewer" readOnly initial={defaultMatrix('viewer')} />);
     expect(screen.getByRole('switch', { name: 'View: Dashboard' })).toBeDisabled();
     expect(screen.getByRole('switch', { name: 'View: Dashboard' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.queryByRole('button', { name: /every module/ })).toBeNull();
-  });
-
-  it('describes the table for assistive technology', () => {
-    render(<Harness />);
-    expect(screen.getByRole('table', { name: /Permissions for the Test role role/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Grant all|Remove all/ })).toBeNull();
   });
 });
 

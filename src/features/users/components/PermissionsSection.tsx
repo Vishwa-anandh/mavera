@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Select } from '../../../shared/ui/Select';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import {
-  PermissionMatrix,
-  PermissionMatrixLegend,
+  PermissionExplorer,
+  PermissionLegend,
   countGrants,
   describeChange,
   diffMatrices,
@@ -65,7 +65,7 @@ export function PermissionsSection({ roles, selectedRoleId, onSelectRole, onDirt
 
   return (
     <div className="mv-permissions">
-      <div className="mv-permissions-pick">
+      <div className="mv-permissions-bar">
         <Select
           label="Role"
           value={role.id}
@@ -77,21 +77,14 @@ export function PermissionsSection({ roles, selectedRoleId, onSelectRole, onDirt
           <span className={`mv-status ${role.kind === 'system' ? 'mv-status--info' : 'mv-status--neutral'}`}>{role.kind === 'system' ? 'System' : 'Custom'}</span>
           <span className="mv-muted">{grants} of {totalGrantable(role.id)} permissions</span>
         </p>
+        {role.kind === 'system' && role.id !== 'owner' && canCreateRoles && (
+          <button type="button" className="mv-quiet-button" onClick={() => onDuplicate(role.id)}>Duplicate as a custom role</button>
+        )}
+        <div className="mv-permissions-legend"><PermissionLegend /></div>
       </div>
+      {readOnlyReason && <p className="mv-sr-only" role="note">{readOnlyReason}</p>}
 
-      {readOnlyReason && (
-        <div className="mv-notice mv-permissions-note" role="note">
-          {readOnlyReason}
-          {role.kind === 'system' && role.id !== 'owner' && canCreateRoles && (
-            <> <button type="button" className="mv-link-button" onClick={() => onDuplicate(role.id)}>Duplicate as a custom role</button></>
-          )}
-        </div>
-      )}
-
-      <PermissionMatrixLegend />
-      <p className="mv-muted mv-matrix-hint">Turning on any action also turns on View for that module; turning View off clears the rest.</p>
-
-      <PermissionMatrix
+      <PermissionExplorer
         roleId={role.id}
         roleName={role.name}
         value={value}

@@ -2866,7 +2866,7 @@ strong, b, th { font-weight: 500; }
 .mv-matrix-all:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 2px; }
 
 /* Three columns: product areas, the modules in the chosen area, then that module's switches. */
-.mv-perm-explorer { display: grid; grid-template-columns: minmax(9.5rem, 14rem) minmax(11rem, 17rem) minmax(0, 36rem); justify-content: start; gap: clamp(0.875rem, 1.6vw, 1.5rem); align-items: start; }
+.mv-perm-explorer { display: grid; grid-template-columns: minmax(9.5rem, 1fr) minmax(11rem, 1.2fr) minmax(0, 2.6fr); gap: clamp(0.875rem, 1.6vw, 1.5rem); align-items: start; }
 .mv-perm-areas ul, .mv-perm-modules ul { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; }
 .mv-perm-areas, .mv-perm-modules { padding-right: clamp(0.75rem, 1.4vw, 1.25rem); border-right: 1px solid var(--mv-divider); }
 .mv-perm-module { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 2.25rem; padding: 0 0.625rem; border: 0; border-radius: 0.5rem; background: transparent; color: var(--mv-text); font: 400 0.8125rem/1.25rem var(--mv-font-body); text-align: left; cursor: pointer; }

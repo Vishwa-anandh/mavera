@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CloseIcon, SparkleIcon } from '../../../shared/ui/icons';
 import { useAuth } from '../../auth';
+import { useAssistantIntro } from '../model/useAssistantIntro';
 import { assistantIntroLabel, assistantSuggestions, useAssistantConversation } from '../model/useAssistantConversation';
 import { AssistantConversation } from './AssistantConversation';
 import { AssistantLauncherFace } from './AssistantLauncherFace';
@@ -23,7 +24,9 @@ function readTipsHidden(): boolean {
  * walkthrough for that page's task instead of only the generic suggestions.
  */
 export function AssistantWidget() {
-  const { modules } = useAuth();
+  const { modules, user } = useAuth();
+  const intro = useAssistantIntro(user?.id);
+  const firstName = (user?.name ?? '').split(' ')[0];
   const location = useLocation();
   const { messages, draft, setDraft, send, flowGuide } = useAssistantConversation(location.pathname, modules);
   const [open, setOpen] = useState(false);
@@ -64,7 +67,12 @@ export function AssistantWidget() {
   }, []);
 
   return (
-    <aside className="mv-ai-assistant" aria-label="Mavera AI Assistant">
+    <aside className={`mv-ai-assistant${intro.playing ? ' is-intro' : ''}`} aria-label="Mavera AI Assistant">
+      {intro.playing && (
+        <p className="mv-ai-intro-bubble" role="status">
+          {firstName ? `Hi ${firstName}, I’m Mavera AI.` : 'Hi, I’m Mavera AI.'} Ask me about your costs or your systems.
+        </p>
+      )}
       {open && (
         <section className="mv-ai-assistant-panel" aria-labelledby="ai-assistant-title">
           <header className="mv-ai-assistant-header">
@@ -105,7 +113,8 @@ export function AssistantWidget() {
         aria-label={open ? 'Close AI Assistant' : 'Open AI Assistant'}
         aria-expanded={open}
         aria-controls="ai-assistant-title"
-        onClick={() => setOpen((isOpen) => !isOpen)}
+        onAnimationEnd={(event) => { if (event.animationName === 'mv-ai-intro-fly') intro.finish(); }}
+        onClick={() => { intro.finish(); setOpen((isOpen) => !isOpen); }}
       >
         {open ? <CloseIcon size={24} aria-hidden /> : <AssistantLauncherFace />}
       </button>

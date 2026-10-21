@@ -3268,3 +3268,20 @@ strong, b, th { font-weight: 500; }
 .mv-row-chevron { width: 2.5rem; color: var(--mv-text-muted); text-align: right; }
 .mv-row-chevron svg { transition: transform 120ms ease, color 120ms ease; }
 .mv-row-link:hover .mv-row-chevron svg, .mv-row-link:focus-within .mv-row-chevron svg { color: var(--mv-primary); transform: translateX(0.1875rem); }
+
+/* ---- Assistant welcome (first visit only): the launcher appears mid-screen with a greeting, then glides to its corner ---- */
+.mv-ai-assistant.is-intro { --mv-intro-dx: calc(-50vw + 1.75rem + 2rem); --mv-intro-dy: calc(-50vh + 1.75rem + 2rem); }
+.mv-ai-assistant.is-intro .mv-ai-assistant-launcher { position: relative; animation: mv-ai-intro-fly 3.4s both; will-change: transform; }
+.mv-ai-assistant.is-intro .mv-ai-assistant-launcher::before { content: ''; position: absolute; inset: -0.75rem; z-index: -1; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--mv-action) 55%, transparent), transparent 68%); animation: mv-ai-intro-glow 3.4s ease-out both; }
+.mv-ai-intro-bubble { position: fixed; top: calc(50vh - 6.25rem); left: 50%; z-index: 1301; width: max-content; max-width: min(20rem, calc(100vw - 2rem)); margin: 0; padding: 0.625rem 0.875rem; border-radius: 0.875rem; background: var(--mv-elevated); color: var(--mv-text); box-shadow: 0 0.75rem 2rem -0.5rem rgba(11, 26, 51, .35); font-size: 0.875rem; line-height: 1.25rem; text-align: center; transform: translateX(-50%); pointer-events: none; animation: mv-ai-intro-bubble 3.4s both; }
+@keyframes mv-ai-intro-fly {
+  0%   { transform: translate(var(--mv-intro-dx), var(--mv-intro-dy)) scale(0.2); opacity: 0; animation-timing-function: cubic-bezier(.2, .9, .3, 1.2); }
+  14%  { transform: translate(var(--mv-intro-dx), var(--mv-intro-dy)) scale(2); opacity: 1; animation-timing-function: ease-in-out; }
+  36%  { transform: translate(var(--mv-intro-dx), calc(var(--mv-intro-dy) - 0.75rem)) scale(2.1); animation-timing-function: ease-in-out; }
+  58%  { transform: translate(var(--mv-intro-dx), var(--mv-intro-dy)) scale(2); animation-timing-function: cubic-bezier(.55, 0, .25, 1); }
+  100% { transform: translate(0, 0) scale(1); opacity: 1; }
+}
+@keyframes mv-ai-intro-glow { 0%, 12% { opacity: 0; } 30%, 55% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes mv-ai-intro-bubble { 0%, 12% { opacity: 0; transform: translateX(-50%) translateY(0.5rem); } 22%, 56% { opacity: 1; transform: translateX(-50%) translateY(0); } 68%, 100% { opacity: 0; transform: translateX(-50%) translateY(-0.25rem); } }
+@media (max-width: 680px) { .mv-ai-assistant.is-intro { --mv-intro-dx: calc(-50vw + 1.125rem + 1.8125rem); --mv-intro-dy: calc(-50vh + 1.125rem + 1.8125rem); } }
+@media (prefers-reduced-motion: reduce) { .mv-ai-assistant.is-intro .mv-ai-assistant-launcher, .mv-ai-assistant.is-intro .mv-ai-assistant-launcher::before, .mv-ai-intro-bubble { animation: none; } }

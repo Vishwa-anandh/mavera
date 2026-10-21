@@ -137,15 +137,14 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
         </section>
       )}
 
-      <div className="mv-detail-stack">
+      <div className="mv-exec-pair mv-detail-stack">
         <ServiceCategorySummary summary={categorySummary} />
+        {data.details.length > 0 && (
+          <div id="azure-service-breakdown-summary">
+            <ServiceBreakdownList lines={data.details.map((line) => ({ service: line.service, usageType: line.meter, cost: line.cost }))} cspRate={mspRate} format={formatCurrency} limit={8} />
+          </div>
+        )}
       </div>
-
-      {data.details.length > 0 && (
-        <div className="mv-detail-stack" id="azure-service-breakdown-summary">
-          <ServiceBreakdownList lines={data.details.map((line) => ({ service: line.service, usageType: line.meter, cost: line.cost }))} cspRate={mspRate} format={formatCurrency} limit={6} />
-        </div>
-      )}
 
       <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel">

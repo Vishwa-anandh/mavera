@@ -61,9 +61,9 @@ describe('Azure account page', () => {
       const category = screen.getByRole('region', { name: 'Service Category Summary' });
       const breakdown = screen.getByRole('region', { name: 'Service Breakdown' });
       expect(category.compareDocumentPosition(breakdown) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      expect(breakdown.querySelectorAll('.mv-svc-item')).toHaveLength(6);
-      await user.click(within(breakdown).getByRole('button', { name: 'Show all 8 services' }));
+      // Eight services fit in the compact list, so there is nothing to expand.
       expect(breakdown.querySelectorAll('.mv-svc-item')).toHaveLength(8);
+      expect(within(breakdown).queryByRole('button', { name: /^Show all/ })).not.toBeInTheDocument();
 
       const total = amounts(within(category).getByRole('row', { name: /^Total/ }).textContent)[0];
       const costs = [...breakdown.querySelectorAll('.mv-svc-row .mv-svc-cost')].map((cell) => money(cell.textContent));

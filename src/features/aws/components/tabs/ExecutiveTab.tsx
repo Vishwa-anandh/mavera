@@ -157,15 +157,14 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
         </section>
       )}
 
-      <div className="mv-detail-stack">
+      <div className="mv-exec-pair mv-detail-stack">
         <ServiceCategorySummary summary={categorySummary} />
+        {data.details.length > 0 && (
+          <div id="aws-service-breakdown-summary">
+            <ServiceBreakdownList lines={data.details} cspRate={mspRate} format={formatCurrency} limit={8} />
+          </div>
+        )}
       </div>
-
-      {data.details.length > 0 && (
-        <div className="mv-detail-stack" id="aws-service-breakdown-summary">
-          <ServiceBreakdownList lines={data.details} cspRate={mspRate} format={formatCurrency} limit={6} />
-        </div>
-      )}
 
       <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel" id="exec-top-services">

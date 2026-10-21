@@ -69,8 +69,8 @@ describe('AWS account page', () => {
       const breakdown = screen.getByRole('region', { name: 'Service Breakdown' });
       expect(category.compareDocumentPosition(breakdown) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-      expect(breakdown.querySelectorAll('.mv-svc-item')).toHaveLength(6);
-      expect(within(breakdown).getByText(/^Top 6 of 11 service types/)).toBeInTheDocument();
+      expect(breakdown.querySelectorAll('.mv-svc-item')).toHaveLength(8);
+      expect(within(breakdown).getByText(/^Top 8 of 11 service types/)).toBeInTheDocument();
       await user.click(within(breakdown).getByRole('button', { name: 'Show all 11 services' }));
       expect(breakdown.querySelectorAll('.mv-svc-item')).toHaveLength(11);
 

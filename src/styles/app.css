@@ -3385,3 +3385,9 @@ ul.mv-chart-legend { margin: 0; padding: 0; list-style: none; }
 .mv-pulse .mv-search:focus-within { border-color: var(--mv-ink-accent); box-shadow: 0 0 0 0.1875rem rgba(132, 173, 255, .22); }
 .mv-pulse .mv-search input { color: var(--mv-ink-text); }
 .mv-pulse .mv-search input::placeholder { color: var(--mv-ink-muted); }
+
+/* Executive: the category summary and the service breakdown share a row, equal height, one column on narrow screens. */
+.mv-exec-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 32rem), 1fr)); gap: 1rem; align-items: stretch; }
+.mv-exec-pair > * { min-width: 0; }
+.mv-exec-pair > * > .mv-panel, .mv-exec-pair > .mv-panel { height: 100%; margin-bottom: 0; }
+.mv-exec-pair .mv-category-summary { grid-template-columns: minmax(0, 1fr); }

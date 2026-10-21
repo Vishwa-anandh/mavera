@@ -2784,14 +2784,6 @@ strong, b, th { font-weight: 500; }
    ========================================================================================== */
 
 /* ---- Preview-as-role banner and the "no access" state ---- */
-.mv-preview-banner {
-  position: sticky; top: var(--mv-header-height); z-index: 90; display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem 0.875rem;
-  padding: 0.5rem 1.5rem; border-bottom: 1px solid var(--mv-divider);
-  background: color-mix(in srgb, var(--mv-warning) 12%, var(--mv-surface)); color: var(--mv-text); font-size: 0.8125rem;
-}
-.mv-preview-banner svg { flex: none; color: var(--mv-warning); }
-.mv-preview-banner > span { flex: 1 1 18rem; min-width: 0; }
-.mv-preview-banner .mv-secondary-button { min-height: 2rem; }
 .mv-access-denied { margin-top: 4rem; }
 .mv-access-denied-actions { justify-content: center; margin-top: 0.25rem; }
 .mv-menu-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; padding: 0.25rem 0.625rem 0.25rem; color: var(--mv-text-secondary); font-size: 0.75rem; font-weight: 500; }
@@ -2905,8 +2897,7 @@ strong, b, th { font-weight: 500; }
   .mv-unsaved-bar { bottom: 0.5rem; }
   .mv-unsaved-actions { width: 100%; }
   .mv-unsaved-actions > * { flex: 1; }
-  .mv-preview-banner { padding-inline: 1rem; }
-}
+  }
 
 /* ---- Audit Trail ---- */
 .mv-audit-filters { align-items: center; }
@@ -2957,7 +2948,7 @@ strong, b, th { font-weight: 500; }
 .mv-biometric-row { flex-wrap: nowrap; align-items: flex-start; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--mv-divider); }
 .mv-biometric-row > span { flex: 1 1 auto; min-width: 0; }
 .mv-account-subheading { margin-top: 0; }
-@media (prefers-reduced-motion: reduce) { .mv-preview-banner, .mv-unsaved-bar { transition: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .mv-unsaved-bar { transition: none; animation: none; } }
 .mv-table tfoot th { background: transparent; text-align: left; }
 /* Visually-hidden text inside a scrolling table (trend arrows) must be contained by the wrapper, or it widens the page on phones. */
 .mv-table-wrap { position: relative; }
@@ -3267,3 +3258,13 @@ strong, b, th { font-weight: 500; }
   .mv-cost-tab span:last-child { display: none; }
   .mv-cost-tab { padding-inline: 0.75rem; }
 }
+
+/* ---- Clickable table rows: the whole row opens the item ---- */
+.mv-table tbody tr.mv-row-link { cursor: pointer; }
+.mv-table tbody tr.mv-row-link:hover, .mv-table tbody tr.mv-row-link:focus-within { background: var(--mv-selected); }
+.mv-row-open { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.mv-row-open:hover { color: var(--mv-primary); text-decoration: underline; text-underline-offset: 0.1875rem; }
+.mv-row-open:focus-visible { outline: 0.1875rem solid color-mix(in srgb, var(--mv-focus) 40%, transparent); outline-offset: 0.125rem; border-radius: 0.25rem; }
+.mv-row-chevron { width: 2.5rem; color: var(--mv-text-muted); text-align: right; }
+.mv-row-chevron svg { transition: transform 120ms ease, color 120ms ease; }
+.mv-row-link:hover .mv-row-chevron svg, .mv-row-link:focus-within .mv-row-chevron svg { color: var(--mv-primary); transform: translateX(0.1875rem); }

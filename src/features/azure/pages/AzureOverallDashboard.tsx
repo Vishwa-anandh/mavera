@@ -1,3 +1,4 @@
+import { ClickableRow, RowChevronCell, RowOpenButton } from '../../../shared/ui/ClickableRow';
 import { useState } from 'react';
 import { CloudIcon, RefreshIcon, PlusIcon } from '../../../shared/ui/icons';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
@@ -85,13 +86,13 @@ export function AzureOverallDashboard({ onSelectAccount, onManageAccounts }: Azu
         <div className="mv-table-wrap">
           <table className="mv-table">
             <thead>
-              <tr><th>Subscription</th><th>Name</th><th className="mv-num">Current Spend</th><th>Budget Status</th><th>Tag Coverage</th><th>Status</th><th>Action</th></tr>
+              <tr><th>Subscription</th><th>Name</th><th className="mv-num">Current Spend</th><th>Budget Status</th><th>Tag Coverage</th><th>Status</th><th className="mv-row-chevron"><span className="mv-sr-only">Open</span></th></tr>
             </thead>
             <tbody>
               {accounts.map((account) => (
-                <tr key={account.id}>
+                <ClickableRow key={account.id} onOpen={() => onSelectAccount(account.id)}>
                   <td className="mv-code">{account.subscriptionId.slice(0, 8)}…{account.subscriptionId.slice(-4)}</td>
-                  <td>{account.name}</td>
+                  <td><RowOpenButton onOpen={() => onSelectAccount(account.id)}>{account.name}</RowOpenButton></td>
                   <td className="mv-num">{formatCurrency(account.totalCost)}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -103,8 +104,8 @@ export function AzureOverallDashboard({ onSelectAccount, onManageAccounts }: Azu
                   </td>
                   <td><span className="mv-status mv-status--neutral">N/A</span></td>
                   <td><span className="mv-status mv-status--success">Active</span></td>
-                  <td><button className="mv-quiet-button" onClick={() => onSelectAccount(account.id)}>View</button></td>
-                </tr>
+                  <RowChevronCell />
+                </ClickableRow>
               ))}
             </tbody>
           </table>

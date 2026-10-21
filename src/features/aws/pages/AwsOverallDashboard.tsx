@@ -1,3 +1,4 @@
+import { ClickableRow, RowChevronCell, RowOpenButton } from '../../../shared/ui/ClickableRow';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CloudIcon, RefreshIcon, PlusIcon } from '../../../shared/ui/icons';
@@ -87,13 +88,13 @@ export function AwsOverallDashboard() {
         <div className="mv-table-wrap">
           <table className="mv-table">
             <thead>
-              <tr><th>Account ID</th><th>Name</th><th>Region</th><th className="mv-num">Current Spend</th><th>Budget Status</th><th>Tag Coverage</th><th>Status</th><th>Action</th></tr>
+              <tr><th>Account ID</th><th>Name</th><th>Region</th><th className="mv-num">Current Spend</th><th>Budget Status</th><th>Tag Coverage</th><th>Status</th><th className="mv-row-chevron"><span className="mv-sr-only">Open</span></th></tr>
             </thead>
             <tbody>
               {accounts.map(({ account, summary }) => (
-                <tr key={account.id}>
+                <ClickableRow key={account.id} onOpen={() => navigate(`/aws/account/${account.id}`)}>
                   <td className="mv-code">···· {account.id.slice(-4)}</td>
-                  <td>{account.name}</td>
+                  <td><RowOpenButton onOpen={() => navigate(`/aws/account/${account.id}`)}>{account.name}</RowOpenButton></td>
                   <td>{account.region}</td>
                   <td className="mv-num">{summary ? formatCurrency(summary.totalCost) : '—'}</td>
                   <td>
@@ -106,8 +107,8 @@ export function AwsOverallDashboard() {
                   </td>
                   <td><span className="mv-status mv-status--neutral">N/A</span></td>
                   <td><span className="mv-status mv-status--success">Active</span></td>
-                  <td><button className="mv-quiet-button" onClick={() => navigate(`/aws/account/${account.id}`)}>View</button></td>
-                </tr>
+                  <RowChevronCell />
+                </ClickableRow>
               ))}
             </tbody>
           </table>

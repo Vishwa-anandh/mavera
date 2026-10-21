@@ -13,3 +13,6 @@ dist
 
 # Local dev-server logs
 *.log
+
+# Graphify knowledge graph (rebuild with: graphify update .)
+graphify-out/

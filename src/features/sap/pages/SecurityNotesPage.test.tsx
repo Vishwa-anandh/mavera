@@ -38,7 +38,7 @@ describe('SecurityNotesPage', () => {
     expect(rows).toHaveLength(1);
     expect(within(rows[0]).getByText('3790112')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Clear filters' }));
-    await user.type(screen.getByRole('textbox', { name: /search by note number/i }), 'tomcat');
+    await user.type(screen.getByRole('searchbox', { name: /search by note number/i }), 'tomcat');
     expect(screen.getAllByRole('row').slice(1)).toHaveLength(1);
   });
 

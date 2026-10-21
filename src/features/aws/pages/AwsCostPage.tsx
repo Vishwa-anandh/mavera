@@ -4,6 +4,8 @@ import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { ChevronLeftIcon, ChevronDownIcon, RefreshIcon, SparkleIcon } from '../../../shared/ui/icons';
 import { Tooltip } from '../../../shared/ui/Tooltip';
+import { CloudSpendSummary } from '../../../shared/ui/CloudSpendSummary';
+import { daysInMonthOf } from '../../../shared/lib/costAnalysis';
 import { useAwsAccounts } from '../model/AwsAccountContext';
 import { MOCK_AWS_FULL, MOCK_AWS_YEARLY } from '../../../demo/aws/mockAwsData';
 import type { AwsCosts, AwsYearlyMonth } from '../model/awsTypes';
@@ -94,6 +96,11 @@ export function AwsCostPage() {
   const topService = [...data.services].sort((a, b) => b.cost - a.cost)[0];
   const topRegion = [...data.regions].sort((a, b) => b.cost - a.cost)[0];
   const mspSavings = Math.round(data.totalCost * AWS_MSP_RATE * 100) / 100;
+  const optimizationSavings = MOCK_AWS_FULL.recommendations.reduce((sum, r) => sum + r.estimated_savings, 0);
+  const totalSavingsPct = data.totalCost > 0 ? ((data.totalCost * AWS_MSP_RATE + optimizationSavings) / data.totalCost) * 100 : 0;
+  const monthChange = lastMonth && lastMonth.totalCost ? Math.round(((data.totalCost - lastMonth.totalCost) / lastMonth.totalCost) * 1000) / 10 : null;
+  const dailyAverage = isCurrentMonth && data.dailyCosts.length > 0 ? Math.round((data.totalCost / data.dailyCosts.length) * 100) / 100 : null;
+  const todayCost = isCurrentMonth ? (data.dailyCosts[data.dailyCosts.length - 1]?.cost ?? null) : null;
 
   const aiInsights = buildAiInsights(MOCK_AWS_FULL.costs, MOCK_AWS_YEARLY, AWS_MSP_RATE);
 
@@ -123,16 +130,16 @@ export function AwsCostPage() {
         <div className="mv-cost-header-title">
           <button className="mv-icon-button" aria-label="Back to AWS overview" onClick={() => navigate('/aws')}><ChevronLeftIcon size={20} /></button>
           <span className="mv-status mv-status--warning">AWS</span>
-          <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: '1.25rem' }}>{account.name}</h1></Tooltip>
+          <Tooltip content={account.name}><h1 className="mv-title mv-cost-title">{account.name}</h1></Tooltip>
         </div>
         <div className="mv-cost-header-controls">
           {accounts.length > 1 && (
-            <div style={{ position: 'relative' }} ref={switchRef}>
-              <button className="mv-secondary-button" onClick={() => setSwitchOpen((v) => !v)} aria-haspopup="menu" aria-expanded={switchOpen}>Switch account<ChevronDownIcon size={14} style={{ marginLeft: '0.375rem' }} /></button>
+            <div className="mv-cost-menu" ref={switchRef}>
+              <button className="mv-secondary-button" onClick={() => setSwitchOpen((v) => !v)} aria-haspopup="menu" aria-expanded={switchOpen}>Switch account<ChevronDownIcon size={14} className="mv-cost-menu-chevron" /></button>
               {switchOpen && (
-                <div className="mv-nav-dropdown" role="menu" style={{ right: 0, left: 'auto' }}>
+                <div className="mv-nav-dropdown mv-cost-menu-list" role="menu">
                   {accounts.map((a) => (
-                    <button key={a.id} role="menuitem" className="mv-nav-dropdown-item" style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer' }} onClick={() => { setSwitchOpen(false); navigate(`/aws/account/${a.id}`); }}>
+                    <button key={a.id} role="menuitem" className="mv-nav-dropdown-item mv-cost-menu-item" onClick={() => { setSwitchOpen(false); navigate(`/aws/account/${a.id}`); }}>
                       <span>{a.name}</span>
                     </button>
                   ))}
@@ -140,16 +147,16 @@ export function AwsCostPage() {
               )}
             </div>
           )}
-          <div style={{ position: 'relative' }} ref={monthRef}>
+          <div className="mv-cost-menu" ref={monthRef}>
             <button className="mv-secondary-button" onClick={() => setMonthOpen((v) => !v)} aria-haspopup="menu" aria-expanded={monthOpen}>
-              {isCurrentMonth ? 'Month-to-Date' : `${MONTH_LABELS[selectedMonth!.month - 1]} ${selectedMonth!.year}`}<ChevronDownIcon size={14} style={{ marginLeft: '0.375rem' }} />
+              {isCurrentMonth ? 'Month-to-Date' : `${MONTH_LABELS[selectedMonth!.month - 1]} ${selectedMonth!.year}`}<ChevronDownIcon size={14} className="mv-cost-menu-chevron" />
             </button>
             {monthOpen && (
-              <div className="mv-nav-dropdown" role="menu" style={{ right: 0, left: 'auto', maxHeight: '20rem' }}>
+              <div className="mv-nav-dropdown mv-cost-menu-list mv-cost-menu-list--months" role="menu">
                 {[...MOCK_AWS_YEARLY].reverse().map((m) => {
                   const isCur = m.year === currentYearly.year && m.month === currentYearly.month;
                   return (
-                    <button key={`${m.year}-${m.month}`} role="menuitem" className="mv-nav-dropdown-item" style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer' }} onClick={() => { setMonthOpen(false); tabProps.onSelectMonth(m.year, m.month); }}>
+                    <button key={`${m.year}-${m.month}`} role="menuitem" className="mv-nav-dropdown-item mv-cost-menu-item" onClick={() => { setMonthOpen(false); tabProps.onSelectMonth(m.year, m.month); }}>
                       <span>{MONTH_LABELS[m.month - 1]} {m.year}{isCur ? ' (Month-to-Date)' : ''}</span>
                     </button>
                   );
@@ -157,23 +164,23 @@ export function AwsCostPage() {
               </div>
             )}
           </div>
-          <div style={{ position: 'relative' }} ref={aiRef}>
-            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} style={{ marginRight: '0.375rem' }} />AI Insights</button>
+          <div className="mv-cost-menu" ref={aiRef}>
+            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} className="mv-cost-menu-icon" />AI Insights</button>
             {aiOpen && (
-              <div className="mv-nav-dropdown" style={{ right: 0, left: 'auto', width: '21.25rem', padding: '0.875rem' }}>
-                <p className="mv-panel-title" style={{ marginBottom: '0.625rem' }}>AI Insights</p>
-                <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <div className="mv-nav-dropdown mv-cost-menu-list mv-cost-menu-list--insights">
+                <p className="mv-panel-title mv-cost-menu-title">AI Insights</p>
+                <div className="mv-cost-insight-list">
                   {aiInsights.map((insight, i) => (
                     <div key={i} className={`mv-inline-error mv-ai-insight mv-ai-insight--${insight.type}`}>
                       <strong>{insight.title}</strong>
-                      <p style={{ margin: '2px 0 0' }}>{insight.detail}</p>
+                      <p>{insight.detail}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
-          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{syncing ? 'Syncing…' : 'Sync'}</button>
+          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} className="mv-cost-menu-icon" />{syncing ? 'Syncing…' : 'Sync'}</button>
         </div>
       </div>
 
@@ -187,19 +194,34 @@ export function AwsCostPage() {
       </nav>
 
       {!isCurrentMonth && (
-        <div className="mv-notice" style={{ marginBottom: '1rem' }}>
+        <div className="mv-notice mv-cost-banner">
           Viewing {MONTH_LABELS[selectedMonth!.month - 1]} {selectedMonth!.year} — historical data.{' '}
-          <button className="mv-quiet-button" style={{ padding: 0, minHeight: 'auto' }} onClick={() => setSelectedMonth(null)}>Back to current</button>
+          <button className="mv-quiet-button mv-cost-banner-link" onClick={() => setSelectedMonth(null)}>Back to current</button>
         </div>
       )}
 
-      <div className="mv-kpi-row-5">
-        <article className="mv-kpi"><span className="mv-kpi-label">{isCurrentMonth ? 'Month-to-Date Spend' : 'Month Spend'}</span><strong className="mv-kpi-value">{formatCurrency(data.totalCost)}</strong>{lastMonth && isCurrentMonth && (() => { const change = lastMonth.totalCost ? Math.round(((data.totalCost - lastMonth.totalCost) / lastMonth.totalCost) * 1000) / 10 : null; return change !== null ? <span className="mv-muted">{change >= 0 ? '▲' : '▼'} {Math.abs(change)}% vs last month</span> : null; })()}</article>
-        <article className="mv-kpi"><span className="mv-kpi-label">EOM Forecast</span><strong className="mv-kpi-value">{data.forecast !== null ? formatCurrency(data.forecast) : '—'}</strong><span className="mv-muted">{isCurrentMonth ? 'End-of-month projection' : 'Not available for past months'}</span></article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Top Service</span><strong className="mv-kpi-value" style={{ fontSize: '1.25rem' }}>{topService?.name ?? '—'}</strong>{topService && <span className="mv-muted">{formatCurrency(topService.cost)}</span>}</article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Top Region</span><strong className="mv-kpi-value" style={{ fontSize: '1.25rem' }}>{topRegion?.region ?? '—'}</strong>{topRegion && <span className="mv-muted">{formatCurrency(topRegion.cost)}</span>}</article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Maitsys CSP Savings</span><strong className="mv-kpi-value" style={{ color: 'var(--mv-success)' }}>{formatCurrency(mspSavings)}</strong></article>
-      </div>
+      <CloudSpendSummary
+        isCurrentMonth={isCurrentMonth}
+        spend={data.totalCost}
+        changePct={monthChange}
+        daily={data.dailyCosts.map((point) => point.cost)}
+        daysInMonth={daysInMonthOf(data.dailyCosts[0]?.date)}
+        forecast={isCurrentMonth ? data.forecast : null}
+        lastMonthTotal={lastMonth?.totalCost ?? null}
+        dailyAverage={dailyAverage}
+        todaySpend={todayCost}
+        savings={mspSavings}
+        savingsLines={[
+          `${(AWS_MSP_RATE * 100).toFixed(1)}% CSP discount`,
+          `With ${formatCurrency(optimizationSavings)} of optimization opportunities: ${totalSavingsPct.toFixed(1)}% of spend`,
+        ]}
+        facts={[
+          { label: 'Active service types', value: data.services.length.toLocaleString(), detail: `${data.details.length} usage line item${data.details.length === 1 ? '' : 's'}` },
+          { label: 'Total resources', value: MOCK_AWS_FULL.resources.total.toLocaleString(), detail: `${MOCK_AWS_FULL.resources.byType.length} resource types` },
+          { label: 'Top service', value: topService?.name ?? '—', detail: topService ? formatCurrency(topService.cost) : undefined },
+          { label: 'Top region', value: topRegion?.region ?? '—', detail: topRegion ? formatCurrency(topRegion.cost) : undefined },
+        ]}
+      />
 
       {!hasData ? (
         <div className="mv-empty"><h2>No data available yet.</h2><p>{isCurrentMonth ? 'Cost data will appear once this billing cycle syncs.' : `No history is stored for ${MONTH_LABELS[selectedMonth!.month - 1]} ${selectedMonth!.year}.`}</p></div>

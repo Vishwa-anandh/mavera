@@ -34,6 +34,15 @@ export interface AzureTopService {
 export interface AzureDailyCost {
   date: string;
   cost: number;
+  /** Cost of each service that day; adds up to `cost` to the cent. */
+  byService?: Record<string, number>;
+}
+
+/** One meter (or SKU) of a service and what it cost; the lines of a service add up to the service's cost. */
+export interface AzureUsageLine {
+  service: string;
+  meter: string;
+  cost: number;
 }
 
 export interface AzureServiceCost {
@@ -83,6 +92,8 @@ export interface AzureCosts {
   dailyCosts: AzureDailyCost[];
   services: AzureServiceCost[];
   topResources: AzureResourceCost[];
+  /** Usage lines by service and meter; they add up to `totalCost`. */
+  details: AzureUsageLine[];
   resourceGroups: AzureNamedCost[];
   locations: AzureNamedCost[];
   resources: AzureResources;
@@ -152,6 +163,7 @@ export interface AzureYearlyMonth {
   totalCost: number;
   dailyCosts: AzureDailyCost[];
   topServices: AzureServiceCost[];
+  details: AzureUsageLine[];
   resourceGroups: AzureNamedCost[];
   locations: AzureNamedCost[];
 }

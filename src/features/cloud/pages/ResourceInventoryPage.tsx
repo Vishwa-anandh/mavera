@@ -4,8 +4,9 @@ import { cloudInsightsRepository, type CloudResource } from '../../../data-acces
 import { CopyButton } from '../../../shared/ui/CopyButton';
 import { DetailDrawer, DetailList } from '../../../shared/ui/DetailDrawer';
 import { Select } from '../../../shared/ui/Select';
+import { SearchField } from '../../../shared/ui/SearchField';
+import { FilterBar } from '../../../shared/ui/FilterBar';
 import { StatusTag } from '../../../shared/ui/StatusTag';
-import { SearchIcon } from '../../../shared/ui/icons';
 import { downloadCsv } from '../../../shared/lib/csv';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { PROVIDERS, PROVIDER_LABEL, formatMoney } from '../model/cloudFormat';
@@ -64,18 +65,15 @@ export function ResourceInventoryPage() {
       </div>
 
       <section className="mv-panel" aria-label="Resources">
-        <div className="mv-filter-bar" role="search" aria-label="Filter resources">
-          <label className="mv-filter-search">
-            <SearchIcon size={16} aria-hidden />
-            <input aria-label="Search resource name, ID, group or tag" placeholder="Name, ID, group or tag…" value={search} onChange={(e) => setSearch(e.target.value)} />
-          </label>
+        <FilterBar label="Filter resources">
+          <SearchField label="Search resource name, ID, group or tag" placeholder="Name, ID, group or tag…" value={search} onChange={setSearch} />
           <Select label="Provider" hideLabel value={provider} onChange={(v) => { setProvider(v); setType(ALL); }} options={[{ value: ALL, label: 'All providers' }, ...PROVIDERS.map((p) => ({ value: p, label: PROVIDER_LABEL[p] }))]} />
           <Select label="Type" hideLabel value={types.includes(type) ? type : ALL} onChange={setType} options={[{ value: ALL, label: 'All types' }, ...types.map((t) => ({ value: t, label: t }))]} />
           <Select label="State" hideLabel value={state} onChange={setState} options={[{ value: ALL, label: 'All states' }, ...states.map((s) => ({ value: s, label: s }))]} />
           <Select label="Tags" hideLabel value={tags} onChange={setTags} options={TAG_FILTERS.map((t) => ({ value: t, label: t === 'All' ? 'Tagged and untagged' : t }))} />
           <Select label="Sort" hideLabel value={sort} onChange={setSort} options={[{ value: 'name', label: 'Name A–Z' }, { value: 'cost', label: 'Highest cost' }]} />
           {filtersActive && <button type="button" className="mv-quiet-button" onClick={clear}>Clear filters</button>}
-        </div>
+        </FilterBar>
         {visible.length === 0 ? (
           <div className="mv-empty-inline"><p><strong>No resources match these filters.</strong></p><button type="button" className="mv-quiet-button" onClick={clear}>Clear filters</button></div>
         ) : (

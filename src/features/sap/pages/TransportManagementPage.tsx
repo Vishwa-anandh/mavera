@@ -1,3 +1,5 @@
+import { SearchField } from '../../../shared/ui/SearchField';
+import { FilterBar } from '../../../shared/ui/FilterBar';
 import { useState } from 'react';
 import { sapAdminRepository, type TransportState, type TransportStatus } from '../../../data-access';
 import { downloadCsv } from '../../../shared/lib/csv';
@@ -7,7 +9,7 @@ import { Pagination } from '../../../shared/ui/Pagination';
 import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
 import { StatusTag } from '../../../shared/ui/StatusTag';
 import { usePagination } from '../../../shared/ui/usePagination';
-import { PlusIcon, RefreshIcon, SearchIcon, SwapIcon, UploadIcon } from '../../../shared/ui/icons';
+import { PlusIcon, RefreshIcon, SwapIcon, UploadIcon } from '../../../shared/ui/icons';
 import { ActivityList, ActivityLogDrawer } from '../components/ActivityLogDrawer';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
 import { formatStampWithYear, plural } from '../model/sapFormat';
@@ -119,20 +121,17 @@ export function TransportManagementPage() {
       </div>
 
       <section className="mv-panel" style={{ marginBottom: '1.25rem' }} aria-label="Transport requests">
-        <div className="mv-filter-bar" role="search" aria-label="Filter transports">
+        <FilterBar label="Filter transports">
           <SegmentedToggle<StatusFilter>
             label="Transport status"
             value={status}
             onChange={setStatus}
             options={[...TRANSPORT_STATUSES, 'All' as const].map((s) => ({ value: s, label: <>{s === 'All' ? 'All Transports' : s} <span className="mv-muted">{counts[s]}</span></>, ariaLabel: `${s === 'All' ? 'All Transports' : s}, ${counts[s]}` }))}
           />
-          <label className="mv-filter-search">
-            <SearchIcon size={16} aria-hidden />
-            <input aria-label="Search by TR number, description or owner" placeholder="Search by TR number, description, owner..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </label>
+          <SearchField label="Search by TR number, description or owner" placeholder="Search by TR number, description, owner..." value={search} onChange={setSearch} />
           <button type="button" className="mv-secondary-button" disabled={chosen.length === 0 || busy !== null} onClick={importSelected}><UploadIcon size={14} style={{ marginRight: '0.375rem' }} />{busy === 'import' ? 'Importing…' : chosen.length > 0 ? `Import Selected (${chosen.length})` : 'Import Selected'}</button>
           <button type="button" className="mv-secondary-button" disabled={rows.length === 0} onClick={exportList}>Export</button>
-        </div>
+        </FilterBar>
         {rows.length === 0 ? (
           <div className="mv-empty-inline"><p><strong>No transports found.</strong></p></div>
         ) : (

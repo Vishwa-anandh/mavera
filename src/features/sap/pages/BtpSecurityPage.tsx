@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { MOCK_BTP_USERS, MOCK_BTP_ROLE_COLLECTIONS, MOCK_BTP_ROLES } from '../../../demo/sap/mockBtpSecurity';
-import { UsersIcon, HierarchyIcon, LockIcon, RefreshIcon, SearchIcon } from '../../../shared/ui/icons';
+import { UsersIcon, HierarchyIcon, LockIcon, RefreshIcon } from '../../../shared/ui/icons';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
 import { Select } from '../../../shared/ui/Select';
+import { SearchField } from '../../../shared/ui/SearchField';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const TABS = [
@@ -16,6 +17,7 @@ const TABS = [
  * connected destination, matching MIO's BTP Security Assessment page. */
 export function BtpSecurityPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]['key']>('users');
+  const [userSearch, setUserSearch] = useState('');
   const [statusFilter, setStatusFilter] = useRememberedState('sap', 'btp-users-status', 'All', oneOf(['All', 'Active', 'Inactive']));
 
   return (
@@ -34,11 +36,8 @@ export function BtpSecurityPage() {
           ))}
         </div>
         {tab === 'users' && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <div style={{ position: 'relative' }}>
-              <SearchIcon size={15} style={{ position: 'absolute', left: 10, top: 12, color: 'var(--mv-text-muted)' }} />
-              <input className="mv-select" style={{ paddingLeft: '2rem', width: 'min(16.25rem, 100%)' }} placeholder="Search by name, email, or username" />
-            </div>
+          <div className="mv-filter-bar" role="search" aria-label="Filter BTP users" style={{ marginBottom: 0 }}>
+            <SearchField label="Search BTP users" placeholder="Search by name, email, or username" value={userSearch} onChange={setUserSearch} />
             <Select label="Status" hideLabel value={statusFilter} onChange={setStatusFilter} options={['All', 'Active', 'Inactive'].map((v) => ({ value: v, label: v === 'All' ? 'All Status' : v }))} style={{ width: '9.375rem' }} />
           </div>
         )}

@@ -1,3 +1,5 @@
+import { SearchField } from '../../../shared/ui/SearchField';
+import { FilterBar } from '../../../shared/ui/FilterBar';
 import { useMemo, useState } from 'react';
 import { auditRepository } from '../../../data-access';
 import { Can } from '../../access';
@@ -9,7 +11,7 @@ import { EmptyState } from '../../../shared/ui/EmptyState';
 import { TableSkeleton } from '../../../shared/ui/LoadStates';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { downloadCsv } from '../../../shared/lib/csv';
-import { ClockIcon, RefreshIcon, SearchIcon, UploadIcon } from '../../../shared/ui/icons';
+import { ClockIcon, RefreshIcon, UploadIcon } from '../../../shared/ui/icons';
 import { AuditEventDrawer } from '../components/AuditEventDrawer';
 import { useAuditFeed } from '../model/useAuditFeed';
 import { recordAuditEvent } from '../model/recordAuditEvent';
@@ -98,17 +100,8 @@ export function AuditTrailPage() {
         </button>
       </PageHeader>
 
-      <section className="mv-filter-bar mv-audit-filters" aria-label="Filter events">
-        <label className="mv-filter-search">
-          <SearchIcon size={16} />
-          <input
-            type="search"
-            aria-label="Search signatures"
-            placeholder="Search signatures..."
-            value={filters.query}
-            onChange={(event) => update({ query: event.target.value })}
-          />
-        </label>
+      <FilterBar label="Filter events" className="mv-audit-filters">
+        <SearchField label="Search signatures" placeholder="Search signatures..." value={filters.query} onChange={(value) => update({ query: value })} />
         <div className="mv-segmented" role="radiogroup" aria-label="Actor type">
           {ACTOR_OPTIONS.map((option) => (
             <button
@@ -144,7 +137,7 @@ export function AuditTrailPage() {
         {hasActiveFilters(filters) && (
           <button type="button" className="mv-quiet-button" onClick={() => setFilters(NO_FILTERS)}>Clear filters</button>
         )}
-      </section>
+      </FilterBar>
 
       <p className="mv-muted mv-scope-note" role="status" aria-live="polite">
         {filtered.length} event{filtered.length === 1 ? '' : 's'}

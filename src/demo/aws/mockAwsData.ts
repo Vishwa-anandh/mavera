@@ -12,6 +12,7 @@ import type {
   AwsYearlyMonth,
   CspRecommendation,
 } from '../../features/aws';
+import { seededRandom, splitDailyByService } from '../shared/costSplit';
 
 export const MOCK_AWS_ACCOUNTS: AwsAccount[] = [
   { id: 'aws-acc-1', name: 'Production AWS', region: 'us-east-1', accessKey: 'AKIA3F7QZX9K2M4N8P1R' },
@@ -52,6 +53,14 @@ const AWS_SERVICE_WEIGHTS: Array<[string, number]> = [
 ];
 const AWS_SERVICE_NAMES = AWS_SERVICE_WEIGHTS.map(([name]) => name);
 const AWS_REGIONS = ['us-east-1', 'us-west-2', 'eu-west-1'];
+/** The smaller regions and the two buckets AWS bills outside a region. They draw from their own PRNG so the
+ * values of everything else in this file stay as they were. */
+const AWS_EXTRA_REGIONS: Array<[string, number]> = [
+  ['eu-central-1', 0.22], ['global', 0.2], ['ap-south-1', 0.14], ['ap-southeast-2', 0.1], ['ap-northeast-1', 0.06], ['NoRegion', 0.02],
+];
+const extraRegionRand = seededRandom(1177);
+/** Seed for the per-day service split of each stored month. */
+const DAILY_SPLIT_SEED = 5150;
 
 function serviceBreakdown(total: number): AwsServiceCost[] {
   const weights = AWS_SERVICE_WEIGHTS.map(([, base]) => base * (0.8 + rand() * 0.4));
@@ -61,8 +70,10 @@ function serviceBreakdown(total: number): AwsServiceCost[] {
 
 function regionBreakdown(total: number): AwsRegionCost[] {
   const weights = AWS_REGIONS.map(() => 0.4 + rand() * 1.2);
-  const costs = distribute(total, weights);
-  return AWS_REGIONS.map((region, i) => ({ region, cost: costs[i] })).sort((a, b) => b.cost - a.cost);
+  const extraWeights = AWS_EXTRA_REGIONS.map(([, base]) => base * (0.85 + extraRegionRand() * 0.3));
+  const names = [...AWS_REGIONS, ...AWS_EXTRA_REGIONS.map(([name]) => name)];
+  const costs = distribute(total, [...weights, ...extraWeights]);
+  return names.map((region, i) => ({ region, cost: costs[i] })).sort((a, b) => b.cost - a.cost);
 }
 
 function dailyCosts(daysInMonth: number, monthTotal: number, year: number, month: number): { date: string; cost: number }[] {
@@ -73,9 +84,11 @@ function dailyCosts(daysInMonth: number, monthTotal: number, year: number, month
 
 const CURRENT_MONTH_TOTAL = 9840.6;
 const CURRENT_MONTH_DAYS = 27; // "today" is 2026-09-27 per this session's context
-const CURRENT_MONTH_DAILY = dailyCosts(CURRENT_MONTH_DAYS, CURRENT_MONTH_TOTAL, 2026, 9);
+const CURRENT_MONTH_DAILY_TOTALS = dailyCosts(CURRENT_MONTH_DAYS, CURRENT_MONTH_TOTAL, 2026, 9);
 const CURRENT_MONTH_SERVICES = serviceBreakdown(CURRENT_MONTH_TOTAL);
 const CURRENT_MONTH_REGIONS = regionBreakdown(CURRENT_MONTH_TOTAL);
+/** Each day carries its services; they add up to that day's cost, so the month-to-date total is unchanged. */
+const CURRENT_MONTH_DAILY = splitDailyByService(CURRENT_MONTH_DAILY_TOTALS, CURRENT_MONTH_SERVICES, DAILY_SPLIT_SEED);
 
 const USAGE_TYPES: Record<string, string[]> = {
   'Amazon EC2': ['BoxUsage:m5.large', 'BoxUsage:t3.medium', 'EBS:VolumeUsage.gp3', 'DataTransfer-Out-Bytes'],
@@ -166,7 +179,7 @@ export const MOCK_AWS_YEARLY: AwsYearlyMonth[] = MONTHS_2025_2026.map(({ year, m
     year,
     month,
     totalCost: total,
-    dailyCosts: isCurrent ? CURRENT_MONTH_DAILY : dailyCosts(days, total, year, month),
+    dailyCosts: isCurrent ? CURRENT_MONTH_DAILY : splitDailyByService(dailyCosts(days, total, year, month), topServices, DAILY_SPLIT_SEED + index),
     topServices,
     topRegions: isCurrent ? CURRENT_MONTH_REGIONS : regionBreakdown(total),
     details: isCurrent ? [] : topServices.flatMap((service) => {

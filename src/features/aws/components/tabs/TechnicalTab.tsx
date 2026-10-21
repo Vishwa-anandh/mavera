@@ -4,6 +4,7 @@ import type { AwsInstance, AwsYearlyMonth, CspRecommendation } from '../../model
 import { isAccountWide, momPct } from '../../model/awsDerivations';
 import { extendDailyHistory, topWithOther } from '../../../../shared/lib/costAnalysis';
 import { DailyCostHistory } from '../../../../shared/ui/DailyCostHistory';
+import { CostByRegion } from '../../../../shared/ui/CostByRegion';
 import { DetailGroup } from '../../../../shared/ui/DetailGroup';
 import { SpendTrendChart } from '../../../../shared/ui/SpendTrendChart';
 import { DonutChart } from '../../../../shared/ui/DonutChart';
@@ -56,16 +57,12 @@ export function TechnicalTab(props: AwsCostTabProps) {
   const prevEntry = currentIndex > 0 ? yearlyData[currentIndex - 1] : yearlyData[yearlyData.length - 2];
   const movers = buildMovers(sortedServices, prevEntry?.topServices);
 
-  const regionSlices = [...data.regions].sort((a, b) => b.cost - a.cost).map((r, i) => ({
-    label: r.region,
-    value: r.cost,
-    color: [chartColors.primary, chartColors.secondary, chartColors.tertiary, chartColors.axis][i % 4],
-  }));
+  const regionCosts = data.regions.map((r) => ({ name: r.region, cost: r.cost }));
 
   return (
     <div>
       <DetailGroup title="Spend over time" description="How the bill built up day by day, month by month and by service.">
-        <DailyCostHistory series={dailyHistory} headingLevel="h3" />
+        <DailyCostHistory series={dailyHistory} headingLevel="h3" forecastTotal={data.forecast} />
 
         <section className="mv-panel" id="aws-daily-trend">
           <div className="mv-panel-header">
@@ -110,43 +107,38 @@ export function TechnicalTab(props: AwsCostTabProps) {
             <div className="mv-panel-header"><h3 className="mv-panel-title">Cost by Service</h3></div>
             <DonutChart title="Cost by service" totalLabel="Spend" data={serviceSlices} format={formatCurrency} />
           </section>
-          {data.regions.length > 0 && (
-            <section className="mv-panel" id="aws-region">
-              <div className="mv-panel-header"><h3 className="mv-panel-title">Cost by Region</h3></div>
-              <DonutChart title="Cost by region" totalLabel="Spend" data={regionSlices} format={formatCurrency} />
-            </section>
-          )}
+          <section className="mv-panel" id="aws-top-services">
+            <div className="mv-panel-header">
+              <h3 className="mv-panel-title">Top Services by Spend</h3>
+            </div>
+            {top6.length === 0 ? (
+              <p className="mv-muted">No service data available.</p>
+            ) : (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                {top6.map((svc) => {
+                  const savings = top6Total > 0 ? (svc.cost / top6Total) * cspSavingsTotal : 0;
+                  const max = Math.max(...top6.map((s) => s.cost), 1);
+                  return (
+                    <div key={svc.name} style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.8125rem', minWidth: 0 }}>
+                        <UiTooltip content={svc.name}><span className="mv-muted">{svc.name}</span></UiTooltip>
+                        <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
+                          <strong>{formatCurrency(svc.cost)}</strong>
+                          {savings > 0 && <span style={{ color: 'var(--mv-success)', fontSize: '0.6875rem' }}>-{formatCurrency(savings)}</span>}
+                        </span>
+                      </div>
+                      <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(svc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </div>
 
-        <section className="mv-panel" id="aws-top-services">
-          <div className="mv-panel-header">
-            <h3 className="mv-panel-title">Top Services by Spend</h3>
-          </div>
-          {top6.length === 0 ? (
-            <p className="mv-muted">No service data available.</p>
-          ) : (
-            <div style={{ display: 'grid', gap: '0.75rem' }}>
-              {top6.map((svc) => {
-                const savings = top6Total > 0 ? (svc.cost / top6Total) * cspSavingsTotal : 0;
-                const max = Math.max(...top6.map((s) => s.cost), 1);
-                return (
-                  <div key={svc.name} style={{ minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.8125rem', minWidth: 0 }}>
-                      <UiTooltip content={svc.name}><span className="mv-muted">{svc.name}</span></UiTooltip>
-                      <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
-                        <strong>{formatCurrency(svc.cost)}</strong>
-                        {savings > 0 && <span style={{ color: 'var(--mv-success)', fontSize: '0.6875rem' }}>-{formatCurrency(savings)}</span>}
-                      </span>
-                    </div>
-                    <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(svc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
+        {data.regions.length > 0 && <CostByRegion id="aws-region" regions={regionCosts} headingLevel="h3" />}
 
         <section className="mv-panel">
           <div className="mv-panel-header"><h3 className="mv-panel-title">Cost Movers</h3></div>

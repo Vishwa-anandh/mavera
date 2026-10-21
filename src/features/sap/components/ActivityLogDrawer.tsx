@@ -3,9 +3,10 @@ import type { TransportActivity } from '../../../data-access';
 import { DetailDrawer } from '../../../shared/ui/DetailDrawer';
 import { Pagination } from '../../../shared/ui/Pagination';
 import { Select } from '../../../shared/ui/Select';
+import { SearchField } from '../../../shared/ui/SearchField';
+import { FilterBar } from '../../../shared/ui/FilterBar';
 import { StatusTag } from '../../../shared/ui/StatusTag';
 import { usePagination } from '../../../shared/ui/usePagination';
-import { SearchIcon } from '../../../shared/ui/icons';
 import { formatStampWithYear } from '../model/sapFormat';
 import { LEVEL_TONE, LOG_LEVELS, LOG_TYPES, filterActivity, sortActivity, type ActivityFilters } from '../model/transports';
 
@@ -38,15 +39,12 @@ export function ActivityLogDrawer({ entries, onClose }: { entries: TransportActi
 
   return (
     <DetailDrawer title="Activity log" subtitle={`${entries.length} entries, newest first`} onClose={onClose}>
-      <div className="mv-filter-bar mv-filter-bar--drawer" role="search" aria-label="Filter activity log">
-        <label className="mv-filter-search">
-          <SearchIcon size={16} aria-hidden />
-          <input aria-label="Search the activity log" placeholder="Search messages or users…" value={filters.search} onChange={(e) => set('search', e.target.value)} />
-        </label>
+      <FilterBar label="Filter activity log" drawer>
+        <SearchField label="Search the activity log" placeholder="Search messages or users…" value={filters.search} onChange={(value) => set('search', value)} />
         <Select label="Level" hideLabel value={filters.level} onChange={(v) => set('level', v)} options={[{ value: 'All', label: 'All levels' }, ...LOG_LEVELS.map((l) => ({ value: l, label: l }))]} />
         <Select label="Type" hideLabel value={filters.type} onChange={(v) => set('type', v)} options={[{ value: 'All', label: 'All types' }, ...LOG_TYPES.map((t) => ({ value: t, label: t }))]} />
         {active && <button type="button" className="mv-quiet-button" onClick={() => setFilters({ level: 'All', type: 'All', search: '' })}>Clear filters</button>}
-      </div>
+      </FilterBar>
       {entries.length === 0 ? (
         <p className="mv-muted">No activity yet.</p>
       ) : filtered.length === 0 ? (

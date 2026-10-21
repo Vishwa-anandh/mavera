@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { SapJob } from '../../../data-access';
-import { ClockIcon, SearchIcon } from '../../../shared/ui/icons';
+import { ClockIcon } from '../../../shared/ui/icons';
 import {
   JOBS_PAGE_SIZE, JOB_FILTERS, JOB_STATUS_LABEL, JOB_STATUS_TONE, filterJobs, jobStatusCounts, sortJobsNewestFirst, type JobFilter,
 } from '../model/sapPerformance';
 import { TcodeBadge } from './TcodeBadge';
+import { SearchField } from '../../../shared/ui/SearchField';
+import { FilterBar } from '../../../shared/ui/FilterBar';
+import { FilterChips } from '../../../shared/ui/FilterChips';
 
 /** What the viewer has narrowed the list to; the page can hold it so it survives a tab switch. */
 export interface JobsView { filter: JobFilter; query: string; limit: number }
@@ -50,19 +53,15 @@ export function BackgroundJobsPanel({ jobs, initialFilter = 'All', initialQuery 
         <span className="mv-muted">{jobs.length} jobs</span>
       </div>
 
-      <div className="mv-filter-bar" role="search" aria-label="Filter background jobs">
-        <label className="mv-filter-search">
-          <SearchIcon size={16} aria-hidden />
-          <input type="search" aria-label="Search jobs" placeholder="Search jobs..." value={query} onChange={(e) => update({ query: e.target.value, limit: JOBS_PAGE_SIZE })} />
-        </label>
-      </div>
-      <div className="mv-job-chips" role="group" aria-label="Filter jobs by status">
-        {JOB_FILTERS.map((name) => (
-          <button key={name} type="button" className={`mv-chip mv-job-chip${filter === name ? ' is-active' : ''}`} aria-pressed={filter === name} onClick={() => choose(name)}>
-            {name}<span className="mv-job-chip-count">{counts[name]}</span>
-          </button>
-        ))}
-      </div>
+      <FilterBar label="Filter background jobs">
+        <SearchField label="Search jobs" placeholder="Search jobs..." value={query} onChange={(value) => update({ query: value, limit: JOBS_PAGE_SIZE })} />
+        <FilterChips
+          label="Filter jobs by status"
+          value={filter}
+          onChange={choose}
+          chips={JOB_FILTERS.map((name) => ({ value: name, label: name, count: counts[name] }))}
+        />
+      </FilterBar>
 
       <p className="mv-sr-only" role="status" aria-live="polite">{matches.length === 0 ? 'No jobs match.' : `Showing ${shown.length} of ${matches.length} jobs.`}</p>
 

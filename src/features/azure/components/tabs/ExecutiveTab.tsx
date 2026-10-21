@@ -3,6 +3,7 @@ import type { AzureCostTabProps } from '../../model/AzureCostTabProps';
 import type { AiInsight } from '../../model/azureDerivations';
 import { azureServiceCategoryOf, momPct } from '../../model/azureDerivations';
 import { groupByCategory } from '../../../../shared/lib/costAnalysis';
+import { ServiceBreakdownList } from '../../../../shared/ui/ServiceBreakdownList';
 import { ServiceCategorySummary } from '../../../../shared/ui/ServiceCategorySummary';
 import { SpendTrendChart } from '../../../../shared/ui/SpendTrendChart';
 import { ResourceCostTable } from '../ResourceCostTable';
@@ -16,14 +17,17 @@ import { Tooltip } from '../../../../shared/ui/Tooltip';
  * the "AI Executive Summary" panel, "Top 5 Cost Drivers" and the
  * "Attention Center" + Maitsys CSP savings callout).
  *
- * The reference's per-service expandable breakdown and its resource inventory by type stay on
- * `TechnicalTab.tsx`. This view adds the reference's "Service Category Summary" (services grouped by
+ * The headline figures (spend, forecast, daily pace, CSP saving, service and resource counts) are one
+ * shared summary on the account page, above every view, so this view has no second KPI strip.
+ *
+ * The reference's resource inventory by type stays on `TechnicalTab.tsx`. This view adds the per-service
+ * "Service Breakdown" (the top six services, expandable to every meter, with the CSP saving), plus the reference's "Service Category Summary" (services grouped by
  * `azureServiceCategoryOf`, a category chart plus a roll-up table that opens to its services) and the
  * resource table with its CSP saving, which shows the top few rows and expands with "Show all N resources".
  *
  * `data.topResources` / `data.resources` are zeroed for historical months;
  * this tab only reads `data.services` / `data.totalCost` / `data.forecast`
- * (safe for every month) plus one resource-count KPI, which is guarded.
+ * (safe for every month); the resource table is guarded.
  *
  * The MoM trend (Financial Snapshot tiles, chart, Attention Center's spike
  * flag) is anchored to the real latest/previous entries in `yearlyData`
@@ -38,9 +42,7 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
 
   const execTotal = data.totalCost;
   const execForecast = isCurrentMonth ? data.forecast : 0;
-  const amountPayable = execForecast > 0 ? execForecast : execTotal;
   const cspSavings = execTotal * mspRate;
-  const savingsPct = execTotal > 0 ? (cspSavings / (execTotal + cspSavings)) * 100 : 0;
 
   const currentEntry = yearlyData[yearlyData.length - 1];
   const previousEntry = yearlyData[yearlyData.length - 2];
@@ -76,29 +78,6 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
 
   return (
     <div>
-      <div className="mv-kpi-row-4">
-        <article className="mv-kpi">
-          <span className="mv-kpi-label">Enabled Services</span>
-          <strong className="mv-kpi-value">{data.services.length.toLocaleString()}</strong>
-          <span className="mv-muted">{isCurrentMonth ? `${data.topResources.length.toLocaleString()} cost-tracked resources` : 'Azure services billed this month'}</span>
-        </article>
-        <article className="mv-kpi">
-          <span className="mv-kpi-label">Total Resources</span>
-          <strong className="mv-kpi-value">{isCurrentMonth ? data.resources.total.toLocaleString() : '—'}</strong>
-          <span className="mv-muted">{isCurrentMonth ? `${data.resources.active.toLocaleString()} active` : 'Not available for historical months'}</span>
-        </article>
-        <article className="mv-kpi">
-          <span className="mv-kpi-label">Amount Payable</span>
-          <strong className="mv-kpi-value">{formatCurrency(amountPayable)}</strong>
-          <span className="mv-muted">{execForecast > 0 ? 'EOM Forecast' : isCurrentMonth ? 'Current Month-to-Date' : 'Selected Month Total'}</span>
-        </article>
-        <article className="mv-kpi">
-          <span className="mv-kpi-label">Total Savings</span>
-          <strong className="mv-kpi-value" style={{ color: 'var(--mv-success)' }}>{formatCurrency(cspSavings)}</strong>
-          <span className="mv-muted">Maitsys CSP ({(mspRate * 100).toFixed(0)}%) · {savingsPct.toFixed(1)}% of gross spend</span>
-        </article>
-      </div>
-
       <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Financial Snapshot</h2>
@@ -161,6 +140,12 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
       <div className="mv-detail-stack">
         <ServiceCategorySummary summary={categorySummary} />
       </div>
+
+      {data.details.length > 0 && (
+        <div className="mv-detail-stack" id="azure-service-breakdown-summary">
+          <ServiceBreakdownList lines={data.details.map((line) => ({ service: line.service, usageType: line.meter, cost: line.cost }))} cspRate={mspRate} format={formatCurrency} limit={6} />
+        </div>
+      )}
 
       <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel">

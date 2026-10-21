@@ -5,10 +5,12 @@ import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { Pagination } from '../../../shared/ui/Pagination';
 import { Select } from '../../../shared/ui/Select';
+import { SearchField } from '../../../shared/ui/SearchField';
+import { FilterBar } from '../../../shared/ui/FilterBar';
 import { StatusTag } from '../../../shared/ui/StatusTag';
 import { Tooltip } from '../../../shared/ui/Tooltip';
 import { usePagination } from '../../../shared/ui/usePagination';
-import { ClockIcon, RefreshIcon, SearchIcon, TrashIcon, UploadIcon } from '../../../shared/ui/icons';
+import { ClockIcon, RefreshIcon, TrashIcon, UploadIcon } from '../../../shared/ui/icons';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
 import { NotesHistoryDrawer } from '../components/NotesHistoryDrawer';
 import { UploadNotesDialog } from '../components/UploadNotesDialog';
@@ -109,16 +111,13 @@ export function SecurityNotesPage() {
       </div>
 
       <section className="mv-panel" aria-label="Security notes">
-        <div className="mv-filter-bar" role="search" aria-label="Filter security notes">
-          <label className="mv-filter-search">
-            <SearchIcon size={16} aria-hidden />
-            <input aria-label="Search by note number, title or component" placeholder="Search by note number, title, component..." value={search} onChange={(e) => setSearch(e.target.value)} />
-          </label>
+        <FilterBar label="Filter security notes">
+          <SearchField label="Search by note number, title or component" placeholder="Search by note number, title, component..." value={search} onChange={setSearch} />
           <Select label="Priority" hideLabel value={priority} onChange={setPriority} options={[{ value: 'All', label: 'All Priorities' }, ...NOTE_PRIORITIES.map((v) => ({ value: v, label: v }))]} />
           <Select label="Status" hideLabel value={status} onChange={setStatus} options={[{ value: 'All', label: 'All Statuses' }, ...NOTE_STATUSES.map((v) => ({ value: v, label: v }))]} />
           <Select label="SAP download" hideLabel value={download} onChange={setDownload} options={[{ value: 'All', label: 'All Downloads' }, ...NOTE_DOWNLOAD_STATUSES.map((v) => ({ value: v, label: v }))]} />
           {filtersActive && <button type="button" className="mv-quiet-button" onClick={clearFilters}>Clear filters</button>}
-        </div>
+        </FilterBar>
 
         <p className="mv-sr-only" role="status" aria-live="polite">{busy?.kind === 'check' ? 'Checking unknown notes against SAP' : busy?.kind === 'upload' ? 'Uploading notes' : ''}</p>
         {busy?.kind === 'check' && <p className="mv-muted mv-working-line" aria-hidden>Checking unknown notes against SAP…</p>}

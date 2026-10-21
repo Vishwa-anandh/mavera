@@ -13,6 +13,9 @@ interface ServiceBreakdownListProps {
   cspRate?: number;
   title?: string;
   format: (value: number) => string;
+  /** Show only the biggest `limit` services until "Show all N services" is pressed (a compact view). */
+  limit?: number;
+  headingLevel?: 'h2' | 'h3';
 }
 
 interface ServiceGroup {
@@ -45,24 +48,28 @@ export function groupServiceLines(lines: readonly UsageLine[]): ServiceGroup[] {
  * percentage, the cost and how many usage types it has. A row opens to its usage lines (with the CSP saving),
  * so 28 usage lines read as 11 services you can drill into.
  */
-export function ServiceBreakdownList({ lines, cspRate, title = 'Service Breakdown', format }: ServiceBreakdownListProps) {
+export function ServiceBreakdownList({ lines, cspRate, title = 'Service Breakdown', format, limit, headingLevel = 'h2' }: ServiceBreakdownListProps) {
   const titleId = useId();
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const groups = useMemo(() => groupServiceLines(lines), [lines]);
+  const [showAll, setShowAll] = useState(false);
+  const Heading = headingLevel;
+  const allGroups = useMemo(() => groupServiceLines(lines), [lines]);
+  const folded = limit !== undefined && allGroups.length > limit;
+  const groups = folded && !showAll ? allGroups.slice(0, limit) : allGroups;
   const toggle = (service: string) =>
     setOpen((current) => {
       const next = new Set(current);
       if (!next.delete(service)) next.add(service);
       return next;
     });
-  const maxShare = Math.max(1, ...groups.map((group) => group.sharePct));
+  const maxShare = Math.max(1, ...allGroups.map((group) => group.sharePct));
 
   return (
     <section className="mv-panel" aria-labelledby={titleId}>
       <div className="mv-panel-header">
         <div>
-          <h2 className="mv-panel-title" id={titleId}>{title}</h2>
-          <p className="mv-muted mv-section-sub">{groups.length} service {groups.length === 1 ? 'type' : 'types'} · {lines.length} usage line {lines.length === 1 ? 'item' : 'items'}</p>
+          <Heading className="mv-panel-title" id={titleId}>{title}</Heading>
+          <p className="mv-muted mv-section-sub">{folded && !showAll ? `Top ${groups.length} of ${allGroups.length} service types` : `${allGroups.length} service ${allGroups.length === 1 ? 'type' : 'types'}`} · {lines.length} usage line {lines.length === 1 ? 'item' : 'items'}</p>
         </div>
       </div>
       <ul className="mv-svc-list">
@@ -95,6 +102,11 @@ export function ServiceBreakdownList({ lines, cspRate, title = 'Service Breakdow
           );
         })}
       </ul>
+      {folded && (
+        <button type="button" className="mv-quiet-button mv-svc-more" aria-expanded={showAll} onClick={() => setShowAll((value) => !value)}>
+          {showAll ? 'Show fewer services' : `Show all ${allGroups.length} services`}
+        </button>
+      )}
     </section>
   );
 }

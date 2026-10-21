@@ -4,6 +4,8 @@ import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { ChevronLeftIcon, ChevronDownIcon, RefreshIcon, SparkleIcon } from '../../../shared/ui/icons';
 import { Tooltip } from '../../../shared/ui/Tooltip';
+import { CloudSpendSummary } from '../../../shared/ui/CloudSpendSummary';
+import { daysInMonthOf } from '../../../shared/lib/costAnalysis';
 import {
   MOCK_AZURE_ACCOUNTS,
   MOCK_AZURE_FULL,
@@ -23,10 +25,6 @@ const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'J
  * `/insights/msp-savings` hasn't returned a per-org override. */
 const AZURE_MSP_RATE = 0.07;
 
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-}
-
 function emptyCosts(base: AzureYearlyMonth): AzureCosts {
   return {
     totalCost: base.totalCost,
@@ -35,6 +33,7 @@ function emptyCosts(base: AzureYearlyMonth): AzureCosts {
     dailyCosts: base.dailyCosts,
     services: base.topServices,
     topResources: [],
+    details: base.details,
     resourceGroups: base.resourceGroups,
     locations: base.locations,
     resources: { total: 0, active: 0, byType: [], allResources: [] },
@@ -104,6 +103,7 @@ export function AzureCostPage() {
   const dailyAvg = isCurrentMonth ? Math.round((data.totalCost / dayOfMonth) * 100) / 100 : null;
   const todayCost = isCurrentMonth ? (data.dailyCosts[data.dailyCosts.length - 1]?.cost ?? null) : null;
   const mspSavings = Math.round(data.totalCost * AZURE_MSP_RATE * 100) / 100;
+  const grossSavingsPct = AZURE_MSP_RATE / (1 + AZURE_MSP_RATE) * 100;
 
   const aiInsights = buildAiInsights(MOCK_AZURE_FULL.costs, MOCK_AZURE_YEARLY, AZURE_MSP_RATE);
 
@@ -135,16 +135,16 @@ export function AzureCostPage() {
         <div className="mv-cost-header-title">
           <button className="mv-icon-button" aria-label="Back to Azure overview" onClick={() => navigate('/azure')}><ChevronLeftIcon size={20} /></button>
           <span className="mv-status mv-status--info">Azure</span>
-          <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: '1.25rem' }}>{account.name}</h1></Tooltip>
+          <Tooltip content={account.name}><h1 className="mv-title mv-cost-title">{account.name}</h1></Tooltip>
         </div>
         <div className="mv-cost-header-controls">
           {MOCK_AZURE_ACCOUNTS.length > 1 && (
-            <div style={{ position: 'relative' }} ref={switchRef}>
-              <button className="mv-secondary-button" onClick={() => setSwitchOpen((v) => !v)} aria-haspopup="menu" aria-expanded={switchOpen}>Switch account<ChevronDownIcon size={14} style={{ marginLeft: '0.375rem' }} /></button>
+            <div className="mv-cost-menu" ref={switchRef}>
+              <button className="mv-secondary-button" onClick={() => setSwitchOpen((v) => !v)} aria-haspopup="menu" aria-expanded={switchOpen}>Switch account<ChevronDownIcon size={14} className="mv-cost-menu-chevron" /></button>
               {switchOpen && (
-                <div className="mv-nav-dropdown" role="menu" style={{ right: 0, left: 'auto' }}>
+                <div className="mv-nav-dropdown mv-cost-menu-list" role="menu">
                   {MOCK_AZURE_ACCOUNTS.map((a) => (
-                    <button key={a.id} role="menuitem" className="mv-nav-dropdown-item" style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer' }} onClick={() => { setSwitchOpen(false); navigate(`/azure/${a.id}`); }}>
+                    <button key={a.id} role="menuitem" className="mv-nav-dropdown-item mv-cost-menu-item" onClick={() => { setSwitchOpen(false); navigate(`/azure/${a.id}`); }}>
                       <span>{a.name}</span>
                     </button>
                   ))}
@@ -152,16 +152,16 @@ export function AzureCostPage() {
               )}
             </div>
           )}
-          <div style={{ position: 'relative' }} ref={monthRef}>
+          <div className="mv-cost-menu" ref={monthRef}>
             <button className="mv-secondary-button" onClick={() => setMonthOpen((v) => !v)} aria-haspopup="menu" aria-expanded={monthOpen}>
-              {isCurrentMonth ? 'Month-to-Date' : `${MONTH_LABELS[selectedMonth!.month - 1]} ${selectedMonth!.year}`}<ChevronDownIcon size={14} style={{ marginLeft: '0.375rem' }} />
+              {isCurrentMonth ? 'Month-to-Date' : `${MONTH_LABELS[selectedMonth!.month - 1]} ${selectedMonth!.year}`}<ChevronDownIcon size={14} className="mv-cost-menu-chevron" />
             </button>
             {monthOpen && (
-              <div className="mv-nav-dropdown" role="menu" style={{ right: 0, left: 'auto', maxHeight: '20rem' }}>
+              <div className="mv-nav-dropdown mv-cost-menu-list mv-cost-menu-list--months" role="menu">
                 {[...MOCK_AZURE_YEARLY].reverse().map((m) => {
                   const isCur = m.year === currentYearly.year && m.month === currentYearly.month;
                   return (
-                    <button key={`${m.year}-${m.month}`} role="menuitem" className="mv-nav-dropdown-item" style={{ width: '100%', border: 0, background: 'transparent', cursor: 'pointer' }} onClick={() => { setMonthOpen(false); tabProps.onSelectMonth(m.year, m.month); }}>
+                    <button key={`${m.year}-${m.month}`} role="menuitem" className="mv-nav-dropdown-item mv-cost-menu-item" onClick={() => { setMonthOpen(false); tabProps.onSelectMonth(m.year, m.month); }}>
                       <span>{MONTH_LABELS[m.month - 1]} {m.year}{isCur ? ' (Month-to-Date)' : ''}</span>
                     </button>
                   );
@@ -169,23 +169,23 @@ export function AzureCostPage() {
               </div>
             )}
           </div>
-          <div style={{ position: 'relative' }} ref={aiRef}>
-            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} style={{ marginRight: '0.375rem' }} />AI Insights</button>
+          <div className="mv-cost-menu" ref={aiRef}>
+            <button className="mv-secondary-button" onClick={() => setAiOpen((v) => !v)} aria-haspopup="menu" aria-expanded={aiOpen}><SparkleIcon size={15} className="mv-cost-menu-icon" />AI Insights</button>
             {aiOpen && (
-              <div className="mv-nav-dropdown" style={{ right: 0, left: 'auto', width: '21.25rem', padding: '0.875rem' }}>
-                <p className="mv-panel-title" style={{ marginBottom: '0.625rem' }}>AI Insights</p>
-                <div style={{ display: 'grid', gap: '0.5rem' }}>
+              <div className="mv-nav-dropdown mv-cost-menu-list mv-cost-menu-list--insights">
+                <p className="mv-panel-title mv-cost-menu-title">AI Insights</p>
+                <div className="mv-cost-insight-list">
                   {aiInsights.map((insight, i) => (
                     <div key={i} className={`mv-inline-error mv-ai-insight mv-ai-insight--${insight.type}`}>
                       <strong>{insight.title}</strong>
-                      <p style={{ margin: '2px 0 0' }}>{insight.detail}</p>
+                      <p>{insight.detail}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
-          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{syncing ? 'Syncing…' : 'Sync'}</button>
+          <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} className="mv-cost-menu-icon" />{syncing ? 'Syncing…' : 'Sync'}</button>
         </div>
       </div>
 
@@ -199,19 +199,29 @@ export function AzureCostPage() {
       </nav>
 
       {!isCurrentMonth && (
-        <div className="mv-notice" style={{ marginBottom: '1rem' }}>
+        <div className="mv-notice mv-cost-banner">
           Viewing {MONTH_LABELS[selectedMonth!.month - 1]} {selectedMonth!.year} — historical data.{' '}
-          <button className="mv-quiet-button" style={{ padding: 0, minHeight: 'auto' }} onClick={() => setSelectedMonth(null)}>Back to current</button>
+          <button className="mv-quiet-button mv-cost-banner-link" onClick={() => setSelectedMonth(null)}>Back to current</button>
         </div>
       )}
 
-      <div className="mv-kpi-row-5">
-        <article className="mv-kpi"><span className="mv-kpi-label">{isCurrentMonth ? 'Month-to-Date Total Spend' : 'Month Spend'}</span><strong className="mv-kpi-value">{formatCurrency(data.totalCost)}</strong>{momChange !== null && isCurrentMonth && <span className="mv-muted">{momChange >= 0 ? '▲' : '▼'} {Math.abs(momChange)}% vs last month</span>}</article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Daily Avg Spend</span><strong className="mv-kpi-value">{dailyAvg !== null ? formatCurrency(dailyAvg) : '—'}</strong></article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Today's Spend</span><strong className="mv-kpi-value">{todayCost !== null ? formatCurrency(todayCost) : (isCurrentMonth ? 'Syncing…' : '—')}</strong></article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Forecast</span><strong className="mv-kpi-value">{formatCurrency(MOCK_AZURE_FULL.costs.forecast)}</strong><span className="mv-muted">Statistical month-end projection</span></article>
-        <article className="mv-kpi"><span className="mv-kpi-label">Maitsys CSP Savings</span><strong className="mv-kpi-value" style={{ color: 'var(--mv-success)' }}>{formatCurrency(mspSavings)}</strong></article>
-      </div>
+      <CloudSpendSummary
+        isCurrentMonth={isCurrentMonth}
+        spend={data.totalCost}
+        changePct={momChange}
+        daily={data.dailyCosts.map((point) => point.cost)}
+        daysInMonth={daysInMonthOf(data.dailyCosts[0]?.date)}
+        forecast={isCurrentMonth ? data.forecast : null}
+        lastMonthTotal={lastMonth?.totalCost ?? null}
+        dailyAverage={dailyAvg}
+        todaySpend={todayCost}
+        savings={mspSavings}
+        savingsLines={[`${(AZURE_MSP_RATE * 100).toFixed(0)}% CSP discount · ${grossSavingsPct.toFixed(1)}% of gross spend`]}
+        facts={[
+          { label: 'Enabled services', value: data.services.length.toLocaleString(), detail: isCurrentMonth ? `${data.topResources.length.toLocaleString()} cost-tracked resources` : 'billed this month' },
+          { label: 'Total resources', value: isCurrentMonth ? data.resources.total.toLocaleString() : '—', detail: isCurrentMonth ? `${data.resources.active.toLocaleString()} active` : 'not available for past months' },
+        ]}
+      />
 
       {isZeroCycle ? (
         <div className="mv-empty"><h2>No Billable Activity</h2><p>Azure hasn't billed anything for this cycle yet.</p></div>

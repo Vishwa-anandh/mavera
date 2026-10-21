@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cumulativeSeries, dailyTotals, extendDailyHistory, groupByCategory, lastNDays, sharesOf, topWithOther } from './costAnalysis';
+import { cumulativeSeries, dailyTotals, daysInMonthOf, extendDailyHistory, groupByCategory, lastNDays, monthForecast, serviceStackKeys, sharesOf, stackDay, summarizeRegions, topWithOther } from './costAnalysis';
 
 const day = (date: string, cost: number) => ({ date, cost });
 
@@ -114,4 +114,127 @@ describe('topWithOther', () => {
   });
   it('adds no Other when everything fits', () => expect(topWithOther(items, 4)).toHaveLength(4));
   it('preserves the total', () => expect(topWithOther(items, 1).reduce((s, i) => s + i.cost, 0)).toBe(11));
+});
+
+const dayRange = (from: number, to: number, cost: (day: number) => number, month = '2026-09') =>
+  Array.from({ length: to - from + 1 }, (_, i) => ({ date: `${month}-${String(from + i).padStart(2, '0')}`, cost: cost(from + i) }));
+
+describe('daysInMonthOf', () => {
+  it('reads the length of the month from an ISO date', () => {
+    expect(daysInMonthOf('2026-09-27')).toBe(30);
+    expect(daysInMonthOf('2028-02-10')).toBe(29);
+    expect(daysInMonthOf('nope')).toBeNull();
+    expect(daysInMonthOf(undefined)).toBeNull();
+  });
+});
+
+describe('monthForecast', () => {
+  // 27 days of September: days 1..20 cost 10, days 21..27 cost 20, so the last 7 days average 20.
+  const series = dayRange(1, 27, (day) => (day > 20 ? 20 : 10));
+
+  it('lays the month out day by day: actual days, then projected days to month end', () => {
+    const forecast = monthForecast(series)!;
+    expect(forecast.rows).toHaveLength(30);
+    expect(forecast.rows.slice(0, 27).every((row) => row.actual !== null && row.projected === null)).toBe(true);
+    expect(forecast.rows.slice(27).every((row) => row.actual === null && row.projected !== null)).toBe(true);
+    expect(forecast.rows[29].date).toBe('2026-09-30');
+    expect(forecast.daysInMonth).toBe(30);
+  });
+
+  it('marks today as the last actual day', () => {
+    const forecast = monthForecast(series)!;
+    expect(forecast.todayIndex).toBe(26);
+    expect(forecast.todayDate).toBe('2026-09-27');
+    expect(forecast.rows[forecast.todayIndex].actual).toBe(20);
+  });
+
+  it('projects the average of the last 7 actual days when no month-end forecast is given', () => {
+    const forecast = monthForecast(series)!;
+    expect(forecast.method).toBe('last-7-day average');
+    expect(forecast.dailyForecast).toBe(20);
+    expect(forecast.projectedTotal).toBe(60);
+    expect(forecast.actualTotal).toBe(340);
+    expect(forecast.monthEndTotal).toBe(400);
+  });
+
+  it('spreads a month-end forecast over the remaining days and ties to it exactly', () => {
+    const forecast = monthForecast(series, { forecastTotal: 400.01 })!;
+    expect(forecast.method).toBe('month-end forecast');
+    expect(forecast.monthEndTotal).toBe(400.01);
+    expect(forecast.rows.filter((row) => row.projected !== null).reduce((sum, row) => sum + (row.projected ?? 0), 0)).toBeCloseTo(60.01, 2);
+  });
+
+  it('ignores a forecast that is not above the spend so far', () => {
+    expect(monthForecast(series, { forecastTotal: 100 })!.method).toBe('last-7-day average');
+  });
+
+  it('has no projected days once the month is complete, and uses the month of the last point', () => {
+    const full = monthForecast(dayRange(1, 30, () => 5))!;
+    expect(full.method).toBe('complete');
+    expect(full.rows.every((row) => row.projected === null)).toBe(true);
+    // A 30 day window that starts in the previous month only draws the month it ends in.
+    const spanning = [...dayRange(20, 31, () => 99, '2026-08'), ...dayRange(1, 5, () => 10)];
+    const month = monthForecast(spanning)!;
+    expect(month.actualTotal).toBe(50);
+    expect(month.rows[0].date).toBe('2026-09-01');
+  });
+
+  it('returns null for an empty series', () => {
+    expect(monthForecast([])).toBeNull();
+  });
+});
+
+describe('per-service daily stack', () => {
+  const split = (day: number) => ({ A: day, B: day * 2, C: day * 3, D: 1, E: 1 });
+  const series = dayRange(1, 10, (day) => day * 6 + 2).map((point, i) => ({ ...point, byService: split(i + 1) }));
+
+  it('keeps the three biggest services over the whole series, biggest first', () => {
+    expect(serviceStackKeys(series)).toEqual(['C', 'B', 'A']);
+  });
+
+  it('keeps the order stable whatever window is shown', () => {
+    // Keys come from the whole series, so a window where A is the biggest does not reorder the stack.
+    const keys = serviceStackKeys(series);
+    const reversed = stackDay({ ...series[0], byService: { A: 100, B: 1, C: 1, D: 0, E: 0 }, cost: 102 }, keys);
+    expect(reversed.parts).toEqual([1, 1, 100]);
+  });
+
+  it('folds everything else into Other so each day adds up to its total', () => {
+    const keys = serviceStackKeys(series);
+    for (const point of series) {
+      const day = stackDay(point, keys);
+      expect(day.parts.reduce((sum, v) => sum + v, 0) + day.other).toBeCloseTo(point.cost, 2);
+    }
+    expect(stackDay(series[0], keys).other).toBe(2);
+  });
+
+  it('is empty for a series without a service breakdown', () => {
+    expect(serviceStackKeys(dayRange(1, 3, () => 1))).toEqual([]);
+  });
+});
+
+describe('summarizeRegions', () => {
+  const regions = [
+    { name: 'eu-west-1', cost: 100 }, { name: 'us-east-1', cost: 600 }, { name: 'us-west-2', cost: 200 }, { name: 'global', cost: 50 },
+    { name: 'ap-south-1', cost: 30 }, { name: 'NoRegion', cost: 15 }, { name: 'eu-central-1', cost: 5 },
+  ];
+  const summary = summarizeRegions(regions);
+
+  it('lists every region, most expensive first, with shares that total 100', () => {
+    expect(summary.rows.map((row) => row.name)).toEqual(['us-east-1', 'us-west-2', 'eu-west-1', 'global', 'ap-south-1', 'NoRegion', 'eu-central-1']);
+    expect(summary.rows.reduce((sum, row) => sum + row.sharePct, 0)).toBeCloseTo(100, 5);
+    expect(summary.total).toBe(1000);
+  });
+
+  it('shows the top 4 regions in the donut and folds the rest into Other', () => {
+    expect(summary.slices.map((slice) => slice.name)).toEqual(['us-east-1', 'us-west-2', 'eu-west-1', 'global', 'Other']);
+    expect(summary.slices[4]).toMatchObject({ cost: 50, isOther: true });
+    expect(summary.slices.reduce((sum, slice) => sum + slice.cost, 0)).toBe(summary.total);
+    expect(summary.slices.reduce((sum, slice) => sum + slice.sharePct, 0)).toBeCloseTo(100, 5);
+  });
+
+  it('has no Other slice when there are four regions or fewer', () => {
+    expect(summarizeRegions(regions.slice(0, 3)).slices.some((slice) => slice.isOther)).toBe(false);
+    expect(summarizeRegions([]).rows).toEqual([]);
+  });
 });

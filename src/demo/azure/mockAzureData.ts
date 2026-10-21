@@ -11,6 +11,7 @@ import type {
   AzureYearlyMonth,
   CspRecommendation,
 } from '../../features/azure';
+import { seededRandom, splitDailyByService, splitToTheCent } from '../shared/costSplit';
 
 export const MOCK_AZURE_ACCOUNTS: AzureAccount[] = [
   { id: 'az-acc-1', name: 'Production Environment', subscriptionId: 'a1b2c3d4-5e6f-4789-9abc-def012345678', tenantId: 'f0e1d2c3-4b5a-4978-8765-43210fedcba9', clientId: '11223344-5566-4778-899a-abbccddeeff0' },
@@ -20,6 +21,33 @@ export const MOCK_AZURE_ACCOUNTS: AzureAccount[] = [
 const SERVICE_NAMES = ['Virtual Machines', 'Storage Accounts', 'SQL Database', 'App Service', 'Azure Kubernetes Service', 'Networking', 'Cosmos DB', 'Redis Cache'];
 const RESOURCE_GROUPS = ['rg-production-eastus', 'rg-shared-services', 'rg-data-platform', 'rg-networking-hub'];
 const LOCATIONS = ['East US', 'West Europe', 'Central US'];
+/** Smaller locations and the buckets Azure bills outside a region. Own PRNG, so the rest of the fixture keeps its values. */
+const EXTRA_LOCATIONS: Array<[string, number]> = [['Global', 0.2], ['North Europe', 0.18], ['UK South', 0.12], ['Southeast Asia', 0.08], ['Unassigned', 0.02]];
+const extraLocationRand = seededRandom(2288);
+const DAILY_SPLIT_SEED = 4242;
+const METER_SEED = 9090;
+
+/** The meters each service is billed on; a service's cost is split across them to build its usage lines. */
+const METERS: Record<string, string[]> = {
+  'Virtual Machines': ['D4s v5 compute hours', 'E8s v5 compute hours', 'Premium SSD managed disks', 'Outbound bandwidth'],
+  'Storage Accounts': ['Hot LRS data stored', 'Write operations', 'Read operations', 'Archive tier storage'],
+  'SQL Database': ['General Purpose vCore', 'Backup storage', 'Zone redundancy'],
+  'App Service': ['P1v3 plan hours', 'S1 plan hours', 'SSL bindings'],
+  'Azure Kubernetes Service': ['D8s v5 node pool', 'Uptime SLA', 'Standard load balancer'],
+  'Networking': ['Application Gateway v2', 'Public IP addresses', 'Outbound data processed', 'VPN gateway'],
+  'Cosmos DB': ['Provisioned throughput (RU/s)', 'Transactional storage', 'Multi-region writes'],
+  'Redis Cache': ['Premium P1 cache hours', 'Geo-replication'],
+};
+
+/** One usage line per meter; the lines of a service add up to that service's cost exactly. */
+function meterLines(services: Array<{ name: string; cost: number }>, seed: number) {
+  const random = seededRandom(seed);
+  return services.flatMap((service) => {
+    const meters = METERS[service.name] ?? ['Usage'];
+    const costs = splitToTheCent(service.cost, meters.map(() => 0.5 + random()));
+    return meters.map((meter, index) => ({ service: service.name, meter, cost: costs[index] }));
+  });
+}
 
 /** Simple deterministic PRNG (mulberry32) so the mock dataset is stable
  * across renders/tests rather than reshuffling on every reload. */
@@ -65,8 +93,11 @@ function dailyCosts(daysInMonth: number, monthTotal: number): { date: string; co
 
 const CURRENT_MONTH_TOTAL = 14280.55;
 const CURRENT_MONTH_DAYS = 27; // "today" is 2026-09-27 per this session's context
-const CURRENT_MONTH_DAILY = dailyCosts(CURRENT_MONTH_DAYS, CURRENT_MONTH_TOTAL);
+const CURRENT_MONTH_DAILY_TOTALS = dailyCosts(CURRENT_MONTH_DAYS, CURRENT_MONTH_TOTAL);
 const CURRENT_MONTH_SERVICES = serviceBreakdown(CURRENT_MONTH_TOTAL);
+/** Each day carries its services; they add up to that day's cost, so the month-to-date total is unchanged. */
+const CURRENT_MONTH_DAILY = splitDailyByService(CURRENT_MONTH_DAILY_TOTALS, CURRENT_MONTH_SERVICES, DAILY_SPLIT_SEED);
+const CURRENT_MONTH_DETAILS = meterLines(CURRENT_MONTH_SERVICES, METER_SEED);
 
 const RESOURCE_NAMES: Record<string, string[]> = {
   'Virtual Machines': ['vm-web-01', 'vm-web-02', 'vm-api-01', 'vm-batch-worker'],
@@ -100,8 +131,10 @@ const RESOURCE_GROUP_COSTS = (() => {
 
 const LOCATION_COSTS = (() => {
   const weights = LOCATIONS.map(() => 0.5 + rand());
-  const costs = distribute(CURRENT_MONTH_TOTAL, weights);
-  return LOCATIONS.map((name, i) => ({ name, cost: costs[i] }));
+  const extraWeights = EXTRA_LOCATIONS.map(([, base]) => base * (0.85 + extraLocationRand() * 0.3));
+  const names = [...LOCATIONS, ...EXTRA_LOCATIONS.map(([name]) => name)];
+  const costs = distribute(CURRENT_MONTH_TOTAL, [...weights, ...extraWeights]);
+  return names.map((name, i) => ({ name, cost: costs[i] }));
 })();
 
 const ALL_RESOURCES = MOCK_AZURE_TOP_RESOURCES.map((r) => ({
@@ -140,6 +173,7 @@ export const MOCK_AZURE_FULL: AzureFullResponse = {
     dailyCosts: CURRENT_MONTH_DAILY,
     services: CURRENT_MONTH_SERVICES,
     topResources: MOCK_AZURE_TOP_RESOURCES,
+    details: CURRENT_MONTH_DETAILS,
     resourceGroups: RESOURCE_GROUP_COSTS,
     locations: LOCATION_COSTS,
     resources: {
@@ -216,14 +250,18 @@ export const MOCK_AZURE_YEARLY: AzureYearlyMonth[] = MONTH_NAMES_2025_2026.map((
   const isCurrent = year === 2026 && month === 9;
   const total = isCurrent ? CURRENT_MONTH_TOTAL : Math.round((10500 + index * 320 + rand() * 1400) * 100) / 100;
   const days = DAYS_IN_MONTH[month];
+  const rawDaily = isCurrent ? CURRENT_MONTH_DAILY_TOTALS : dailyCosts(days, total).map((d) => ({ ...d, date: `${year}-${String(month).padStart(2, '0')}-${d.date.slice(-2)}` }));
+  const topServices = isCurrent ? CURRENT_MONTH_SERVICES : serviceBreakdown(total);
   return {
     year,
     month,
     totalCost: total,
-    dailyCosts: isCurrent ? CURRENT_MONTH_DAILY : dailyCosts(days, total).map((d) => ({ ...d, date: `${year}-${String(month).padStart(2, '0')}-${d.date.slice(-2)}` })),
-    topServices: isCurrent ? CURRENT_MONTH_SERVICES : serviceBreakdown(total),
+    dailyCosts: isCurrent ? CURRENT_MONTH_DAILY : splitDailyByService(rawDaily, topServices, DAILY_SPLIT_SEED + index),
+    topServices,
+    details: isCurrent ? CURRENT_MONTH_DETAILS : meterLines(topServices, METER_SEED + index),
     resourceGroups: RESOURCE_GROUP_COSTS,
-    locations: LOCATION_COSTS,
+    // Each month's regions add up to that month's total, in the same proportions as the current month.
+    locations: isCurrent ? LOCATION_COSTS : splitToTheCent(total, LOCATION_COSTS.map((location) => location.cost)).map((cost, i) => ({ name: LOCATION_COSTS[i].name, cost })),
   };
 });
 

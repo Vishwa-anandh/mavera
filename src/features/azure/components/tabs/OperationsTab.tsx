@@ -3,6 +3,7 @@ import type { AzureCostTabProps } from '../../model/AzureCostTabProps';
 import type { AzureBudget, AzureYearlyMonth } from '../../model/azureTypes';
 import { cspSavingsByService, momPct } from '../../model/azureDerivations';
 import { extendDailyHistory } from '../../../../shared/lib/costAnalysis';
+import { CostByRegion } from '../../../../shared/ui/CostByRegion';
 import { DailyCostHistory } from '../../../../shared/ui/DailyCostHistory';
 import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
 
@@ -105,7 +106,7 @@ export function OperationsTab(props: AzureCostTabProps) {
       </section>
 
       <div className="mv-detail-stack">
-        <DailyCostHistory series={dailyHistory} />
+        <DailyCostHistory series={dailyHistory} forecastTotal={isCurrentMonth ? data.forecast : null} />
       </div>
 
       <section className="mv-panel" style={{ marginBottom: '1rem' }}>
@@ -163,7 +164,10 @@ export function OperationsTab(props: AzureCostTabProps) {
       <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <NamedListCard title="Top Services" rows={sortedServices.slice(0, LIST_VISIBLE)} savingsFor={(name) => cspSavingsByService(cspRecommendations, name)} />
         <NamedListCard title="By Resource Group" rows={data.resourceGroups} />
-        <NamedListCard title="By Region" rows={data.locations} />
+      </div>
+
+      <div className="mv-detail-stack">
+        <CostByRegion regions={data.locations} />
       </div>
 
       <section className="mv-panel" style={{ marginBottom: '1rem' }}>

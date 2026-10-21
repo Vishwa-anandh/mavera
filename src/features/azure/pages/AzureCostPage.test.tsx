@@ -23,6 +23,9 @@ function setup() {
 }
 
 const view = (name: RegExp) => screen.getByRole('button', { name });
+const money = (text: string | null) => Number((text ?? '').replace(/[$,]/g, ''));
+/** The dollar amounts in a piece of text, in order. */
+const amounts = (text: string | null) => (text ?? '').match(/\$[\d,]+\.\d{2}/g)?.map(money) ?? [];
 
 describe('Azure account page', () => {
   describe('Executive view', () => {
@@ -35,6 +38,44 @@ describe('Azure account page', () => {
       expect(within(summary).getByRole('img', { name: 'Spend by service category' })).toBeInTheDocument();
       expect(within(summary).getByRole('button', { name: /^Compute, \d+ services?$/ })).toBeInTheDocument();
       expect(within(summary).getByRole('row', { name: /^Total/ })).toHaveTextContent('100.0%');
+    });
+
+    it('has one spend summary above the views: no Amount Payable or Total Savings repeating the forecast and the CSP saving', () => {
+      setup();
+      const summary = screen.getByRole('region', { name: 'Spend summary' });
+      for (const label of ['Month-to-date spend', 'Forecast', 'Daily pace', 'Maitsys CSP savings']) expect(within(summary).getByText(label)).toBeInTheDocument();
+      expect(within(summary).getByText('Projected')).toBeInTheDocument();
+      expect(within(summary).getByText('Enabled services')).toBeInTheDocument();
+      expect(within(summary).getByText('Total resources')).toBeInTheDocument();
+      expect(within(summary).getByText(/7% CSP discount/)).toBeInTheDocument();
+      expect(screen.queryByText('Amount Payable')).not.toBeInTheDocument();
+      expect(screen.queryByText('Total Savings')).not.toBeInTheDocument();
+      expect(document.querySelectorAll('.mv-kpi-row-4, .mv-kpi-row-5')).toHaveLength(0);
+      // The figures themselves are unchanged: month to date and its forecast.
+      expect(summary).toHaveTextContent('$14,280.55');
+      expect(summary).toHaveTextContent('$15,867.28');
+    });
+
+    it('shows a compact Service Breakdown after the Service Category Summary, with meters that tie to it', async () => {
+      const user = setup();
+      const category = screen.getByRole('region', { name: 'Service Category Summary' });
+      const breakdown = screen.getByRole('region', { name: 'Service Breakdown' });
+      expect(category.compareDocumentPosition(breakdown) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(breakdown.querySelectorAll('.mv-svc-item')).toHaveLength(6);
+      await user.click(within(breakdown).getByRole('button', { name: 'Show all 8 services' }));
+      expect(breakdown.querySelectorAll('.mv-svc-item')).toHaveLength(8);
+
+      const total = amounts(within(category).getByRole('row', { name: /^Total/ }).textContent)[0];
+      const costs = [...breakdown.querySelectorAll('.mv-svc-row .mv-svc-cost')].map((cell) => money(cell.textContent));
+      expect(costs.reduce((sum, cost) => sum + cost, 0)).toBeCloseTo(total, 2);
+
+      // A service opens to its meters, and they add up to the service.
+      const first = breakdown.querySelector('.mv-svc-item') as HTMLElement;
+      await user.click(within(first).getByRole('button'));
+      const meters = [...first.querySelectorAll('.mv-svc-lines > li:not(.mv-svc-lines-note) .mv-svc-cost')].map((cell) => money(cell.textContent));
+      expect(meters.length).toBeGreaterThan(1);
+      expect(meters.reduce((sum, cost) => sum + cost, 0)).toBeCloseTo(money(first.querySelector('.mv-svc-row .mv-svc-cost')!.textContent), 2);
+      expect(first.querySelector('.mv-svc-saving')).toBeInTheDocument();
     });
 
     it('shows the top resources and expands to every resource', async () => {
@@ -60,19 +101,49 @@ describe('Azure account page', () => {
       const range = within(history).getByRole('group', { name: 'Date range' });
       expect(within(range).getByRole('button', { name: 'Last 30 days' })).toHaveAttribute('aria-pressed', 'true');
       // The month-to-date series is padded back to 30 days with the end of the previous month.
-      expect(within(history).getByRole('img', { name: 'Daily Cost History, last 30 days' })).toBeInTheDocument();
+      expect(within(history).getByRole('img', { name: 'Daily total, last 30 days' })).toBeInTheDocument();
+      expect(within(history).getByRole('img', { name: 'Daily cost, this month' })).toBeInTheDocument();
 
       await user.click(within(range).getByRole('button', { name: 'Last 7 days' }));
-      expect(within(history).getByRole('img', { name: 'Daily Cost History, last 7 days' })).toBeInTheDocument();
+      expect(within(history).getByRole('img', { name: 'Daily total, last 7 days' })).toBeInTheDocument();
+      expect(within(history).getByRole('img', { name: 'Daily cost by service, last 7 days' })).toBeInTheDocument();
       expect(within(range).getByRole('button', { name: 'Last 7 days' })).toHaveAttribute('aria-pressed', 'true');
+      expect(within(history).queryByRole('group', { name: 'Chart type' })).not.toBeInTheDocument();
+    });
+
+    it('projects the rest of the month so that it ties to the forecast in the summary', async () => {
+      const user = setup();
+      await user.click(view(/^Operations/));
+      const history = screen.getByRole('region', { name: 'Daily Cost History' });
+      await user.click(within(history).getByRole('button', { name: /^View data: Daily cost, this month/ }));
+      const dialog = screen.getByRole('dialog', { name: /^Daily cost, this month/ });
+      const rows = within(dialog).getAllByRole('row').slice(1);
+      const actual = rows.filter((row) => within(row).queryByRole('cell', { name: 'Actual' })).reduce((sum, row) => sum + money(within(row).getAllByRole('cell')[2].textContent), 0);
+      const projected = rows.filter((row) => within(row).queryByRole('cell', { name: 'Forecast' })).reduce((sum, row) => sum + money(within(row).getAllByRole('cell')[2].textContent), 0);
+      expect(actual).toBeCloseTo(14280.55, 2);
+      expect(actual + projected).toBeCloseTo(15867.28, 2);
+      expect(rows).toHaveLength(30);
     });
 
     it('keeps the other Operations sections', async () => {
       const user = setup();
       await user.click(view(/^Operations/));
-      for (const name of ['Monthly Spend by Service', 'Cost Insights', 'Top Services', 'By Resource Group', 'By Region', 'Cost Movers']) {
+      for (const name of ['Monthly Spend by Service', 'Cost Insights', 'Top Services', 'By Resource Group', 'Cost by Region', 'Cost Movers']) {
         expect(screen.getByRole('heading', { name })).toBeInTheDocument();
       }
+    });
+
+    it('shows Cost by Region as a donut beside a ranked list of every location that adds up to the month to date', async () => {
+      const user = setup();
+      await user.click(view(/^Operations/));
+      const panel = screen.getByRole('region', { name: 'Cost by Region' });
+      expect(within(panel).getByRole('img', { name: /^Cost by Region: .*Other/ })).toBeInTheDocument();
+      const rows = within(within(panel).getByRole('list', { name: 'Cost by Region, ranked' })).getAllByRole('listitem');
+      expect(rows).toHaveLength(8);
+      expect(within(panel).queryByRole('button', { name: /^Show all/ })).not.toBeInTheDocument();
+      const costs = rows.map((row) => money(row.querySelector('.mv-region-cost')!.textContent));
+      expect(costs).toEqual([...costs].sort((a, b) => b - a));
+      expect(costs.reduce((sum, cost) => sum + cost, 0)).toBeCloseTo(14280.55, 1);
     });
   });
 
@@ -89,7 +160,7 @@ describe('Azure account page', () => {
     it('keeps the existing sections and adds the missing ones', async () => {
       const user = setup();
       await user.click(view(/^Technical/));
-      const existing = ['Top Resources by Cost', 'Resource Inventory', 'By Resource Group', 'By Location', 'Reservation Utilization (Daily)', 'Raw Invoices'];
+      const existing = ['Top Resources by Cost', 'Resource Inventory', 'By Resource Group', 'Cost by Region', 'Reservation Utilization (Daily)', 'Raw Invoices'];
       const added = ['Annual Cost Trend', 'Temporal Spend Analysis', 'Service Distribution', 'Maitsys CSP Savings Opportunities', 'Advisor Recommendations', 'Budget Alerts'];
       for (const name of [...existing, ...added]) {
         expect(screen.getByRole('heading', { level: 3, name: new RegExp(`^${name.replace(/[()]/g, '\\$&')}`) })).toBeInTheDocument();

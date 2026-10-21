@@ -16,10 +16,10 @@ describe('SystemConfigurationPage', () => {
     const user = userEvent.setup();
     renderPage();
     expect(screen.getByText(/6 destinations · 1 active/)).toBeInTheDocument();
-    await user.type(screen.getByRole('textbox', { name: /search destinations/i }), 'dev.maitsys');
+    await user.type(screen.getByRole('searchbox', { name: /search destinations/i }), 'dev.maitsys');
     expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['MSQ']);
-    await user.clear(screen.getByRole('textbox', { name: /search destinations/i }));
-    await user.type(screen.getByRole('textbox', { name: /search destinations/i }), 'zzz');
+    await user.clear(screen.getByRole('searchbox', { name: /search destinations/i }));
+    await user.type(screen.getByRole('searchbox', { name: /search destinations/i }), 'zzz');
     expect(screen.getByText(/No destinations match/)).toBeInTheDocument();
   });
 

@@ -60,3 +60,33 @@ describe('Azure sample data is internally consistent', () => {
     expect(statuses).toContain('near');
   });
 });
+
+describe('Azure sample data: daily services, meters and locations', () => {
+  const { costs } = MOCK_AZURE_FULL;
+
+  it('every day of the month splits across services that add up to that day, so the month to date is unchanged', () => {
+    expect(costs.totalCost).toBe(14280.55);
+    for (const day of costs.dailyCosts) expect(sum(Object.values(day.byService ?? {})), day.date).toBeCloseTo(day.cost, 2);
+    expect(sum(costs.dailyCosts.map((d) => d.cost))).toBeCloseTo(14280.55, 2);
+  });
+
+  it('every stored month splits its days across services too', () => {
+    for (const month of MOCK_AZURE_YEARLY) {
+      for (const day of month.dailyCosts) expect(sum(Object.values(day.byService ?? {})), `${month.year}-${month.month} ${day.date}`).toBeCloseTo(day.cost, 2);
+    }
+  });
+
+  it('meters add up to their service, and so to the month total, in every month', () => {
+    expect(costs.details.length).toBeGreaterThan(costs.services.length);
+    for (const service of costs.services) {
+      expect(sum(costs.details.filter((line) => line.service === service.name).map((line) => line.cost)), service.name).toBeCloseTo(service.cost, 2);
+    }
+    for (const month of MOCK_AZURE_YEARLY) expect(sum(month.details.map((line) => line.cost)), `${month.year}-${month.month}`).toBeCloseTo(month.totalCost, 2);
+  });
+
+  it('locations add up to the total of every month, and there are more than the donut shows', () => {
+    expect(costs.locations.length).toBeGreaterThan(4);
+    expect(sum(costs.locations.map((l) => l.cost))).toBeCloseTo(costs.totalCost, 2);
+    for (const month of MOCK_AZURE_YEARLY) expect(sum(month.locations.map((l) => l.cost)), `${month.year}-${month.month}`).toBeCloseTo(month.totalCost, 2);
+  });
+});

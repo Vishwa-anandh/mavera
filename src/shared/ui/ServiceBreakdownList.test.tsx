@@ -44,3 +44,36 @@ describe('ServiceBreakdownList', () => {
     expect(screen.queryByText('BoxUsage:m5.large')).toBeNull();
   });
 });
+
+describe('ServiceBreakdownList compact view', () => {
+  const MANY = Array.from({ length: 8 }, (_, i) => ({ service: `Service ${i + 1}`, usageType: 'Usage', cost: (8 - i) * 100 }));
+
+  it('shows the top services and a Show all N services control that expands and collapses the list', async () => {
+    const user = userEvent.setup();
+    render(<ServiceBreakdownList lines={MANY} format={money} limit={6} headingLevel="h3" />);
+    expect(screen.getByRole('heading', { level: 3, name: 'Service Breakdown' })).toBeInTheDocument();
+    expect(screen.getByText('Top 6 of 8 service types · 8 usage line items')).toBeInTheDocument();
+    expect(document.querySelectorAll('.mv-svc-item')).toHaveLength(6);
+    expect(screen.queryByText('Service 7')).not.toBeInTheDocument();
+
+    const more = screen.getByRole('button', { name: 'Show all 8 services' });
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+    await user.click(more);
+    expect(screen.getByText('Service 8')).toBeInTheDocument();
+    expect(screen.getByText('8 service types · 8 usage line items')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Show fewer services' }));
+    expect(screen.queryByText('Service 7')).not.toBeInTheDocument();
+  });
+
+  it('keeps share bars and percentages relative to every service even when only the top is shown', () => {
+    render(<ServiceBreakdownList lines={MANY} format={money} limit={2} />);
+    expect(screen.getByText('22.2%')).toBeInTheDocument();
+    expect(document.querySelectorAll('.mv-svc-item')).toHaveLength(2);
+  });
+
+  it('has no control and no "Top N of" text when everything fits', () => {
+    render(<ServiceBreakdownList lines={MANY.slice(0, 3)} format={money} limit={6} />);
+    expect(screen.queryByRole('button', { name: /^Show all/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Top /)).not.toBeInTheDocument();
+  });
+});

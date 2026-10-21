@@ -3,6 +3,7 @@ import type { AwsCostTabProps } from '../../model/AwsCostTabProps';
 import type { AiInsight } from '../../model/awsDerivations';
 import { awsServiceCategoryOf, momPct } from '../../model/awsDerivations';
 import { groupByCategory } from '../../../../shared/lib/costAnalysis';
+import { ServiceBreakdownList } from '../../../../shared/ui/ServiceBreakdownList';
 import { ServiceCategorySummary } from '../../../../shared/ui/ServiceCategorySummary';
 import { SpendTrendChart } from '../../../../shared/ui/SpendTrendChart';
 import { ResourceInventoryByType } from '../ResourceInventoryByType';
@@ -18,7 +19,7 @@ interface AttentionItem {
 /**
  * Executive tab — CEO / Leadership audience. Ported from the reference CCM
  * app's `aws/pages/DetailedDashboard.jsx`, the `activeTab === "executive"`
- * block (lines 3329-3797): the 5-tile KPI row, the "Financial Snapshot"
+ * block (lines 3329-3797): the "Financial Snapshot"
  * card + "Annual Cost Trend" chart, the "AI Executive Summary" panel,
  * "Top 5 Cost Drivers" and the "Attention Center" + Maitsys CSP savings
  * callout. Structure/CSS-class choices mirror Azure's already-built
@@ -26,6 +27,12 @@ interface AttentionItem {
  * own (5 KPI tiles here vs Azure's 4, CSP + optimization savings split out,
  * an extra "optimization savings available" Attention Center flag sourced
  * from `cspRecommendations`).
+ *
+ * The headline figures (spend, forecast, daily pace, CSP saving, service and
+ * resource counts) are one shared summary on the account page, above every
+ * view, instead of a second strip here. After the category summary comes a
+ * compact "Service Breakdown" (the top six services, expandable to every usage
+ * line); the Operations view has the full list.
  *
  * Added from the reference's Executive view: the "Service Category Summary"
  * (services grouped by `awsServiceCategoryOf`, a category chart plus a
@@ -48,15 +55,8 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
   const { data, yearlyData, resources, cspRecommendations, mspRate, aiInsights = [] } = props;
   const [summaryOpen, setSummaryOpen] = useState(true);
 
-  const forecastUsed = !!(data.forecast && data.forecast > 0);
-  const amountPayable = data.forecast && data.forecast > 0 ? data.forecast : data.totalCost;
-
   const cspSavings = data.totalCost * mspRate;
   const optimizationSavings = cspRecommendations.reduce((sum, r) => sum + r.estimated_savings, 0);
-  const totalSavings = cspSavings + optimizationSavings;
-  const savingsPct = data.totalCost > 0 ? (totalSavings / data.totalCost) * 100 : 0;
-
-  const usageLineItems = data.details.length;
 
   const currentEntry = yearlyData[yearlyData.length - 1];
   const previousEntry = yearlyData[yearlyData.length - 2];
@@ -98,34 +98,6 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
 
   return (
     <div>
-      <div className="mv-kpi-row-5">
-        <article className="mv-kpi">
-          <span className="mv-kpi-label">Active Service Types</span>
-          <strong className="mv-kpi-value">{data.services.length.toLocaleString()}</strong>
-          <span className="mv-muted">{usageLineItems} usage line item{usageLineItems === 1 ? '' : 's'} across services</span>
-        </article>
-        <article className="mv-kpi">
-          <span className="mv-kpi-label">Total Resources</span>
-          <strong className="mv-kpi-value">{resources.total.toLocaleString()}</strong>
-          <span className="mv-muted">across {resources.byType.length} resource types</span>
-        </article>
-        <article className="mv-kpi">
-          <span className="mv-kpi-label">Amount Payable</span>
-          <strong className="mv-kpi-value">{formatCurrency(amountPayable)}</strong>
-          <span className="mv-muted">{forecastUsed ? 'EOM Forecast' : 'Current Month-to-Date'}</span>
-        </article>
-        <article className="mv-kpi">
-          <span className="mv-kpi-label">Total Savings</span>
-          <strong className="mv-kpi-value" style={{ color: 'var(--mv-success)' }}>{formatCurrency(totalSavings)}</strong>
-          <span className="mv-muted">CSP + Optimization</span>
-        </article>
-        <article className="mv-kpi">
-          <span className="mv-kpi-label">Savings %</span>
-          <strong className="mv-kpi-value">{savingsPct.toFixed(1)}%</strong>
-          <span className="mv-muted">of gross spend</span>
-        </article>
-      </div>
-
       <section className="mv-panel" id="exec-annual-trend" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Financial Snapshot</h2>
@@ -188,6 +160,12 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
       <div className="mv-detail-stack">
         <ServiceCategorySummary summary={categorySummary} />
       </div>
+
+      {data.details.length > 0 && (
+        <div className="mv-detail-stack" id="aws-service-breakdown-summary">
+          <ServiceBreakdownList lines={data.details} cspRate={mspRate} format={formatCurrency} limit={6} />
+        </div>
+      )}
 
       <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel" id="exec-top-services">

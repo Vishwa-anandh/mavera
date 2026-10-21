@@ -20,10 +20,10 @@ export function BackgroundJobsSummaryCard({ jobs }: { jobs: SapJob[] }) {
         <h2 id="perf-jobs-title" className="mv-panel-title">Background Jobs <TcodeBadge code="SM37" /></h2>
         <Link className="mv-quiet-button" to="/sap/jobs#jobs">Search all jobs</Link>
       </div>
-      <nav className="mv-job-chips" aria-label="Open jobs by status">
+      <nav className="mv-filter-chips" aria-label="Open jobs by status">
         {JOB_FILTERS.map((name) => (
-          <Link key={name} className="mv-chip mv-job-chip" to={name === 'All' ? '/sap/jobs#jobs' : `/sap/jobs?status=${name}#jobs`}>
-            {name}<span className="mv-job-chip-count">{counts[name]}</span>
+          <Link key={name} className="mv-chip mv-filter-chip" to={name === 'All' ? '/sap/jobs#jobs' : `/sap/jobs?status=${name}#jobs`}>
+            {name}<span className="mv-filter-chip-count">{counts[name]}</span>
           </Link>
         ))}
       </nav>

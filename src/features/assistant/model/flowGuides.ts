@@ -181,6 +181,7 @@ export const FLOW_GUIDES: FlowGuide[] = [
         chipLabel: 'Walk me through this account',
         steps: [
           { target: 'css:.mv-cost-tabs', title: 'Three views of the same account', tag: 'Tabs', body: 'Executive for leadership (totals, forecast, savings), Operations for managers (monthly spend and top services) and Technical for engineers (usage detail).' },
+          { target: 'css:.mv-spend-summary', title: 'Spend at a glance', tag: 'Key figures', body: 'One summary for the account: month-to-date spend and how it compares with last month, the month-end forecast (a projection, not billed cost), the daily pace and today, and the Maitsys CSP saving. Services and resources sit on the line underneath.' },
           { target: 'btn:Switch account', title: 'Switch account', tag: 'Action', body: 'Jump to another connected account without going back to the overview.' },
           { target: 'btn:Month-to-Date', title: 'Choose the period', tag: 'Filters', body: 'Look at the current month or pick a past month. A banner reminds you when you are viewing history.' },
           { target: 'btn:AI Insights', title: 'AI insights', tag: 'Insight', body: 'A short written summary of what changed and what to watch for on this account.' },
@@ -188,9 +189,11 @@ export const FLOW_GUIDES: FlowGuide[] = [
           // Azure and AWS detail views. A step whose panel is not on the view that is open is skipped.
           ...(p === 'azure' || p === 'aws' ? [
             { target: 'panel:Service Category Summary', title: 'Spend by category', tag: 'Chart', body: 'Executive view: the services grouped into categories, as a chart and a table whose shares add up to 100 percent. Open a category to see the services inside it.' },
+            { target: 'panel:Service Breakdown', title: 'Service breakdown', tag: 'List', body: 'Spend grouped by service with each service\'s share. The Executive view shows the top six; press "Show all" for every service, and open a service to see its usage lines and the CSP saving on each.' },
             { target: 'panel:Resources by Cost', title: 'Resources by cost', tag: 'Table', body: 'Executive view: every resource, most expensive first, with its Maitsys CSP saving. Only the top few show until you press "Show all".' },
             { target: 'panel:Resource Inventory', title: 'Resource inventory', tag: 'List', body: 'How many resources of each type the account holds and each type\'s share of the total.' },
-            { target: 'panel:Daily Cost History', title: 'Daily cost history', tag: 'Chart', body: 'Operations and Technical views: spend per day. Switch between the last 7, 14 or 30 days, and between bars and an area. View data lists every day.' },
+            { target: 'panel:Daily Cost History', title: 'Daily cost history', tag: 'Chart', body: 'Operations and Technical views: this month day by day, with projected days to month end as lighter bars and a dashed Today marker. Switch the last 7, 14 or 30 days to change the daily total and the per-service stack below it. View data lists the numbers behind each chart.' },
+            { target: 'panel:Cost by Region', title: 'Cost by region', tag: 'Chart', body: 'Operations and Technical views: the four biggest regions and everything else as a donut, beside a ranked list of every region with its share and cost. Press "Show all" when there are more than eight.' },
             { target: 'panel:Temporal Spend Analysis', title: 'Spend through the month', tag: 'Chart', body: 'Technical view: the running total for the month, continued to month end at the current daily rate (dashed).' },
             { target: 'panel:Service Distribution', title: 'Service distribution', tag: 'Chart', body: 'Technical view: the three biggest services against everything else.' },
             { target: 'panel:Advisor Recommendations', title: 'Advisor recommendations', tag: 'List', body: 'Technical view: what Azure Advisor suggests, how much it matters (impact) and the saving it estimates per month and per year.' },

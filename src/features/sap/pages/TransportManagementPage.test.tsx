@@ -58,7 +58,7 @@ describe('TransportManagementPage', () => {
     expect(within(list()).getByText(/return code 8/)).toBeInTheDocument();
 
     await user.click(within(drawer).getByRole('button', { name: 'Clear filters' }));
-    await user.type(within(drawer).getByRole('textbox', { name: 'Search the activity log' }), 'no such text');
+    await user.type(within(drawer).getByRole('searchbox', { name: 'Search the activity log' }), 'no such text');
     expect(within(drawer).getByText('No log entries match these filters.')).toBeInTheDocument();
   });
 

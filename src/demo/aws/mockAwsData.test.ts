@@ -48,3 +48,37 @@ describe('AWS sample data is internally consistent', () => {
     expect(resourceTypeShares(MOCK_AWS_FULL.resources.byType).reduce((total, t) => total + t.sharePct, 0)).toBeCloseTo(100, 10);
   });
 });
+
+describe('AWS sample data: daily services and regions', () => {
+  const { costs } = MOCK_AWS_FULL;
+
+  it('every day of the month splits across services that add up to that day, so the month to date is unchanged', () => {
+    expect(costs.totalCost).toBe(9840.6);
+    for (const day of costs.dailyCosts) {
+      expect(day.byService, day.date).toBeDefined();
+      expect(sum(Object.values(day.byService!)), day.date).toBeCloseTo(day.cost, 2);
+    }
+    expect(sum(costs.dailyCosts.map((d) => d.cost))).toBeCloseTo(9840.6, 2);
+  });
+
+  it('carries the same services as the month, and the daily split lands close to each service total', () => {
+    const names = costs.services.map((s) => s.name).sort();
+    expect(Object.keys(costs.dailyCosts[0].byService!).sort()).toEqual(names);
+    for (const service of costs.services) {
+      const fromDays = sum(costs.dailyCosts.map((d) => d.byService![service.name]));
+      expect(Math.abs(fromDays - service.cost), service.name).toBeLessThan(costs.totalCost * 0.002);
+    }
+  });
+
+  it('every stored month splits its days across services too', () => {
+    for (const month of MOCK_AWS_YEARLY) {
+      for (const day of month.dailyCosts) expect(sum(Object.values(day.byService ?? {})), `${month.year}-${month.month} ${day.date}`).toBeCloseTo(day.cost, 2);
+    }
+  });
+
+  it('has more regions than the donut shows, including global and NoRegion, and they add up to the total in every month', () => {
+    expect(costs.regions.length).toBeGreaterThan(8);
+    expect(costs.regions.map((r) => r.region)).toEqual(expect.arrayContaining(['us-east-1', 'global', 'NoRegion']));
+    for (const month of MOCK_AWS_YEARLY) expect(sum(month.topRegions.map((r) => r.cost)), `${month.year}-${month.month}`).toBeCloseTo(month.totalCost, 2);
+  });
+});

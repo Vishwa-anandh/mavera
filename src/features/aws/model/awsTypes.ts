@@ -47,6 +47,8 @@ export interface AwsTopService {
 export interface AwsDailyCost {
   date: string;
   cost: number;
+  /** Cost of each service that day; adds up to `cost` to the cent. */
+  byService?: Record<string, number>;
 }
 
 export interface AwsServiceCost {

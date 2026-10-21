@@ -1,3 +1,4 @@
+import { SearchField } from '../../../shared/ui/SearchField';
 import { useState } from 'react';
 import { sapAdminRepository, type SapDestination, type SapDestinationInput } from '../../../data-access';
 import { fireToast } from '../../../shared/lib/toastEvents';
@@ -5,7 +6,7 @@ import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { StatusTag } from '../../../shared/ui/StatusTag';
 import { Tooltip } from '../../../shared/ui/Tooltip';
-import { CloudIcon, HierarchyIcon, PencilIcon, PlusIcon, SearchIcon, TrashIcon } from '../../../shared/ui/icons';
+import { CloudIcon, HierarchyIcon, PencilIcon, PlusIcon, TrashIcon } from '../../../shared/ui/icons';
 import { DestinationDialog } from '../components/DestinationDialog';
 import { CONNECTION_STRATEGIES, filterDestinations } from '../model/destinations';
 
@@ -72,10 +73,7 @@ export function SystemConfigurationPage() {
           <StatusTag tone="success">Connected</StatusTag>
           <span className="mv-muted">{destinations.length} destination{destinations.length === 1 ? '' : 's'} · {connectedCount} active</span>
         </p>
-        <label className="mv-filter-search mv-config-search">
-          <SearchIcon size={16} aria-hidden />
-          <input aria-label="Search destinations by name or URL" placeholder="Search by name or URL..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        </label>
+        <SearchField label="Search destinations by name or URL" placeholder="Search by name or URL..." value={search} onChange={setSearch} />
       </div>
 
       {destinations.length === 0 ? (

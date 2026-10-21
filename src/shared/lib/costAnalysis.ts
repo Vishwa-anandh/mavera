@@ -13,6 +13,8 @@ export interface DailyPoint {
   /** ISO date, `YYYY-MM-DD`. */
   date: string;
   cost: number;
+  /** What each service cost that day; when present it adds up to `cost` to the cent. */
+  byService?: Record<string, number>;
 }
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
@@ -157,4 +159,140 @@ export function topWithOther(items: NamedCost[], keep: number, otherLabel = 'Oth
   const rest = sorted.slice(keep);
   if (rest.length === 0) return head;
   return [...head, { name: otherLabel, cost: round2(rest.reduce((sum, item) => sum + item.cost, 0)) }];
+}
+
+/** Days in the month an ISO date (`YYYY-MM-DD`) falls in; null when the date cannot be read. */
+export function daysInMonthOf(date: string | undefined): number | null {
+  const match = date ? /^(\d{4})-(\d{2})-/.exec(date) : null;
+  return match ? new Date(Number(match[1]), Number(match[2]), 0).getDate() : null;
+}
+
+export interface ForecastDay {
+  date: string;
+  /** Billed cost for the day; null for days that have not happened yet. */
+  actual: number | null;
+  /** Forecast cost for a day after the last actual day; null for actual days. */
+  projected: number | null;
+}
+
+export interface MonthForecast {
+  /** One row per calendar day of the month, in order. */
+  rows: ForecastDay[];
+  /** Index in `rows` of the last actual day (today). */
+  todayIndex: number;
+  todayDate: string;
+  daysInMonth: number;
+  actualTotal: number;
+  projectedTotal: number;
+  /** Actual so far plus the projected days. */
+  monthEndTotal: number;
+  /** The forecast cost of each remaining day. */
+  dailyForecast: number;
+  method: 'month-end forecast' | 'last-7-day average' | 'complete';
+}
+
+/**
+ * The month the series ends in, laid out day by day: actual days up to the last point ("today") and projected
+ * days to month end. Each projected day is the average of the last 7 actual days, unless a month-end forecast
+ * total is given (and is above the spend so far), in which case the remaining amount is spread evenly over the
+ * remaining days so the chart ties to the forecast figure shown elsewhere on the page.
+ */
+export function monthForecast(series: DailyPoint[], options: { forecastTotal?: number | null } = {}): MonthForecast | null {
+  if (series.length === 0) return null;
+  const last = series[series.length - 1];
+  const prefix = last.date.slice(0, 7);
+  const daysInMonth = daysInMonthOf(last.date);
+  if (!daysInMonth) return null;
+  const actualDays = series.filter((point) => point.date.startsWith(prefix));
+  const byDate = new Map(actualDays.map((point) => [point.date, point.cost]));
+  const lastDay = Number(last.date.slice(8, 10));
+  const actualTotal = round2(actualDays.reduce((sum, point) => sum + point.cost, 0));
+  const remaining = daysInMonth - lastDay;
+  const forecastTotal = options.forecastTotal;
+
+  let dailyForecast = 0;
+  let method: MonthForecast['method'] = 'complete';
+  if (remaining > 0) {
+    if (forecastTotal && forecastTotal > actualTotal) {
+      dailyForecast = round2((forecastTotal - actualTotal) / remaining);
+      method = 'month-end forecast';
+    } else {
+      const recent = actualDays.slice(-7);
+      dailyForecast = round2(recent.reduce((sum, point) => sum + point.cost, 0) / recent.length);
+      method = 'last-7-day average';
+    }
+  }
+  const exactRemainder = method === 'month-end forecast' && forecastTotal ? round2(forecastTotal - actualTotal) : null;
+
+  const rows: ForecastDay[] = [];
+  let projectedSoFar = 0;
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = `${prefix}-${String(day).padStart(2, '0')}`;
+    const actual = byDate.get(date);
+    if (actual !== undefined) {
+      rows.push({ date, actual, projected: null });
+    } else if (day > lastDay) {
+      // The last projected day absorbs the cent rounding so the projected days add up to the forecast.
+      const projected = exactRemainder !== null && day === daysInMonth ? round2(exactRemainder - projectedSoFar) : dailyForecast;
+      projectedSoFar = round2(projectedSoFar + projected);
+      rows.push({ date, actual: null, projected });
+    } else {
+      rows.push({ date, actual: null, projected: null });
+    }
+  }
+  return { rows, todayIndex: lastDay - 1, todayDate: last.date, daysInMonth, actualTotal, projectedTotal: projectedSoFar, monthEndTotal: round2(actualTotal + projectedSoFar), dailyForecast, method };
+}
+
+/**
+ * The services that get their own colour in a per-day stack: the `keep` biggest over the whole series, biggest
+ * first. They are worked out from the full series, not from the visible window, so a service keeps its colour
+ * when the range changes. Everything else is "Other".
+ */
+export function serviceStackKeys(series: DailyPoint[], keep = 3): string[] {
+  const totals = new Map<string, number>();
+  for (const point of series) for (const [name, cost] of Object.entries(point.byService ?? {})) totals.set(name, (totals.get(name) ?? 0) + cost);
+  return [...totals.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, keep).map(([name]) => name);
+}
+
+export interface StackedDay {
+  date: string;
+  total: number;
+  /** Cost of each key, in the order of the keys given to `stackDay`. */
+  parts: number[];
+  /** The rest of the day's cost, so `parts` plus `other` equal `total`. */
+  other: number;
+}
+
+export function stackDay(point: DailyPoint, keys: string[]): StackedDay {
+  const parts = keys.map((name) => point.byService?.[name] ?? 0);
+  const other = Math.max(0, round2(point.cost - parts.reduce((sum, value) => sum + value, 0)));
+  return { date: point.date, total: point.cost, parts, other };
+}
+
+export interface RegionRow extends NamedCost {
+  /** Share of the total, one decimal; the shares of all rows add up to exactly 100. */
+  sharePct: number;
+}
+
+export interface RegionSlice extends NamedCost {
+  sharePct: number;
+  isOther: boolean;
+}
+
+export interface RegionSummary {
+  /** Every region, most expensive first. */
+  rows: RegionRow[];
+  total: number;
+  /** The donut: the biggest regions and the rest folded into "Other". */
+  slices: RegionSlice[];
+}
+
+export function summarizeRegions(regions: NamedCost[], donutKeep = 4): RegionSummary {
+  const sorted = [...regions].sort((a, b) => b.cost - a.cost || a.name.localeCompare(b.name));
+  const shares = sharesOf(sorted.map((region) => region.cost));
+  const rows = sorted.map((region, index) => ({ ...region, sharePct: shares[index] }));
+  const folded = topWithOther(sorted, donutKeep);
+  const sliceShares = sharesOf(folded.map((slice) => slice.cost));
+  const slices = folded.map((slice, index) => ({ ...slice, sharePct: sliceShares[index], isOther: sorted.length > donutKeep && index === donutKeep }));
+  return { rows, total: round2(sorted.reduce((sum, region) => sum + region.cost, 0)), slices };
 }

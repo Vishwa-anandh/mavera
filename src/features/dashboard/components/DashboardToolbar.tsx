@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
-import { SearchIcon, RefreshIcon } from '../../../shared/ui/icons';
+import { RefreshIcon } from '../../../shared/ui/icons';
+import { SearchField } from '../../../shared/ui/SearchField';
 import { Select } from '../../../shared/ui/Select';
 
 interface DashboardToolbarProps {
@@ -37,6 +38,7 @@ export function DashboardToolbar({ onRefresh, modules = { cloudCost: true, sapMo
   const both = modules.cloudCost && modules.sapMonitoring;
   const searchLabel = both ? 'Search systems, resources, alerts' : modules.cloudCost ? 'Search accounts, resources, alerts' : 'Search systems, jobs, alerts';
   const [refreshing, setRefreshing] = useState(false);
+  const [query, setQuery] = useState('');
   const [timeRange, setTimeRange] = useRememberedState('dashboard', 'time-range', '24h', oneOf(TIME_RANGE_OPTIONS.map((o) => o.value)));
   const [environment, setEnvironment] = useRememberedState('dashboard', 'environment', 'all', oneOf(ENVIRONMENT_OPTIONS.map((o) => o.value)));
   const [system, setSystem] = useRememberedState('dashboard', 'system', 'all', oneOf(SYSTEM_OPTIONS.map((o) => o.value)));
@@ -49,10 +51,7 @@ export function DashboardToolbar({ onRefresh, modules = { cloudCost: true, sapMo
 
   return (
     <div className="mv-dashboard-toolbar">
-      <div className="mv-dashboard-search">
-        <SearchIcon size={18} />
-        <input type="search" aria-label={searchLabel} placeholder={`${searchLabel}…`} />
-      </div>
+      <SearchField label={searchLabel} value={query} onChange={setQuery} />
       <div className="mv-dashboard-filters">
         <Select label="Time range" hideLabel value={timeRange} onChange={setTimeRange} options={TIME_RANGE_OPTIONS} />
         <Select label="Environment" hideLabel value={environment} onChange={setEnvironment} options={ENVIRONMENT_OPTIONS} />

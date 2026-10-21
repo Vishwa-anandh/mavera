@@ -5,7 +5,7 @@ import type { AwsInstance, AwsYearlyMonth } from '../../model/awsTypes';
 import { momPct } from '../../model/awsDerivations';
 import { extendDailyHistory } from '../../../../shared/lib/costAnalysis';
 import { DailyCostHistory } from '../../../../shared/ui/DailyCostHistory';
-import { DonutChart } from '../../../../shared/ui/DonutChart';
+import { CostByRegion } from '../../../../shared/ui/CostByRegion';
 import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
 
 /**
@@ -41,11 +41,7 @@ export function OperationsTab(props: AwsCostTabProps) {
   const prevEntry = currentIndex > 0 ? yearlyData[currentIndex - 1] : undefined;
   const movers = buildMovers(sortedServices, prevEntry?.topServices);
 
-  const regionSlices = [...data.regions].sort((a, b) => b.cost - a.cost).map((r, i) => ({
-    label: r.region,
-    value: r.cost,
-    color: [chartColors.primary, chartColors.secondary, chartColors.tertiary, chartColors.axis][i % 4],
-  }));
+  const regionCosts = data.regions.map((r) => ({ name: r.region, cost: r.cost }));
 
   const dailyHistory = extendDailyHistory(data.dailyCosts, yearlyData);
 
@@ -97,7 +93,7 @@ export function OperationsTab(props: AwsCostTabProps) {
       </section>
 
       <div className="mv-detail-stack">
-        <DailyCostHistory series={dailyHistory} />
+        <DailyCostHistory series={dailyHistory} forecastTotal={data.forecast} />
       </div>
 
       <section className="mv-panel" id="ops-top-services" style={{ marginBottom: '1rem' }}>
@@ -137,12 +133,9 @@ export function OperationsTab(props: AwsCostTabProps) {
       </section>
 
       {data.regions.length > 0 && (
-        <section className="mv-panel" id="ops-region" style={{ marginBottom: '1rem' }}>
-          <div className="mv-panel-header">
-            <h2 className="mv-panel-title">Cost by Region</h2>
-          </div>
-          <DonutChart title="Cost by region" totalLabel="Spend" data={regionSlices} format={formatCurrency} />
-        </section>
+        <div className="mv-detail-stack">
+          <CostByRegion id="ops-region" regions={regionCosts} />
+        </div>
       )}
 
       {isCurrentMonth && data.details.length > 0 && (

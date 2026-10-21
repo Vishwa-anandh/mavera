@@ -3,6 +3,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
 import { cumulativeSeries, topWithOther } from '../../../../shared/lib/costAnalysis';
 import { CumulativeSpendChart } from '../../../../shared/ui/CumulativeSpendChart';
+import { CostByRegion } from '../../../../shared/ui/CostByRegion';
 import { DetailGroup } from '../../../../shared/ui/DetailGroup';
 import { DonutChart } from '../../../../shared/ui/DonutChart';
 import { SpendTrendChart } from '../../../../shared/ui/SpendTrendChart';
@@ -83,8 +84,8 @@ export function TechnicalTab(props: AzureCostTabProps) {
 
         <div className="mv-row-3col">
           <NamedCostPanel title="By Resource Group" columnLabel="Resource Group" rows={data.resourceGroups} />
-          <NamedCostPanel title="By Location" columnLabel="Location" rows={data.locations} />
         </div>
+        <CostByRegion regions={data.locations} headingLevel="h3" />
       </DetailGroup>
 
       <DetailGroup title="Spend over time" description="How the bill built up this month, how it compares across the year and where it is concentrated.">

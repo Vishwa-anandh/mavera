@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { accessRepository } from '../../../data-access';
 import { useAuth } from '../../auth';
 import { Can, buildSelfMember, useAccessDirectory, usePermission } from '../../access';
-import { SearchIcon, PlusIcon } from '../../../shared/ui/icons';
+import { PlusIcon } from '../../../shared/ui/icons';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { TabBar } from '../../../shared/ui/TabBar';
+import { SearchField } from '../../../shared/ui/SearchField';
 import { useHashTab } from '../../../shared/lib/useHashTab';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { PageHeader } from '../../../shared/ui/PageHeader';
@@ -90,10 +91,7 @@ export function UserManagementPage() {
       <PageHeader title="User Management" subtitle="Manage your organisation’s members, their roles and what each role can do.">
         <div className="mv-heading-actions">
           {tab === 'members' && (
-            <label className="mv-filter-search mv-heading-search">
-              <SearchIcon size={16} />
-              <input type="search" aria-label="Search members" placeholder="Search members…" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            </label>
+            <SearchField label="Search members" placeholder="Search members…" value={searchTerm} onChange={setSearchTerm} />
           )}
           <Can module="users" action="CREATE">
             <button type="button" className="mv-primary-button" disabled={seats.full} onClick={() => setAdding(true)}>

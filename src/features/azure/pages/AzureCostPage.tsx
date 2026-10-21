@@ -217,7 +217,7 @@ export function AzureCostPage() {
         todaySpend={todayCost}
         savings={mspSavings}
         savingsLines={[`${(AZURE_MSP_RATE * 100).toFixed(0)}% CSP discount · ${grossSavingsPct.toFixed(1)}% of gross spend`]}
-        facts={[
+        facts={activeTab !== 'executive' ? [] : [
           { label: 'Enabled services', value: data.services.length.toLocaleString(), detail: isCurrentMonth ? `${data.topResources.length.toLocaleString()} cost-tracked resources` : 'billed this month' },
           { label: 'Total resources', value: isCurrentMonth ? data.resources.total.toLocaleString() : '—', detail: isCurrentMonth ? `${data.resources.active.toLocaleString()} active` : 'not available for past months' },
         ]}

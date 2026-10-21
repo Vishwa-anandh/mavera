@@ -215,7 +215,7 @@ export function AwsCostPage() {
           `${(AWS_MSP_RATE * 100).toFixed(1)}% CSP discount`,
           `With ${formatCurrency(optimizationSavings)} of optimization opportunities: ${totalSavingsPct.toFixed(1)}% of spend`,
         ]}
-        facts={[
+        facts={activeTab !== 'executive' ? [] : [
           { label: 'Active service types', value: data.services.length.toLocaleString(), detail: `${data.details.length} usage line item${data.details.length === 1 ? '' : 's'}` },
           { label: 'Total resources', value: MOCK_AWS_FULL.resources.total.toLocaleString(), detail: `${MOCK_AWS_FULL.resources.byType.length} resource types` },
           { label: 'Top service', value: topService?.name ?? '—', detail: topService ? formatCurrency(topService.cost) : undefined },

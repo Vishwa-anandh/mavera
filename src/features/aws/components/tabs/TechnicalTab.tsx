@@ -2,6 +2,9 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import type { AwsCostTabProps } from '../../model/AwsCostTabProps';
 import type { AwsInstance, AwsYearlyMonth, CspRecommendation } from '../../model/awsTypes';
 import { isAccountWide, momPct } from '../../model/awsDerivations';
+import { extendDailyHistory, topWithOther } from '../../../../shared/lib/costAnalysis';
+import { DailyCostHistory } from '../../../../shared/ui/DailyCostHistory';
+import { DetailGroup } from '../../../../shared/ui/DetailGroup';
 import { SpendTrendChart } from '../../../../shared/ui/SpendTrendChart';
 import { DonutChart } from '../../../../shared/ui/DonutChart';
 import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
@@ -17,6 +20,11 @@ import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
  * (Technical-tab-ONLY — Executive/Operations only show aggregate savings
  * numbers), "Cost Movers", the "Detailed Cost Breakdown" table over
  * `data.details`, and "EC2 Instances" + "Budgets".
+ *
+ * The long view is split into stacked groups with headings (spend over time,
+ * breakdown, savings and budgets, resources) instead of one flat list. The
+ * old "Daily Cost Trend" area is now "Daily Cost History", the shared panel
+ * with a 7d | 14d | 30d switch and a bar or area view.
  *
  * Unlike Azure's Technical tab, none of AWS's resources/instances/budgets
  * are month-scoped in the reference, so there's no historical-month
@@ -35,12 +43,9 @@ export function TechnicalTab(props: AwsCostTabProps) {
   const peakMonth = [...yearlyData].sort((a, b) => b.totalCost - a.totalCost)[0];
   const trendData = yearlyData.map((m) => ({ date: monthLabel(m.year, m.month), amount: m.totalCost }));
 
-  const dailyTrend = data.dailyCosts.map((point) => ({ date: point.date, amount: point.cost }));
-  const serviceSlices = [...data.services].sort((a, b) => b.cost - a.cost).map((s, i) => ({
-    label: s.name,
-    value: s.cost,
-    color: [chartColors.primary, chartColors.secondary, chartColors.tertiary, chartColors.axis][i % 4],
-  }));
+  const dailyHistory = extendDailyHistory(data.dailyCosts, yearlyData);
+  const donutColors = [chartColors.primary, chartColors.secondary, chartColors.tertiary, chartColors.axis];
+  const serviceSlices = topWithOther(data.services, 3).map((s, i) => ({ label: s.name, value: s.cost, color: donutColors[i % donutColors.length] }));
 
   const sortedServices = [...data.services].sort((a, b) => b.cost - a.cost);
   const top6 = sortedServices.slice(0, 6);
@@ -59,159 +64,166 @@ export function TechnicalTab(props: AwsCostTabProps) {
 
   return (
     <div>
-      <section className="mv-panel" id="aws-daily-trend" style={{ marginBottom: '1rem' }}>
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Monthly Spend by Service</h2>
-        </div>
-        {yearlyData.length === 0 || stackedKeys.length === 0 ? (
-          <p className="mv-muted">No 12-month service history is stored for this account yet.</p>
-        ) : (
-          <div role="img" aria-label="Monthly spend by service, last 12 months" style={{ width: '100%', height: '13.75rem' }}>
-            <ResponsiveContainer>
-              <BarChart data={stackedRows} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <CartesianGrid stroke={chartColors.grid} vertical={false} />
-                <XAxis dataKey="label" stroke={chartColors.axis} tick={{ fontSize: 12 }} />
-                <YAxis stroke={chartColors.axis} tick={{ fontSize: 12 }} tickFormatter={(value: number) => `$${value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}`} />
-                <Tooltip formatter={(value, name) => [formatCurrency(Number(value)), String(name)]} contentStyle={{ borderRadius: 8, borderColor: chartColors.grid }} />
-                {stackedKeys.map((name, i) => (
-                  <Bar key={name} dataKey={name} stackId="services" fill={stackedColors[i % stackedColors.length]} radius={!hasOther && i === stackedKeys.length - 1 ? 4 : 0} />
-                ))}
-                {hasOther && <Bar dataKey="Other" stackId="services" fill={chartColors.axis} radius={4} />}
-              </BarChart>
-            </ResponsiveContainer>
+      <DetailGroup title="Spend over time" description="How the bill built up day by day, month by month and by service.">
+        <DailyCostHistory series={dailyHistory} headingLevel="h3" />
+
+        <section className="mv-panel" id="aws-daily-trend">
+          <div className="mv-panel-header">
+            <h3 className="mv-panel-title">Monthly Spend by Service</h3>
           </div>
-        )}
-      </section>
-
-      <section className="mv-panel" id="aws-annual-trend" style={{ marginBottom: '1rem' }}>
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Annual Cost Trend — {yearlyData[yearlyData.length - 1]?.year ?? '—'}</h2>
-        </div>
-        <div className="mv-kpi-row-4" style={{ marginBottom: '1rem' }}>
-          <article className="mv-kpi"><span className="mv-kpi-label">Yearly Total</span><strong className="mv-kpi-value">{formatCurrency(yearlyTotal)}</strong></article>
-          <article className="mv-kpi"><span className="mv-kpi-label">Avg per Month</span><strong className="mv-kpi-value">{formatCurrency(yearlyAvg)}</strong></article>
-          <article className="mv-kpi"><span className="mv-kpi-label">Peak Month</span><strong className="mv-kpi-value" style={{ fontSize: '1.125rem' }}>{peakMonth ? monthLabel(peakMonth.year, peakMonth.month) : '—'}</strong>{peakMonth && <span className="mv-muted">{formatCurrency(peakMonth.totalCost)}</span>}</article>
-        </div>
-        <SpendTrendChart title="Annual cost trend" data={trendData} />
-      </section>
-
-      <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
-        <section className="mv-panel">
-          <div className="mv-panel-header"><h2 className="mv-panel-title">Daily Cost Trend</h2></div>
-          <SpendTrendChart title="Daily cost trend" data={dailyTrend} />
+          {yearlyData.length === 0 || stackedKeys.length === 0 ? (
+            <p className="mv-muted">No 12-month service history is stored for this account yet.</p>
+          ) : (
+            <div role="img" aria-label="Monthly spend by service, last 12 months" style={{ width: '100%', height: '13.75rem' }}>
+              <ResponsiveContainer>
+                <BarChart data={stackedRows} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <CartesianGrid stroke={chartColors.grid} vertical={false} />
+                  <XAxis dataKey="label" stroke={chartColors.axis} tick={{ fontSize: 12 }} />
+                  <YAxis stroke={chartColors.axis} tick={{ fontSize: 12 }} tickFormatter={(value: number) => `$${value >= 1000 ? `${(value / 1000).toFixed(0)}k` : value}`} />
+                  <Tooltip formatter={(value, name) => [formatCurrency(Number(value)), String(name)]} contentStyle={{ borderRadius: 8, borderColor: chartColors.grid }} />
+                  {stackedKeys.map((name, i) => (
+                    <Bar key={name} dataKey={name} stackId="services" fill={stackedColors[i % stackedColors.length]} radius={!hasOther && i === stackedKeys.length - 1 ? 4 : 0} />
+                  ))}
+                  {hasOther && <Bar dataKey="Other" stackId="services" fill={chartColors.axis} radius={4} />}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </section>
-        <section className="mv-panel">
-          <div className="mv-panel-header"><h2 className="mv-panel-title">Cost by Service</h2></div>
-          <DonutChart title="Cost by service" totalLabel="Spend" data={serviceSlices} />
-        </section>
-      </div>
 
-      <section className="mv-panel" id="aws-top-services" style={{ marginBottom: '1rem' }}>
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Top Services by Spend</h2>
+        <section className="mv-panel" id="aws-annual-trend">
+          <div className="mv-panel-header">
+            <h3 className="mv-panel-title">Annual Cost Trend — {yearlyData[yearlyData.length - 1]?.year ?? '—'}</h3>
+          </div>
+          <div className="mv-kpi-row-4" style={{ marginBottom: '1rem' }}>
+            <article className="mv-kpi"><span className="mv-kpi-label">Yearly Total</span><strong className="mv-kpi-value">{formatCurrency(yearlyTotal)}</strong></article>
+            <article className="mv-kpi"><span className="mv-kpi-label">Avg per Month</span><strong className="mv-kpi-value">{formatCurrency(yearlyAvg)}</strong></article>
+            <article className="mv-kpi"><span className="mv-kpi-label">Peak Month</span><strong className="mv-kpi-value" style={{ fontSize: '1.125rem' }}>{peakMonth ? monthLabel(peakMonth.year, peakMonth.month) : '—'}</strong>{peakMonth && <span className="mv-muted">{formatCurrency(peakMonth.totalCost)}</span>}</article>
+          </div>
+          <SpendTrendChart title="Annual cost trend" data={trendData} />
+        </section>
+      </DetailGroup>
+
+      <DetailGroup title="Cost breakdown" description="Where the spend goes: services, regions and what moved since last month.">
+        <div className="mv-columns-split">
+          <section className="mv-panel">
+            <div className="mv-panel-header"><h3 className="mv-panel-title">Cost by Service</h3></div>
+            <DonutChart title="Cost by service" totalLabel="Spend" data={serviceSlices} format={formatCurrency} />
+          </section>
+          {data.regions.length > 0 && (
+            <section className="mv-panel" id="aws-region">
+              <div className="mv-panel-header"><h3 className="mv-panel-title">Cost by Region</h3></div>
+              <DonutChart title="Cost by region" totalLabel="Spend" data={regionSlices} format={formatCurrency} />
+            </section>
+          )}
         </div>
-        {top6.length === 0 ? (
-          <p className="mv-muted">No service data available.</p>
-        ) : (
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
-            {top6.map((svc) => {
-              const savings = top6Total > 0 ? (svc.cost / top6Total) * cspSavingsTotal : 0;
-              const max = Math.max(...top6.map((s) => s.cost), 1);
-              return (
-                <div key={svc.name} style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.8125rem', minWidth: 0 }}>
-                    <UiTooltip content={svc.name}><span className="mv-muted">{svc.name}</span></UiTooltip>
-                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
-                      <strong>{formatCurrency(svc.cost)}</strong>
-                      {savings > 0 && <span style={{ color: 'var(--mv-success)', fontSize: '0.6875rem' }}>-{formatCurrency(savings)}</span>}
-                    </span>
+
+        <section className="mv-panel" id="aws-top-services">
+          <div className="mv-panel-header">
+            <h3 className="mv-panel-title">Top Services by Spend</h3>
+          </div>
+          {top6.length === 0 ? (
+            <p className="mv-muted">No service data available.</p>
+          ) : (
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              {top6.map((svc) => {
+                const savings = top6Total > 0 ? (svc.cost / top6Total) * cspSavingsTotal : 0;
+                const max = Math.max(...top6.map((s) => s.cost), 1);
+                return (
+                  <div key={svc.name} style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.25rem', fontSize: '0.8125rem', minWidth: 0 }}>
+                      <UiTooltip content={svc.name}><span className="mv-muted">{svc.name}</span></UiTooltip>
+                      <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
+                        <strong>{formatCurrency(svc.cost)}</strong>
+                        {savings > 0 && <span style={{ color: 'var(--mv-success)', fontSize: '0.6875rem' }}>-{formatCurrency(savings)}</span>}
+                      </span>
+                    </div>
+                    <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(svc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
+                    </div>
                   </div>
-                  <div style={{ height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(svc.cost / max) * 100}%`, background: 'var(--mv-primary)' }} />
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="mv-panel">
+          <div className="mv-panel-header"><h3 className="mv-panel-title">Cost Movers</h3></div>
+          {movers.length === 0 ? (
+            <p className="mv-muted">No service-level cost data available.</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(15rem, 1fr))', gap: '0.625rem' }}>
+              {movers.map((mover) => (
+                <div key={mover.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.625rem', padding: '0.625rem 0.75rem', borderRadius: '0.5rem', background: 'var(--mv-surface-subtle)' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <UiTooltip content={mover.name}><p style={{ margin: 0, fontWeight: 500 }}>{mover.name}</p></UiTooltip>
+                    <p className="mv-muted" style={{ margin: 0 }}>{formatCurrency(mover.current)}</p>
                   </div>
+                  {mover.change !== null && (
+                    <span className={`mv-status mv-status--${mover.change > 0 ? 'danger' : 'success'}`}>{mover.change > 0 ? '+' : ''}{mover.change.toFixed(1)}%</span>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {data.details.length > 0 && (
+          <section className="mv-panel">
+            <div className="mv-panel-header"><h3 className="mv-panel-title">Detailed Cost Breakdown</h3></div>
+            <div className="mv-table-wrap">
+              <table className="mv-table mv-table--stack">
+                <thead><tr><th>Service</th><th>Usage Type</th><th className="mv-num">Cost</th><th className="mv-num">CSP Savings ({(mspRate * 100).toFixed(1)}%)</th></tr></thead>
+                <tbody>
+                  {data.details.map((row) => (
+                    <tr key={`${row.service}-${row.usageType}`}>
+                      <td data-label="Service" className="mv-stack-title">{row.service}</td>
+                      <td data-label="Usage Type" className="mv-muted mv-wrap-anywhere">{row.usageType}</td>
+                      <td data-label="Cost" className="mv-num">{formatCurrency(row.cost)}</td>
+                      <td data-label={`CSP Savings (${(mspRate * 100).toFixed(1)}%)`} className="mv-num" style={{ color: 'var(--mv-success)' }}>{formatCurrency(row.cost * mspRate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         )}
-      </section>
+      </DetailGroup>
 
-      {data.regions.length > 0 && (
-        <section className="mv-panel" id="aws-region" style={{ marginBottom: '1rem' }}>
-          <div className="mv-panel-header"><h2 className="mv-panel-title">Cost by Region</h2></div>
-          <DonutChart title="Cost by region" totalLabel="Spend" data={regionSlices} />
-        </section>
-      )}
-
-      {cspRecommendations.length > 0 && (
-        <section className="mv-panel" id="aws-csp-savings" style={{ marginBottom: '1rem' }}>
-          <div className="mv-panel-header"><h2 className="mv-panel-title">Maitsys CSP Savings Opportunities</h2></div>
-          <div className="mv-inline-error" style={{ marginBottom: '1rem', borderColor: 'var(--mv-success)', background: 'color-mix(in srgb, var(--mv-success) 7%, transparent)', color: 'var(--mv-text)' }}>
-            <strong style={{ color: 'var(--mv-success)' }}>Maitsys CSP saves you {formatCurrency(data.totalCost * mspRate)}/month</strong>
-            <p className="mv-muted" style={{ margin: '0.25rem 0 0' }}>{(mspRate * 100).toFixed(1)}% MSP pricing advantage on {formatCurrency(data.totalCost)} spend.</p>
-          </div>
-          <RecommendationsList recommendations={cspRecommendations.slice(0, 20)} />
-        </section>
-      )}
-
-      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
-        <div className="mv-panel-header"><h2 className="mv-panel-title">Cost Movers</h2></div>
-        {movers.length === 0 ? (
-          <p className="mv-muted">No service-level cost data available.</p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(15rem, 1fr))', gap: '0.625rem' }}>
-            {movers.map((mover) => (
-              <div key={mover.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.625rem', padding: '0.625rem 0.75rem', borderRadius: '0.5rem', background: 'var(--mv-surface-subtle)' }}>
-                <div style={{ minWidth: 0 }}>
-                  <UiTooltip content={mover.name}><p style={{ margin: 0, fontWeight: 500 }}>{mover.name}</p></UiTooltip>
-                  <p className="mv-muted" style={{ margin: 0 }}>{formatCurrency(mover.current)}</p>
-                </div>
-                {mover.change !== null && (
-                  <span className={`mv-status mv-status--${mover.change > 0 ? 'danger' : 'success'}`}>{mover.change > 0 ? '+' : ''}{mover.change.toFixed(1)}%</span>
-                )}
+      {(cspRecommendations.length > 0 || budgets.length > 0) && (
+        <DetailGroup title="Savings and budgets" description="What Maitsys suggests and how spend compares with your budgets.">
+          {cspRecommendations.length > 0 && (
+            <section className="mv-panel" id="aws-csp-savings">
+              <div className="mv-panel-header"><h3 className="mv-panel-title">Maitsys CSP Savings Opportunities</h3></div>
+              <div className="mv-inline-error" style={{ marginBottom: '1rem', borderColor: 'var(--mv-success)', background: 'color-mix(in srgb, var(--mv-success) 7%, transparent)', color: 'var(--mv-text)' }}>
+                <strong style={{ color: 'var(--mv-success)' }}>Maitsys CSP saves you {formatCurrency(data.totalCost * mspRate)}/month</strong>
+                <p className="mv-muted" style={{ margin: '0.25rem 0 0' }}>{(mspRate * 100).toFixed(1)}% MSP pricing advantage on {formatCurrency(data.totalCost)} spend.</p>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+              <RecommendationsList recommendations={cspRecommendations.slice(0, 20)} />
+            </section>
+          )}
 
-      {data.details.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
-          <div className="mv-panel-header"><h2 className="mv-panel-title">Detailed Cost Breakdown</h2></div>
-          <div className="mv-table-wrap">
-            <table className="mv-table">
-              <thead><tr><th>Service</th><th>Usage Type</th><th className="mv-num">Cost</th><th className="mv-num">CSP Savings ({(mspRate * 100).toFixed(1)}%)</th></tr></thead>
-              <tbody>
-                {data.details.map((row) => (
-                  <tr key={`${row.service}-${row.usageType}`}>
-                    <td>{row.service}</td>
-                    <td className="mv-muted">{row.usageType}</td>
-                    <td className="mv-num">{formatCurrency(row.cost)}</td>
-                    <td className="mv-num" style={{ color: 'var(--mv-success)' }}>{formatCurrency(row.cost * mspRate)}</td>
-                  </tr>
+          {budgets.length > 0 && (
+            <section className="mv-panel">
+              <div className="mv-panel-header"><h3 className="mv-panel-title">Budgets</h3></div>
+              <div className="mv-row-3col">
+                {budgets.map((budget) => (
+                  <BudgetCard key={budget.BudgetName} budget={budget} />
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              </div>
+            </section>
+          )}
+        </DetailGroup>
       )}
 
       {instances.length > 0 && (
-        <section className="mv-panel" style={{ marginBottom: '1rem' }}>
-          <div className="mv-panel-header"><h2 className="mv-panel-title">EC2 Instances</h2></div>
-          <InstancesTable instances={instances} />
-        </section>
-      )}
-
-      {budgets.length > 0 && (
-        <section className="mv-panel">
-          <div className="mv-panel-header"><h2 className="mv-panel-title">Budgets</h2></div>
-          <div className="mv-row-3col">
-            {budgets.map((budget) => (
-              <BudgetCard key={budget.BudgetName} budget={budget} />
-            ))}
-          </div>
-        </section>
+        <DetailGroup title="Resources" description="The EC2 instances running in this account.">
+          <section className="mv-panel">
+            <div className="mv-panel-header"><h3 className="mv-panel-title">EC2 Instances</h3></div>
+            <InstancesTable instances={instances} />
+          </section>
+        </DetailGroup>
       )}
     </div>
   );
@@ -293,15 +305,15 @@ function RecommendationsList({ recommendations }: { recommendations: CspRecommen
 function InstancesTable({ instances }: { instances: AwsInstance[] }) {
   return (
     <div className="mv-table-wrap">
-      <table className="mv-table">
+      <table className="mv-table mv-table--stack">
         <thead><tr><th>Instance ID</th><th>Type</th><th>State</th><th>Region</th></tr></thead>
         <tbody>
           {instances.map((inst) => (
             <tr key={inst.InstanceId}>
-              <UiTooltip content={inst.InstanceId}><td className="mv-code">{inst.InstanceId}</td></UiTooltip>
-              <td>{inst.InstanceType}</td>
-              <td><span className={`mv-status mv-status--${inst.State === 'running' ? 'success' : 'neutral'}`}>{inst.State}</span></td>
-              <td>{inst.Region}</td>
+              <UiTooltip content={inst.InstanceId}><td data-label="Instance ID" className="mv-code mv-stack-title mv-wrap-anywhere">{inst.InstanceId}</td></UiTooltip>
+              <td data-label="Type">{inst.InstanceType}</td>
+              <td data-label="State"><span className={`mv-status mv-status--${inst.State === 'running' ? 'success' : 'neutral'}`}>{inst.State}</span></td>
+              <td data-label="Region">{inst.Region}</td>
             </tr>
           ))}
         </tbody>
@@ -323,7 +335,7 @@ function BudgetCard({ budget }: { budget: { BudgetName: string; ActualSpend: num
   return (
     <article className="mv-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.625rem', gap: '0.5rem' }}>
-        <UiTooltip content={budget.BudgetName}><h3 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>{budget.BudgetName}</h3></UiTooltip>
+        <UiTooltip content={budget.BudgetName}><h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>{budget.BudgetName}</h4></UiTooltip>
         <span className={`mv-status mv-status--${tone}`}>{pct.toFixed(0)}%</span>
       </div>
       <div className="mv-muted" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

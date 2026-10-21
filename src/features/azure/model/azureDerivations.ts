@@ -1,4 +1,4 @@
-import type { AzureCosts, AzureYearlyMonth, CspRecommendation } from './azureTypes';
+import type { AzureAdvisorRecommendation, AzureBudget, AzureCosts, AzureYearlyMonth, CspRecommendation } from './azureTypes';
 
 /** Month-over-month % change; null if there's no comparable prior value. */
 export function momPct(current: number, previous: number): number | null {
@@ -106,4 +106,107 @@ export function buildAiInsights(costs: AzureCosts, yearlyData: AzureYearlyMonth[
   insights.push({ type: 'success', title: 'Maitsys CSP savings', detail: `Maitsys CSP pricing is estimated to save ${Math.round(costs.totalCost * mspRate).toLocaleString()} this month.` });
 
   return insights.slice(0, 6);
+}
+
+/** The category an Azure service is reported under in the Service Category Summary. Unknown services are "Other". */
+export function azureServiceCategoryOf(serviceName: string): string {
+  const name = serviceName.toLowerCase();
+  if (/virtual machine|kubernetes|app service|functions|container/.test(name)) return 'Compute';
+  if (/sql|cosmos|redis|database|postgres|mysql/.test(name)) return 'Databases';
+  if (/storage|backup|blob|disk/.test(name)) return 'Storage';
+  if (/network|dns|gateway|load balancer|bandwidth|front door/.test(name)) return 'Networking';
+  return 'Other';
+}
+
+const IMPACT_RANK: Record<AzureAdvisorRecommendation['impact'], number> = { High: 0, Medium: 1, Low: 2 };
+
+export interface AdvisorItem {
+  problem: string;
+  solution: string;
+  impact: AzureAdvisorRecommendation['impact'];
+  category: string;
+  monthlySaving: number;
+  annualSaving: number;
+  /** "1 year" / "3 years" for a reservation or savings plan; null when the advice has no commitment term. */
+  term: string | null;
+}
+
+export interface AdvisorSummary {
+  items: AdvisorItem[];
+  totalMonthly: number;
+  totalAnnual: number;
+}
+
+function parseAmount(value: string | undefined): number {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function termLabel(term: string | undefined): string | null {
+  const match = term ? /^P(\d+)Y$/.exec(term) : null;
+  if (!match) return null;
+  return match[1] === '1' ? '1 year' : `${match[1]} years`;
+}
+
+/**
+ * Azure Advisor recommendations ordered by impact (High first) and then by the saving they promise, with the
+ * monthly and annual totals. A missing annual figure falls back to twelve times the monthly saving.
+ */
+export function summarizeAdvisor(recommendations: AzureAdvisorRecommendation[]): AdvisorSummary {
+  const items = recommendations
+    .map((rec) => {
+      const monthlySaving = parseAmount(rec.extendedProperties.savingsAmount);
+      const annual = parseAmount(rec.extendedProperties.annualSavingsAmount);
+      return {
+        problem: rec.shortDescription.problem,
+        solution: rec.shortDescription.solution,
+        impact: rec.impact,
+        category: rec.category,
+        monthlySaving,
+        annualSaving: annual > 0 ? annual : Math.round(monthlySaving * 12 * 100) / 100,
+        term: termLabel(rec.extendedProperties.term),
+      };
+    })
+    .sort((a, b) => IMPACT_RANK[a.impact] - IMPACT_RANK[b.impact] || b.monthlySaving - a.monthlySaving);
+  const round = (value: number) => Math.round(value * 100) / 100;
+  return { items, totalMonthly: round(items.reduce((sum, i) => sum + i.monthlySaving, 0)), totalAnnual: round(items.reduce((sum, i) => sum + i.annualSaving, 0)) };
+}
+
+/** Spend at or above this share of a budget's cap counts as "near" the limit. */
+export const BUDGET_NEAR_THRESHOLD = 0.75;
+
+export type BudgetAlertStatus = 'over' | 'near';
+
+export interface BudgetAlertRow {
+  name: string;
+  amount: number;
+  spent: number;
+  /** Spend as a percentage of the cap, one decimal; can pass 100. */
+  pct: number;
+  status: BudgetAlertStatus;
+}
+
+export interface BudgetAlertSummary {
+  rows: BudgetAlertRow[];
+  /** Budgets with a cap that are still under the near threshold. */
+  healthy: number;
+}
+
+/**
+ * The budgets that need attention: over their cap, or at least 75% of the way to it. Most urgent first. Budgets
+ * without a cap are ignored because there is nothing to measure spend against.
+ */
+export function budgetAlerts(budgets: AzureBudget[], nearThreshold = BUDGET_NEAR_THRESHOLD): BudgetAlertSummary {
+  const rows: BudgetAlertRow[] = [];
+  let healthy = 0;
+  for (const budget of budgets) {
+    if (!(budget.amount > 0)) continue;
+    const spent = budget.currentSpend?.amount ?? 0;
+    const ratio = spent / budget.amount;
+    if (ratio >= 1) rows.push({ name: budget.name, amount: budget.amount, spent, pct: Math.round(ratio * 1000) / 10, status: 'over' });
+    else if (ratio >= nearThreshold) rows.push({ name: budget.name, amount: budget.amount, spent, pct: Math.round(ratio * 1000) / 10, status: 'near' });
+    else healthy += 1;
+  }
+  rows.sort((a, b) => b.pct - a.pct);
+  return { rows, healthy };
 }

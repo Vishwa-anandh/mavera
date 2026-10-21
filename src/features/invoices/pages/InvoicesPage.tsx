@@ -3,7 +3,10 @@ import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedStat
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import { cssVars } from '../../../shared/lib/cssVars';
-import { DonutChart } from '../../../shared/ui/DonutChart';
+import { fireToast } from '../../../shared/lib/toastEvents';
+import { invoicesRepository } from '../../../data-access';
+import { useConfirm } from '../../../shared/ui/ConfirmProvider';
+import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
 import { Select } from '../../../shared/ui/Select';
 import { Pagination } from '../../../shared/ui/Pagination';
 import {
@@ -15,19 +18,18 @@ import {
   UploadIcon,
   PercentIcon,
 } from '../../../shared/ui/icons';
-import { MOCK_INVOICES } from '../../../demo/invoices/mockInvoicesData';
+import { CspSavingsBlock } from '../components/CspSavingsBlock';
 import {
-  CSP_RATES,
   PROVIDER_LABELS,
   buildFakeParsedInvoice,
+  cspBreakdownOf,
   filterByProvider,
   formatCurrency,
   formatDate,
   invoiceKpisOf,
   monthLabel,
   paginate,
-  serviceSavingsRowsOf,
-  totalSavingsOf,
+  providerCountsOf,
 } from '../model/invoicesDerivations';
 import type { Invoice, ProviderFilter } from '../model/invoicesTypes';
 import type { CloudProvider } from '../../../shared/types/auth';
@@ -35,7 +37,6 @@ import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const PROVIDER_FILTERS: ProviderFilter[] = ['all', 'azure', 'aws', 'btp', 'gcp'];
 const PAGE_SIZE = 6;
-const DONUT_COLORS = ['#175CD3', '#EC7211', '#059669', '#7C3AED', '#DC6803', '#4285F4', '#DB2777', '#65A30D'];
 
 function MetaChip({ label, value }: { label: string; value?: string }) {
   if (!value) return null;
@@ -72,19 +73,16 @@ function ProgressRow({ label, amount, total, sub }: { label: string; amount: num
   );
 }
 
-function InvoiceDetail({ invoice, onDelete, onClose }: { invoice: Invoice; onDelete: (id: string) => void; onClose: () => void }) {
+function InvoiceDetail({ invoice, onDelete, onClose }: { invoice: Invoice; onDelete: (invoice: Invoice) => void; onClose: () => void }) {
   const meta = invoice.raw_summary;
-  const rate = CSP_RATES[invoice.provider];
   const isBtp = invoice.provider === 'btp';
-  const serviceRows = !isBtp ? serviceSavingsRowsOf(invoice.services, invoice.provider) : [];
-  const savingsTotal = !isBtp ? totalSavingsOf(serviceRows) : 0;
-
+  const breakdown = cspBreakdownOf(invoice);
+  const hasBreakdown = breakdown.rows.length > 0;
   const btpGlobalTotal = meta.globalAccountCosts?.reduce((s, c) => s + c.cost, 0) ?? 0;
   const btpSubTotal = meta.subaccountCosts?.reduce((s, c) => s + c.totalCost, 0) ?? 0;
-  const btpCspBase = btpGlobalTotal > 0 ? btpGlobalTotal : btpSubTotal;
 
   return (
-    <section className="mv-panel">
+    <section className="mv-panel" aria-label={`Invoice ${meta.invoiceNumber ?? invoice.file_name}`}>
       <div className="mv-panel-header">
         <div>
           <span className="mv-status mv-status--neutral">{PROVIDER_LABELS[invoice.provider]}</span>
@@ -92,7 +90,7 @@ function InvoiceDetail({ invoice, onDelete, onClose }: { invoice: Invoice; onDel
           <p className="mv-muted" style={{ margin: '2px 0 0', fontSize: '0.75rem' }}>{invoice.file_name}</p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="mv-icon-button" aria-label="Delete invoice" onClick={() => onDelete(invoice.id)}><TrashIcon size={16} /></button>
+          <button className="mv-icon-button" aria-label="Delete invoice" onClick={() => onDelete(invoice)}><TrashIcon size={16} /></button>
           <button className="mv-icon-button" aria-label="Close detail" onClick={onClose}><CloseIcon size={16} /></button>
         </div>
       </div>
@@ -109,10 +107,10 @@ function InvoiceDetail({ invoice, onDelete, onClose }: { invoice: Invoice; onDel
         <BillingKpi label="Total Amount" value={formatCurrency(invoice.total_cost, invoice.currency)} />
         <BillingKpi label="Pre-tax Charges" value={formatCurrency(meta.charges ?? invoice.total_cost - (meta.taxAmount ?? 0))} />
         <BillingKpi label="Sales Tax" value={`${formatCurrency(meta.taxAmount ?? 0)}${meta.taxRate ? ` (${(meta.taxRate * 100).toFixed(1)}%)` : ''}`} />
-        {meta.totalSavings ? <BillingKpi label="CSP Savings" value={formatCurrency(meta.totalSavings)} tone="success" /> : null}
+        {hasBreakdown ? <BillingKpi label="CSP Savings" value={formatCurrency(breakdown.total, invoice.currency)} tone="success" /> : null}
       </div>
 
-      {isBtp ? (
+      {isBtp && (
         <>
           {meta.accountInfo && (
             <div className="mv-panel" style={{ marginBottom: '1rem' }}>
@@ -128,53 +126,29 @@ function InvoiceDetail({ invoice, onDelete, onClose }: { invoice: Invoice; onDel
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(16.25rem, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-            <div className="mv-panel">
-              <h3 className="mv-panel-title" style={{ fontSize: '0.875rem', marginBottom: '0.625rem' }}>Global Account Costs</h3>
-              {(meta.globalAccountCosts ?? []).map((c) => <ProgressRow key={c.name} label={c.name} amount={c.cost} total={btpGlobalTotal} sub={c.usage ?? c.planName} />)}
+          {(meta.globalAccountCosts?.length || meta.subaccountCosts?.length) ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 16.25rem), 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="mv-panel">
+                <h3 className="mv-panel-title" style={{ fontSize: '0.875rem', marginBottom: '0.625rem' }}>Global Account Costs</h3>
+                {(meta.globalAccountCosts ?? []).map((c) => <ProgressRow key={c.name} label={c.name} amount={c.cost} total={btpGlobalTotal} sub={c.usage ?? c.planName} />)}
+              </div>
+              <div className="mv-panel">
+                <h3 className="mv-panel-title" style={{ fontSize: '0.875rem', marginBottom: '0.625rem' }}>Subaccount Costs</h3>
+                {(meta.subaccountCosts ?? []).map((c) => <ProgressRow key={c.name} label={`${c.name}${c.dataCenter ? ` · ${c.dataCenter}` : ''}`} amount={c.totalCost} total={btpSubTotal} sub={c.directory} />)}
+              </div>
             </div>
-            <div className="mv-panel">
-              <h3 className="mv-panel-title" style={{ fontSize: '0.875rem', marginBottom: '0.625rem' }}>Subaccount Costs</h3>
-              {(meta.subaccountCosts ?? []).map((c) => <ProgressRow key={c.name} label={`${c.name}${c.dataCenter ? ` · ${c.dataCenter}` : ''}`} amount={c.totalCost} total={btpSubTotal} sub={c.directory} />)}
-            </div>
-          </div>
-
-          {btpCspBase > 0 && (
-            <div className={`mv-inline-error mv-ai-insight mv-ai-insight--success`} style={{ marginBottom: '1rem' }}>
-              <strong>Maitsys CSP Savings — {(rate * 100).toFixed(0)}% SAP BTP discount</strong>
-              <p style={{ margin: '2px 0 0' }}>{formatCurrency(btpCspBase * rate)} saved this billing period on {formatCurrency(btpCspBase)} of SAP BTP consumption.</p>
-            </div>
-          )}
+          ) : null}
         </>
-      ) : invoice.services.length === 0 ? (
+      )}
+
+      {hasBreakdown ? (
+        <CspSavingsBlock invoice={invoice} breakdown={breakdown} />
+      ) : !isBtp && (
         <div className="mv-empty" style={{ margin: 0 }}>
           <div className="mv-empty-icon" aria-hidden><FileTextIcon size={28} /></div>
           <h2>Service breakdown not extracted</h2>
           <p>Re-upload the PDF — service parsing requires a text-based (not scanned) PDF.</p>
         </div>
-      ) : (
-        <>
-          <div className={`mv-inline-error mv-ai-insight mv-ai-insight--success`} style={{ marginBottom: '1rem' }}>
-            <strong>Maitsys CSP Savings — {(rate * 100).toFixed(1)}% {PROVIDER_LABELS[invoice.provider]} discount</strong>
-            <p style={{ margin: '2px 0 0' }}>{formatCurrency(savingsTotal)} saved this billing period across {serviceRows.length} service{serviceRows.length !== 1 ? 's' : ''}.</p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(16.25rem, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-            <DonutChart title="Cost by service" totalLabel="Total cost" data={serviceRows.map((r, i) => ({ label: r.name, value: r.cost, color: DONUT_COLORS[i % DONUT_COLORS.length] }))} />
-            <div>
-              {serviceRows.map((r) => <ProgressRow key={r.name} label={r.name} amount={r.cost} total={invoice.services.reduce((s, x) => s + x.cost, 0)} sub={`${r.sharePct.toFixed(1)}% share · ${formatCurrency(r.savings)} saved`} />)}
-            </div>
-          </div>
-
-          <div className="mv-table-wrap">
-            <table className="mv-table">
-              <thead><tr><th>Service</th><th className="mv-num">Cost</th><th className="mv-num">CSP Savings</th></tr></thead>
-              <tbody>
-                {serviceRows.map((r) => <tr key={r.name}><td>{r.name}</td><td className="mv-num">{formatCurrency(r.cost)}</td><td className="mv-num" style={{ color: 'var(--mv-success)' }}>{formatCurrency(r.savings)}</td></tr>)}
-              </tbody>
-            </table>
-          </div>
-        </>
       )}
 
       {meta.sections && meta.sections.length > 0 && (
@@ -286,7 +260,8 @@ function UploadModal({ allowedProviders, onClose, onCreated }: { allowedProvider
 export function InvoicesPage() {
   const { user, cloudAccess, invoiceOnly } = useAuth();
   const permissions = derivePermissions(user, cloudAccess, invoiceOnly);
-  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const confirm = useConfirm();
+  const [invoices, setInvoices] = useState<Invoice[]>(() => invoicesRepository.list());
   const [providerFilter, setProviderFilter] = useRememberedState<ProviderFilter>('cloud', 'invoices-provider', 'all', oneOf(PROVIDER_FILTERS));
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -294,21 +269,34 @@ export function InvoicesPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   const kpis = invoiceKpisOf(invoices);
+  const providerCounts = providerCountsOf(invoices);
   const filtered = filterByProvider(invoices, providerFilter);
-  const pageItems = paginate(filtered, page, PAGE_SIZE);
+  const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
+  const pageItems = paginate(filtered, safePage, PAGE_SIZE);
   const selected = useMemo(() => invoices.find((inv) => inv.id === selectedId) ?? null, [invoices, selectedId]);
 
   const allowedProviders = (['azure', 'aws', 'btp', 'gcp'] as CloudProvider[]).filter((p) => permissions[p].canWrite);
 
   const changeFilter = (f: ProviderFilter) => { setProviderFilter(f); setPage(1); };
 
-  const handleDelete = (id: string) => {
-    setInvoices((current) => current.filter((inv) => inv.id !== id));
-    if (selectedId === id) setSelectedId(null);
+  const handleDelete = async (invoice: Invoice) => {
+    const name = invoice.raw_summary.invoiceNumber ?? invoice.file_name;
+    const ok = await confirm({
+      title: `Delete invoice ${name}?`,
+      description: `${PROVIDER_LABELS[invoice.provider]} ${monthLabel(invoice.month, invoice.year)}, ${formatCurrency(invoice.total_cost, invoice.currency)}. It leaves this list, the savings totals and the Cost Overview invoices view. Sample data: it comes back when you reload.`,
+      variant: 'delete',
+      okText: 'Delete invoice',
+    });
+    if (!ok) return;
+    invoicesRepository.remove(invoice.id);
+    setInvoices(invoicesRepository.list());
+    if (selectedId === invoice.id) setSelectedId(null);
+    fireToast({ type: 'success', message: `Invoice ${name} deleted.` });
   };
 
   const handleRefresh = () => {
     setRefreshing(true);
+    setInvoices(invoicesRepository.list());
     window.setTimeout(() => setRefreshing(false), 500);
   };
 
@@ -336,11 +324,16 @@ export function InvoicesPage() {
               <h2 className="mv-panel-title" style={{ fontSize: '0.9375rem' }}>Invoice Records</h2>
               <span className="mv-status mv-status--neutral">{filtered.length}</span>
             </div>
-            <div className="mv-segmented" style={{ marginBottom: '0.875rem', flexWrap: 'wrap' }}>
-              {PROVIDER_FILTERS.map((f) => (
-                <button key={f} className={`mv-segmented-btn${providerFilter === f ? ' is-active' : ''}`} onClick={() => changeFilter(f)}>{f === 'all' ? 'All' : PROVIDER_LABELS[f]}</button>
-              ))}
-            </div>
+            <SegmentedToggle<ProviderFilter>
+              label="Invoice provider"
+              className="mv-invoice-filter"
+              value={providerFilter}
+              onChange={changeFilter}
+              options={PROVIDER_FILTERS.map((f) => {
+                const name = f === 'all' ? 'All' : PROVIDER_LABELS[f];
+                return { value: f, label: <>{name}<span className="mv-chip-count">{providerCounts[f]}</span></>, ariaLabel: `${f === 'all' ? 'All providers' : name}, ${providerCounts[f]} ${providerCounts[f] === 1 ? 'invoice' : 'invoices'}` };
+              })}
+            />
 
             {pageItems.length === 0 ? (
               <div className="mv-empty" style={{ margin: 0 }}>
@@ -350,10 +343,12 @@ export function InvoicesPage() {
                 <button className="mv-primary-button" onClick={() => setUploadOpen(true)}>Upload Invoice</button>
               </div>
             ) : (
-              <div style={{ display: 'grid', gap: '0.5rem', maxHeight: '35rem', overflowY: 'auto' }}>
+              <div style={{ display: 'grid', gap: '0.5rem' }}>
                 {pageItems.map((inv) => (
                   <button
                     key={inv.id}
+                    type="button"
+                    aria-pressed={selectedId === inv.id}
                     onClick={() => setSelectedId(selectedId === inv.id ? null : inv.id)}
                     style={{
                       textAlign: 'left', border: `1px solid ${selectedId === inv.id ? 'var(--mv-primary)' : 'var(--mv-border)'}`,
@@ -380,11 +375,11 @@ export function InvoicesPage() {
             )}
           </section>
 
-          <Pagination page={page} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} noun="invoices" />
+          <Pagination page={safePage} pageSize={PAGE_SIZE} total={filtered.length} onPageChange={setPage} noun="invoices" />
         </div>
 
         {selected ? (
-          <InvoiceDetail invoice={selected} onDelete={handleDelete} onClose={() => setSelectedId(null)} />
+          <InvoiceDetail invoice={selected} onDelete={(inv) => { void handleDelete(inv); }} onClose={() => setSelectedId(null)} />
         ) : (
           <section className="mv-panel">
             <div className="mv-empty" style={{ margin: 0 }}>
@@ -401,7 +396,9 @@ export function InvoicesPage() {
           allowedProviders={allowedProviders}
           onClose={() => setUploadOpen(false)}
           onCreated={(invoice) => {
-            setInvoices((current) => [invoice, ...current]);
+            invoicesRepository.add(invoice);
+            setInvoices(invoicesRepository.list());
+            fireToast({ type: 'success', message: `${invoice.file_name} uploaded and added to your invoices.` });
             setUploadOpen(false);
             setSelectedId(invoice.id);
             setProviderFilter('all');

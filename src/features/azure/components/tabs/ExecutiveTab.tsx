@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import type { AzureCostTabProps } from '../../model/AzureCostTabProps';
 import type { AiInsight } from '../../model/azureDerivations';
-import { momPct } from '../../model/azureDerivations';
+import { azureServiceCategoryOf, momPct } from '../../model/azureDerivations';
+import { groupByCategory } from '../../../../shared/lib/costAnalysis';
+import { ServiceCategorySummary } from '../../../../shared/ui/ServiceCategorySummary';
 import { SpendTrendChart } from '../../../../shared/ui/SpendTrendChart';
+import { ResourceCostTable } from '../ResourceCostTable';
 import { TrendDownIcon } from '../../../../shared/ui/icons';
 import { Tooltip } from '../../../../shared/ui/Tooltip';
 
@@ -13,17 +16,10 @@ import { Tooltip } from '../../../../shared/ui/Tooltip';
  * the "AI Executive Summary" panel, "Top 5 Cost Drivers" and the
  * "Attention Center" + Maitsys CSP savings callout).
  *
- * Two sections from that same reference block are intentionally left out
- * here because they duplicate what `TechnicalTab.tsx` already ports in full:
- * `AzureServiceBreakdownCard` (expandable per-resource-per-service list) and
- * `AzureResourceBreakdownCard` (resource inventory by type), plus the
- * standalone "Top Resources by Cost" table — all raw per-resource detail
- * that TechnicalTab's "Top Resources by Cost" / "Resource Inventory"
- * sections already own. `ServiceCategoryCard` ("Service Category Summary")
- * is also left out: it groups services by a category-mapping table
- * (`utils/categoryMappings.js`) that has no equivalent in this port's
- * `AzureServiceCost` shape (`{ name, cost }` only, no category) — inventing
- * one would be guessing at reference data this port doesn't have.
+ * The reference's per-service expandable breakdown and its resource inventory by type stay on
+ * `TechnicalTab.tsx`. This view adds the reference's "Service Category Summary" (services grouped by
+ * `azureServiceCategoryOf`, a category chart plus a roll-up table that opens to its services) and the
+ * resource table with its CSP saving, which shows the top few rows and expands with "Show all N resources".
  *
  * `data.topResources` / `data.resources` are zeroed for historical months;
  * this tab only reads `data.services` / `data.totalCost` / `data.forecast`
@@ -59,6 +55,7 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
   const topServices = [...data.services].sort((a, b) => b.cost - a.cost);
   const topDrivers = topServices.slice(0, 5);
   const topService = topServices[0];
+  const categorySummary = groupByCategory(data.services, azureServiceCategoryOf);
 
   const attentionItems: Array<{ tone: 'danger' | 'warning' | 'success'; label: string }> = [];
   if (trendChange !== null && trendChange > 15) {
@@ -161,7 +158,11 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
         </section>
       )}
 
-      <div className="mv-row-3col">
+      <div className="mv-detail-stack">
+        <ServiceCategorySummary summary={categorySummary} />
+      </div>
+
+      <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel">
           <div className="mv-panel-header">
             <h2 className="mv-panel-title">Top 5 Cost Drivers</h2>
@@ -170,7 +171,7 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
             <p className="mv-muted">No service data available.</p>
           ) : (
             <div className="mv-table-wrap">
-              <table className="mv-table">
+              <table className="mv-table mv-table--stack">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -182,10 +183,10 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
                 <tbody>
                   {topDrivers.map((svc, i) => (
                     <tr key={svc.name}>
-                      <td className="mv-muted">{i + 1}</td>
-                      <Tooltip content={svc.name}><td>{svc.name}</td></Tooltip>
-                      <td className="mv-num">{formatCurrency(svc.cost)}</td>
-                      <td className="mv-num">{execTotal > 0 ? `${((svc.cost / execTotal) * 100).toFixed(1)}%` : '0.0%'}</td>
+                      <td data-label="#" className="mv-muted">{i + 1}</td>
+                      <Tooltip content={svc.name}><td data-label="Service" className="mv-stack-title">{svc.name}</td></Tooltip>
+                      <td data-label="Monthly Cost" className="mv-num">{formatCurrency(svc.cost)}</td>
+                      <td data-label="% of Total" className="mv-num">{execTotal > 0 ? `${((svc.cost / execTotal) * 100).toFixed(1)}%` : '0.0%'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -229,6 +230,20 @@ export function ExecutiveTab(props: AzureCostTabProps & { aiInsights?: AiInsight
           )}
         </section>
       </div>
+
+      <section className="mv-panel mv-detail-stack">
+        <div className="mv-panel-header">
+          <div>
+            <h2 className="mv-panel-title">Resources by Cost</h2>
+            <p className="mv-muted mv-section-sub">Every resource in the subscription, most expensive first, with its Maitsys CSP saving.</p>
+          </div>
+        </div>
+        {isCurrentMonth ? (
+          <ResourceCostTable resources={data.resources.allResources} mspRate={mspRate} />
+        ) : (
+          <div className="mv-notice">Resource-level detail isn't available for historical months. Switch to Month-to-Date to see it.</div>
+        )}
+      </section>
     </div>
   );
 }

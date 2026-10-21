@@ -21,10 +21,8 @@
     "src/features/gcp/model/GcpAccountContext.tsx",
     "src/features/gcp/pages/GcpCostPage.tsx",
     "src/features/gcp/pages/GcpOverallDashboard.tsx",
-    "src/features/invoices/pages/InvoicesPage.tsx",
     "src/features/recommendations/model/recommendationsDerivations.ts",
     "src/features/sap/pages/BtpSecurityPage.tsx",
-    "src/features/smartAlerts/pages/SmartAlertsPage.tsx",
     "src/features/syncLogs/pages/SyncLogsPage.tsx"
   ]
 }

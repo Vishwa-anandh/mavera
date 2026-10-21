@@ -1,4 +1,4 @@
-import type { Invoice } from '../../features/invoices';
+import type { Invoice } from '../../data-access';
 
 /**
  * A hand-built, complete dataset — the reference app's own demo backend
@@ -9,7 +9,7 @@ import type { Invoice } from '../../features/invoices';
  * record and one non-BTP record with an empty `services` array to exercise
  * the "not extracted" empty state.
  */
-export const MOCK_INVOICES: Invoice[] = [
+export const SEED_INVOICES: Invoice[] = [
   {
     id: 'inv-azure-09',
     provider: 'azure',
@@ -36,7 +36,7 @@ export const MOCK_INVOICES: Invoice[] = [
       charges: 8420,
       taxAmount: 664.6,
       taxRate: 0.079,
-      totalSavings: 542,
+      totalSavings: 642.8,
       sections: [
         { name: 'Compute', total: 4280, tax: 338.1 },
         { name: 'Storage & Networking', total: 2100, tax: 165.9 },
@@ -174,7 +174,7 @@ export const MOCK_INVOICES: Invoice[] = [
       charges: 8100,
       taxAmount: 635.5,
       taxRate: 0.0784,
-      totalSavings: 498,
+      totalSavings: 603.5,
       sections: [
         { name: 'Compute', total: 4100, tax: 321.4 },
         { name: 'Storage & Networking', total: 2060, tax: 161.5 },

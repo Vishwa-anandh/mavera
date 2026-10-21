@@ -35,9 +35,17 @@ function mulberry32(seed: number) {
 
 const rand = mulberry32(42);
 
+/** Splits `total` by `weights` to the cent. Any rounding remainder goes to the largest part, so the parts
+ * always add up to `total` (daily costs sum to the month-to-date, services to the total). */
 function distribute(total: number, weights: number[]): number[] {
   const sum = weights.reduce((a, b) => a + b, 0);
-  return weights.map((w) => Math.round((total * w) / sum * 100) / 100);
+  const parts = weights.map((w) => Math.round((total * w) / sum * 100) / 100);
+  const remainder = Math.round((total - parts.reduce((a, b) => a + b, 0)) * 100) / 100;
+  if (remainder !== 0) {
+    const largest = parts.indexOf(Math.max(...parts));
+    parts[largest] = Math.round((parts[largest] + remainder) * 100) / 100;
+  }
+  return parts;
 }
 
 function serviceBreakdown(total: number) {
@@ -145,6 +153,7 @@ export const MOCK_AZURE_FULL: AzureFullResponse = {
   budgets: [
     { name: 'Production Monthly Budget', amount: 18000, currentSpend: { amount: CURRENT_MONTH_TOTAL } },
     { name: 'Data Platform Budget', amount: 4000, currentSpend: { amount: 3120.4 } },
+    { name: 'Networking Hub Budget', amount: 1500, currentSpend: { amount: 1612.35 } },
   ],
   recommendations: [
     {
@@ -165,9 +174,22 @@ export const MOCK_AZURE_FULL: AzureFullResponse = {
       impact: 'High',
       category: 'Cost',
     },
+    {
+      shortDescription: { problem: 'Cosmos DB provisioned throughput is higher than needed', solution: 'Reduce provisioned RU/s or switch to autoscale' },
+      extendedProperties: { savingsAmount: '148.90', annualSavingsAmount: '1786.80', term: 'P1Y' },
+      impact: 'Medium',
+      category: 'Cost',
+    },
+    {
+      shortDescription: { problem: 'aks-prod-cluster node pool is over-provisioned outside business hours', solution: 'Enable the cluster autoscaler on the node pool' },
+      extendedProperties: { savingsAmount: '96.00', annualSavingsAmount: '1152.00' },
+      impact: 'Low',
+      category: 'Cost',
+    },
   ],
   alerts: [
     { name: 'Budget threshold exceeded', description: 'Production Monthly Budget has reached 79% of its cap.' },
+    { name: 'Budget exceeded', description: 'Networking Hub Budget has passed its $1,500.00 cap.' },
   ],
   invoices: [
     { billingPeriod: '2026-08', invoiceDate: '2026-09-01', totalAmount: { amount: 13940.2 }, name: 'Invoice-2026-08-AZ', downloadUrl: '#' },

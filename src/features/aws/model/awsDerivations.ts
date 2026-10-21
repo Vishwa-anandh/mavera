@@ -1,4 +1,5 @@
-import type { AwsCosts, AwsYearlyMonth, CspRecommendation } from './awsTypes';
+import { sharesOf } from '../../../shared/lib/costAnalysis';
+import type { AwsCosts, AwsResourceTypeCount, AwsYearlyMonth, CspRecommendation } from './awsTypes';
 
 /** Month-over-month % change; null if there's no comparable prior value. */
 export function momPct(current: number, previous: number): number | null {
@@ -104,4 +105,29 @@ export function buildAiInsights(costs: AwsCosts, yearlyData: AwsYearlyMonth[], m
   insights.push({ type: 'success', title: 'Maitsys CSP savings', detail: `Maitsys CSP pricing is estimated to save ${Math.round(costs.totalCost * mspRate).toLocaleString()} this month. Annualised: ~${Math.round(costs.totalCost * mspRate * 12).toLocaleString()}.` });
 
   return insights.slice(0, 6);
+}
+
+/** The category an AWS service is reported under in the Service Category Summary. Unknown services are "Other". */
+export function awsServiceCategoryOf(serviceName: string): string {
+  const name = serviceName.toLowerCase();
+  if (/ec2|elastic compute|lambda|workspaces|fargate|\becs\b|\beks\b/.test(name)) return 'Compute';
+  if (/rds|dynamodb|aurora|elasticache|redshift|database/.test(name)) return 'Databases';
+  if (/\bs3\b|simple storage|\bebs\b|\befs\b|elastic file|glacier|backup/.test(name)) return 'Storage';
+  if (/cloudfront|vpc|virtual private|route 53|direct connect|api gateway|load balanc/.test(name)) return 'Networking and delivery';
+  if (/waf|guardduty|shield|kms|key management|secrets|inspector|security/.test(name)) return 'Security';
+  if (/support|tax|budgets|cost explorer/.test(name)) return 'Support and billing';
+  if (/cloudwatch|systems manager|cloudformation|codebuild|amplify|config/.test(name)) return 'Management and developer tools';
+  return 'Other';
+}
+
+export interface ResourceTypeShare extends AwsResourceTypeCount {
+  /** Share of all resources, one decimal; the shares add up to exactly 100. */
+  sharePct: number;
+}
+
+/** The resource inventory by type, biggest first, with each type's share of the total. */
+export function resourceTypeShares(byType: AwsResourceTypeCount[]): ResourceTypeShare[] {
+  const sorted = [...byType].sort((a, b) => b.count - a.count || a.type.localeCompare(b.type));
+  const shares = sharesOf(sorted.map((type) => type.count));
+  return sorted.map((type, index) => ({ ...type, sharePct: shares[index] }));
 }

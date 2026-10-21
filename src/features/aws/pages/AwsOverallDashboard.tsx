@@ -124,7 +124,7 @@ export function AwsOverallDashboard() {
           <div className="mv-service-tile-grid">
             {topServices.slice(0, 6).map((service) => (
               <div className="mv-service-tile" key={service.name}>
-                <span className="mv-service-tile-badge">{service.name.replace(/^Amazon\s+|^AWS\s+/i, '').slice(0, 2).toUpperCase()}</span>
+                <span className="mv-service-tile-badge">{service.name.replace(/^Amazon\s+|^AWS\s+/i, '').slice(0, 2).replace(/^./, (c) => c.toUpperCase()).replace(/^(.)(.)/, (_, a, b) => a + b.toLowerCase())}</span>
                 <span className="mv-service-tile-name">{service.name}</span>
                 <strong>{formatCurrency(service.value)}</strong>
               </div>

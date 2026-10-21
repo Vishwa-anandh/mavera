@@ -1,4 +1,4 @@
-import type { SapJob, SapTrendPoint, SapWorkProcess, SapWorkProcessType } from '../../../data-access';
+import type { SapJob, SapLock, SapLockMode, SapMemoryPoint, SapMemoryPool, SapTrendPoint, SapWorkProcess, SapWorkProcessType } from '../../../data-access';
 
 export type JobFilter = 'All' | 'Running' | 'Finished' | 'Aborted' | 'Scheduled';
 export const JOB_FILTERS: JobFilter[] = ['All', 'Running', 'Finished', 'Aborted', 'Scheduled'];
@@ -90,4 +90,87 @@ export function trendStats(points: SapTrendPoint[]): { min: number; max: number;
   if (points.length === 0) return { min: 0, max: 0, avg: 0, last: 0 };
   const values = points.map((p) => p.value);
   return { min: Math.min(...values), max: Math.max(...values), avg: values.reduce((a, b) => a + b, 0) / values.length, last: values[values.length - 1] };
+}
+
+/* ---- Memory pools (ST02) and the application-server memory chart ---- */
+
+export type PoolTone = 'success' | 'warning' | 'danger';
+
+export interface MemoryPoolRow {
+  pool: string;
+  sizeMb: number;
+  usedMb: number;
+  peakMb: number;
+  freeMb: number;
+  /** Whole percent of the configured size in use. */
+  usedPercent: number;
+  tone: PoolTone;
+  status: 'Healthy' | 'Warning' | 'Critical';
+}
+
+/** 75 percent and up is a warning, 90 percent and up is critical; a pool of size 0 reports 0 percent. */
+export function poolTone(percent: number): PoolTone {
+  return percent >= 90 ? 'danger' : percent >= 75 ? 'warning' : 'success';
+}
+
+const POOL_STATUS: Record<PoolTone, MemoryPoolRow['status']> = { success: 'Healthy', warning: 'Warning', danger: 'Critical' };
+
+export function memoryPoolRows(pools: SapMemoryPool[]): MemoryPoolRow[] {
+  return pools.map((p) => {
+    const usedPercent = p.sizeMb > 0 ? Math.round((p.usedMb / p.sizeMb) * 100) : 0;
+    const tone = poolTone(usedPercent);
+    return { ...p, freeMb: Math.max(0, p.sizeMb - p.usedMb), usedPercent, tone, status: POOL_STATUS[tone] };
+  });
+}
+
+/** "512 MB", "16.0 GB". */
+export function formatMegabytes(mb: number): string {
+  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
+}
+
+export interface MemoryStats {
+  usedGb: number;
+  allocatedGb: number;
+  /** Whole percent of the allocation in use now; null when there is no series or nothing allocated (not a real 0%). */
+  percent: number | null;
+  peakGb: number;
+}
+
+/** The latest point is "now"; the peak is the highest used value in the window. */
+export function memoryStats(series: SapMemoryPoint[]): MemoryStats {
+  const last = series[series.length - 1];
+  if (!last) return { usedGb: 0, allocatedGb: 0, percent: null, peakGb: 0 };
+  return {
+    usedGb: last.usedGb,
+    allocatedGb: last.allocatedGb,
+    percent: last.allocatedGb > 0 ? Math.round((last.usedGb / last.allocatedGb) * 100) : null,
+    peakGb: Math.max(...series.map((p) => p.usedGb)),
+  };
+}
+
+/* ---- System locks (SM12) ---- */
+
+export const LOCK_MODE_LABEL: Record<SapLockMode, string> = {
+  E: 'Exclusive',
+  S: 'Shared',
+  X: 'Exclusive, not cumulative',
+  O: 'Optimistic',
+};
+
+/** "38 s", "6 min", "1 h 12 min". */
+export function formatLockAge(sec: number): string {
+  if (sec < 60) return `${Math.max(0, Math.round(sec))} s`;
+  const minutes = Math.floor(sec / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const rest = minutes % 60;
+  return rest === 0 ? `${Math.floor(minutes / 60)} h` : `${Math.floor(minutes / 60)} h ${rest} min`;
+}
+
+export function lockSummary(locks: SapLock[]): { count: number; oldestAgeSec: number | null } {
+  return { count: locks.length, oldestAgeSec: locks.length === 0 ? null : Math.max(...locks.map((l) => l.ageSec)) };
+}
+
+/** Longest-held first; ties keep table-name order so the list is stable. */
+export function longestHeldLocks(locks: SapLock[], limit = 5): SapLock[] {
+  return [...locks].sort((a, b) => b.ageSec - a.ageSec || a.table.localeCompare(b.table)).slice(0, limit);
 }

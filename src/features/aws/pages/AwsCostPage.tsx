@@ -117,7 +117,7 @@ export function AwsCostPage() {
   };
 
   return (
-    <div>
+    <div className="mv-cloud-detail">
 
       <div className="mv-cost-header">
         <div className="mv-cost-header-title">

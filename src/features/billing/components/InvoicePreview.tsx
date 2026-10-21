@@ -76,7 +76,7 @@ export function InvoicePreview({ invoiceNumber, invoiceDate, dueDate, serialNumb
           {poNumber && <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>PO #</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{poNumber}</p></div>}
           {paymentTermName && <div><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>Payment term</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{paymentTermName}</p></div>}
           {customFields.filter((f) => f.label).map((f) => (
-            <div key={f.id}><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>{f.label.toUpperCase()}</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{f.value}</p></div>
+            <div key={f.id}><p style={{ margin: 0, fontSize: '0.625rem', color: '#999' }}>{f.label}</p><p style={{ margin: '2px 0 0', fontSize: '0.8125rem', fontWeight: 500 }}>{f.value}</p></div>
           ))}
         </div>
         <div style={{ textAlign: 'right', flex: 'none' }}>

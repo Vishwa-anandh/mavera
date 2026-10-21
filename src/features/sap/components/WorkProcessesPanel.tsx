@@ -25,7 +25,7 @@ export function WorkProcessesPanel({ processes, system }: { processes: SapWorkPr
           label="Work process type"
           value={type}
           onChange={setType}
-          options={[{ value: 'ALL', label: 'ALL' } as const, ...WORK_PROCESS_TYPES.map((t) => ({ value: t, label: t }))]}
+          options={[{ value: 'ALL', label: 'All' } as const, ...WORK_PROCESS_TYPES.map((t) => ({ value: t, label: t }))]}
         />
       </div>
       <div className="mv-table-wrap">

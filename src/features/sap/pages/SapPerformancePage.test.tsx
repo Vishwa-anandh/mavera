@@ -1,20 +1,48 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { sapRepository } from '../../../data-access';
+import { memoryPoolRows, memoryStats } from '../model/sapPerformance';
 import { SapPerformancePage } from './SapPerformancePage';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 
 const renderPage = (path = '/') => render(<ThemeProvider><MemoryRouter initialEntries={[path]}><SapPerformancePage /></MemoryRouter></ThemeProvider>);
 
 describe('SapPerformancePage', () => {
-  it('shows "Not reported" instead of a misleading 0% for metrics the SAP system did not send', () => {
+  it('shows "Not reported" instead of a misleading 0% for a metric the SAP system did not send', () => {
     renderPage();
 
     expect(screen.getByLabelText('DB Hit Ratio not reported')).toHaveTextContent('—');
-    expect(screen.getByLabelText('Memory Usage not reported')).toHaveTextContent('—');
-    expect(screen.getAllByText('Not reported by this system')).toHaveLength(2);
+    expect(screen.getAllByText('Not reported by this system')).toHaveLength(1);
     expect(screen.queryByText('0%')).not.toBeInTheDocument();
+  });
+
+  it('reads the Memory Usage and System Locks tiles from the same data as the memory and lock cards', async () => {
+    const user = userEvent.setup();
+    const series = sapRepository.getMemorySeries();
+    const locks = sapRepository.listSystemLocks();
+    const expectedPercent = memoryStats(series).percent;
+    const tile = (label: string) => screen.getByText(label, { selector: '.mv-kpi-label' }).closest('article') as HTMLElement;
+    renderPage();
+    expect(tile('Memory Usage')).toHaveTextContent(`${expectedPercent}%`);
+    expect(tile('System Locks')).toHaveTextContent(String(locks.length));
+    expect(locks.length).toBeGreaterThan(0);
+
+    // the Memory Pools card (health tab) totals to the same figure as the tile
+    const rows = memoryPoolRows(sapRepository.listMemoryPools());
+    const totalPercent = Math.round((rows.reduce((a, r) => a + r.usedMb, 0) / rows.reduce((a, r) => a + r.sizeMb, 0)) * 100);
+    expect(totalPercent).toBe(expectedPercent);
+    expect(screen.getByRole('heading', { name: /Memory Pools/ })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Jobs and processes' }));
+    const locksCard = screen.getByRole('heading', { name: /System Locks/ }).closest('section') as HTMLElement;
+    expect(within(locksCard).getByRole('group', { name: 'Lock totals' })).toHaveTextContent(`Lock entries${locks.length}`);
+    expect(within(locksCard).getAllByRole('row')).toHaveLength(locks.length + 1);
+    expect(within(locksCard).queryByText('No locks held')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Analytics' }));
+    expect(screen.getByRole('img', { name: new RegExp(`\\(${expectedPercent}%\\)`) })).toBeInTheDocument();
   });
 
   it('lists each application server as its own card with readable metrics', () => {

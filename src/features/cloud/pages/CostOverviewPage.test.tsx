@@ -286,7 +286,7 @@ describe('CostOverviewPage Cloud | Invoices view', () => {
     const region = screen.getByRole('region', { name: 'Invoices summary' });
     expect(screen.queryByText('Total Spend (Month-to-Date)')).not.toBeInTheDocument();
     expect(within(region).getByText('Invoices').closest('.mv-kpi')).toHaveTextContent('3');
-    expect(within(region).getByText('Total invoiced').closest('.mv-kpi')).toHaveTextContent('$4,000.00');
+    expect(within(region).getByText('Total invoiced', { selector: '.mv-kpi-label' }).closest('.mv-kpi')).toHaveTextContent('$4,000.00');
     const split = within(region).getByRole('list', { name: 'Invoiced amount by provider' });
     expect(within(split).getByText('Azure')).toBeInTheDocument();
     expect(split).toHaveTextContent('2 invoices · 75% of total');
@@ -295,9 +295,36 @@ describe('CostOverviewPage Cloud | Invoices view', () => {
     expect(rows[0]).toContain('MSFT-1');
     expect(rows).toHaveLength(3);
     expect(within(region).getByRole('link', { name: 'Upload more invoices' })).toHaveAttribute('href', '/invoices');
+    expect(within(region).getByRole('link', { name: 'View all invoices' })).toHaveAttribute('href', '/invoices');
+    expect(within(region).getByRole('heading', { name: 'Recent invoices' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Cloud costs' }));
     expect(screen.getByText('Total Spend (Month-to-Date)')).toBeInTheDocument();
+  });
+
+  it('charts monthly invoice totals against the estimated CSP saving, with the figures and a data table behind it', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ invoices }));
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Invoices summary' }));
+
+    const region = screen.getByRole('region', { name: 'Invoices summary' });
+    expect(within(region).getByRole('heading', { name: /Maitsys CSP Savings vs Invoice Total/ })).toBeInTheDocument();
+    expect(within(region).getByText('CSP savings', { selector: '.mv-kpi-label' }).closest('.mv-kpi')).toHaveTextContent('$245.00');
+    const figures = region.querySelector('.mv-csp-figures') as HTMLElement;
+    expect(figures).toHaveTextContent('Azure at 7.0%');
+    expect(figures).toHaveTextContent('$210.00 from $3,000.00');
+    expect(figures).toHaveTextContent('AWS at 3.5%');
+
+    await user.click(within(region).getByRole('button', { name: 'View data' }));
+    const dialog = screen.getByRole('dialog', { name: 'Maitsys CSP Savings vs Invoice Total' });
+    expect(within(dialog).getAllByRole('row').map((r) => r.textContent)).toEqual([
+      'CategoryAzureAWSCSP savings (estimated)',
+      'Jul 2026$1,000.00$0.00$70.00',
+      'Aug 2026$0.00$1,000.00$35.00',
+      'Sep 2026$2,000.00$0.00$140.00',
+    ]);
   });
 
   it('invites an upload when there are no invoices', async () => {

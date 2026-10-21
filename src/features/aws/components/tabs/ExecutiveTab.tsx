@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import type { AwsCostTabProps } from '../../model/AwsCostTabProps';
 import type { AiInsight } from '../../model/awsDerivations';
-import { momPct } from '../../model/awsDerivations';
+import { awsServiceCategoryOf, momPct } from '../../model/awsDerivations';
+import { groupByCategory } from '../../../../shared/lib/costAnalysis';
+import { ServiceCategorySummary } from '../../../../shared/ui/ServiceCategorySummary';
 import { SpendTrendChart } from '../../../../shared/ui/SpendTrendChart';
+import { ResourceInventoryByType } from '../ResourceInventoryByType';
 import { TrendDownIcon } from '../../../../shared/ui/icons';
 import { Tooltip } from '../../../../shared/ui/Tooltip';
 
@@ -23,6 +26,12 @@ interface AttentionItem {
  * own (5 KPI tiles here vs Azure's 4, CSP + optimization savings split out,
  * an extra "optimization savings available" Attention Center flag sourced
  * from `cspRecommendations`).
+ *
+ * Added from the reference's Executive view: the "Service Category Summary"
+ * (services grouped by `awsServiceCategoryOf`, a category chart plus a
+ * roll-up table that opens to its services, which also lists the small
+ * line items such as AWS WAF, Tax, CodeBuild and AWS Budgets) and the
+ * "Resource Inventory" by type with each type's share.
  *
  * `resources` and `cspRecommendations` are the org's current live state
  * (not month-scoped) per `AwsCostTabProps` — used as-is regardless of which
@@ -62,6 +71,7 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
   const topServices = [...data.services].sort((a, b) => b.cost - a.cost);
   const topDrivers = topServices.slice(0, 5);
   const topService = topServices[0];
+  const categorySummary = groupByCategory(data.services, awsServiceCategoryOf);
 
   const attentionItems: AttentionItem[] = [];
   if (trendChange !== null && trendChange > 15) {
@@ -175,7 +185,11 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
         </section>
       )}
 
-      <div className="mv-row-3col">
+      <div className="mv-detail-stack">
+        <ServiceCategorySummary summary={categorySummary} />
+      </div>
+
+      <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
         <section className="mv-panel" id="exec-top-services">
           <div className="mv-panel-header">
             <h2 className="mv-panel-title">Top 5 Cost Drivers</h2>
@@ -184,7 +198,7 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
             <p className="mv-muted">No service data available.</p>
           ) : (
             <div className="mv-table-wrap">
-              <table className="mv-table">
+              <table className="mv-table mv-table--stack">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -196,10 +210,10 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
                 <tbody>
                   {topDrivers.map((svc, i) => (
                     <tr key={svc.name}>
-                      <td className="mv-muted">{i + 1}</td>
-                      <Tooltip content={svc.name}><td>{svc.name}</td></Tooltip>
-                      <td className="mv-num">{formatCurrency(svc.cost)}</td>
-                      <td className="mv-num">{data.totalCost > 0 ? `${((svc.cost / data.totalCost) * 100).toFixed(1)}%` : '0.0%'}</td>
+                      <td data-label="#" className="mv-muted">{i + 1}</td>
+                      <Tooltip content={svc.name}><td data-label="Service" className="mv-stack-title">{svc.name}</td></Tooltip>
+                      <td data-label="Monthly Cost" className="mv-num">{formatCurrency(svc.cost)}</td>
+                      <td data-label="% of Total" className="mv-num">{data.totalCost > 0 ? `${((svc.cost / data.totalCost) * 100).toFixed(1)}%` : '0.0%'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -242,6 +256,10 @@ export function ExecutiveTab(props: AwsCostTabProps & { aiInsights?: AiInsight[]
             </div>
           )}
         </section>
+      </div>
+
+      <div className="mv-detail-stack">
+        <ResourceInventoryByType resources={resources} />
       </div>
     </div>
   );

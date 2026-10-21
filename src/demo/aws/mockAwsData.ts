@@ -32,16 +32,29 @@ function mulberry32(seed: number) {
 }
 const rand = mulberry32(77);
 
+/** Splits `total` by `weights` to the cent. Any rounding remainder goes to the largest part, so the parts
+ * always add up to `total` (daily costs sum to the month-to-date, services to the total). */
 function distribute(total: number, weights: number[]): number[] {
   const sum = weights.reduce((a, b) => a + b, 0);
-  return weights.map((w) => Math.round(((total * w) / sum) * 100) / 100);
+  const parts = weights.map((w) => Math.round(((total * w) / sum) * 100) / 100);
+  const remainder = Math.round((total - parts.reduce((a, b) => a + b, 0)) * 100) / 100;
+  if (remainder !== 0) {
+    const largest = parts.indexOf(Math.max(...parts));
+    parts[largest] = Math.round((parts[largest] + remainder) * 100) / 100;
+  }
+  return parts;
 }
 
-const AWS_SERVICE_NAMES = ['Amazon EC2', 'Amazon S3', 'Amazon RDS', 'AWS Lambda', 'Amazon CloudFront', 'Amazon DynamoDB'];
+/** Services with a typical share of the bill: compute dominates, the long tail (WAF, Route 53, tax) is small. */
+const AWS_SERVICE_WEIGHTS: Array<[string, number]> = [
+  ['Amazon EC2', 3.2], ['Amazon RDS', 1.5], ['Amazon S3', 0.95], ['AWS Lambda', 0.6], ['Amazon CloudFront', 0.5], ['Amazon DynamoDB', 0.45],
+  ['AWS Support (Business)', 0.75], ['Amazon VPC', 0.4], ['AWS WAF', 0.18], ['Amazon Route 53', 0.08], ['Tax', 0.12],
+];
+const AWS_SERVICE_NAMES = AWS_SERVICE_WEIGHTS.map(([name]) => name);
 const AWS_REGIONS = ['us-east-1', 'us-west-2', 'eu-west-1'];
 
 function serviceBreakdown(total: number): AwsServiceCost[] {
-  const weights = AWS_SERVICE_NAMES.map(() => 0.4 + rand() * 1.2);
+  const weights = AWS_SERVICE_WEIGHTS.map(([, base]) => base * (0.8 + rand() * 0.4));
   const costs = distribute(total, weights);
   return AWS_SERVICE_NAMES.map((name, i) => ({ name, cost: costs[i] })).sort((a, b) => b.cost - a.cost);
 }
@@ -71,6 +84,11 @@ const USAGE_TYPES: Record<string, string[]> = {
   'AWS Lambda': ['Lambda-GB-Second', 'Lambda-Requests'],
   'Amazon CloudFront': ['DataTransfer-Out-Bytes', 'Requests-HTTPS'],
   'Amazon DynamoDB': ['ReadCapacityUnit-Hrs', 'WriteCapacityUnit-Hrs'],
+  'AWS Support (Business)': ['Support-Business'],
+  'Amazon VPC': ['NatGateway-Hours', 'NatGateway-Bytes', 'PublicIPv4:InUseAddress', 'VPN-Connection-Hours'],
+  'AWS WAF': ['WebACL', 'Request', 'Rule'],
+  'Amazon Route 53': ['HostedZone', 'DNS-Queries', 'HealthCheck'],
+  'Tax': ['Tax'],
 };
 
 const CURRENT_MONTH_DETAILS: AwsDetailRow[] = CURRENT_MONTH_SERVICES.flatMap((service) => {
@@ -80,12 +98,18 @@ const CURRENT_MONTH_DETAILS: AwsDetailRow[] = CURRENT_MONTH_SERVICES.flatMap((se
   return types.map((usageType, i) => ({ service: service.name, usageType, cost: costs[i] }));
 });
 
+/** Inventory by resource type. EC2 instances and S3 buckets match the lists below, so the counts agree. */
 const RESOURCE_BY_TYPE = [
-  { type: 'EC2 Instance', count: 8, icon: 'server' },
-  { type: 'RDS Database', count: 3, icon: 'database' },
-  { type: 'Lambda Function', count: 14, icon: 'zap' },
-  { type: 'ECS Service', count: 2, icon: 'layers' },
-  { type: 'S3 Bucket', count: 5, icon: 'shield' },
+  { type: 'Security Groups', count: 24, icon: 'shield' },
+  { type: 'Subnets', count: 16, icon: 'layers' },
+  { type: 'EBS Volumes', count: 14, icon: 'database' },
+  { type: 'Lambda Functions', count: 14, icon: 'zap' },
+  { type: 'EC2 Instances', count: 6, icon: 'server' },
+  { type: 'Elastic IPs', count: 5, icon: 'zap' },
+  { type: 'VPCs', count: 4, icon: 'layers' },
+  { type: 'S3 Buckets', count: 3, icon: 'database' },
+  { type: 'RDS Databases', count: 3, icon: 'database' },
+  { type: 'SNS Topics', count: 3, icon: 'zap' },
 ];
 
 const MOCK_AWS_INSTANCES: AwsInstance[] = [

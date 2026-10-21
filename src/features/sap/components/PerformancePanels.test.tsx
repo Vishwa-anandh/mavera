@@ -3,14 +3,17 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import type { SapDbCallStatistics, SapDump, SapJob, SapWorkProcess } from '../../../data-access';
+import type { SapDbCallStatistics, SapDump, SapJob, SapLock, SapMemoryPool, SapWorkProcess } from '../../../data-access';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import { AbapRuntimeErrorsCard } from './AbapRuntimeErrorsCard';
 import { BackgroundJobsPanel } from './BackgroundJobsPanel';
 import { BackgroundJobsSummaryCard } from './BackgroundJobsSummaryCard';
 import { DbCallStatsCard } from './DbCallStatsCard';
+import { MemoryPoolsCard } from './MemoryPoolsCard';
+import { MemoryUsageChart } from './MemoryUsageChart';
 import { MiniChart } from './MiniChart';
 import { QueueIndicators } from './QueueIndicators';
+import { SystemLocksCard } from './SystemLocksCard';
 import { WorkProcessesPanel } from './WorkProcessesPanel';
 import { SapPerformancePage } from '../pages/SapPerformancePage';
 import { SapJobsPage } from '../pages/SapJobsPage';
@@ -53,6 +56,69 @@ describe('DbCallStatsCard', () => {
   it('shows "No call statistics" without data', () => {
     wrap(<DbCallStatsCard stats={null} />);
     expect(screen.getByText('No call statistics')).toBeInTheDocument();
+  });
+});
+
+describe('MemoryPoolsCard', () => {
+  const pools: SapMemoryPool[] = [
+    { pool: 'Extended Memory', sizeMb: 16384, usedMb: 9830, peakMb: 12288 },
+    { pool: 'Heap Memory', sizeMb: 4096, usedMb: 3350, peakMb: 3890 },
+  ];
+  it('lists each pool with size, use, peak, free, percent and a status', () => {
+    wrap(<MemoryPoolsCard pools={pools} />);
+    expect(screen.getByRole('heading', { name: /Memory Pools/ })).toHaveTextContent('ST02');
+    const rows = screen.getAllByRole('row');
+    expect(rows).toHaveLength(3);
+    expect(within(rows[1]).getAllByRole('cell').map((c) => c.textContent)).toEqual(['Extended MemorySize 16.0 GB · Peak 12.0 GB · Free 6.4 GB', '16.0 GB', '9.6 GB', '12.0 GB', '6.4 GB', '60%', 'Healthy']);
+    expect(within(rows[2]).getAllByRole('cell').slice(1).map((c) => c.textContent)).toEqual(['4.0 GB', '3.3 GB', '3.8 GB', '746 MB', '82%', 'Warning']);
+    expect(screen.getByText('1 pool needs attention')).toBeInTheDocument();
+  });
+  it('says all pools are healthy, and shows an empty state', () => {
+    const { unmount } = wrap(<MemoryPoolsCard pools={[pools[0]]} />);
+    expect(screen.getByText('All pools healthy')).toBeInTheDocument();
+    unmount();
+    wrap(<MemoryPoolsCard pools={[]} />);
+    expect(screen.getByText('No memory pools reported')).toBeInTheDocument();
+  });
+});
+
+describe('SystemLocksCard', () => {
+  const lock = (id: string, table: string, ageSec: number, mode: SapLock['mode'] = 'E'): SapLock => ({ id, table, mode, user: 'ANBARASU', ageSec });
+  it('shows the count, the oldest age and the longest-held locks first', () => {
+    wrap(<SystemLocksCard locks={[lock('a', 'BSEG', 38, 'X'), lock('b', 'BKPF', 402)]} />);
+    expect(screen.getByRole('heading', { name: /System Locks/ })).toHaveTextContent('SM12');
+    expect(screen.getByRole('group', { name: 'Lock totals' })).toHaveTextContent('Lock entries2Oldest lock6 min');
+    const rows = screen.getAllByRole('row');
+    expect(within(rows[1]).getAllByRole('cell').map((c) => c.textContent)).toEqual(['BKPFE · Exclusive · ANBARASU', 'E · Exclusive', 'ANBARASU', '6 min']);
+    expect(within(rows[2]).getAllByRole('cell').map((c) => c.textContent)).toEqual(['BSEGX · Exclusive · ANBARASU', 'X · Exclusive', 'ANBARASU', '38 s']);
+  });
+  it('shows only the five longest and says how many there are', () => {
+    wrap(<SystemLocksCard locks={Array.from({ length: 7 }, (_, i) => lock(`l${i}`, `T${i}`, 10 + i))} />);
+    expect(screen.getAllByRole('row')).toHaveLength(6);
+    expect(screen.getByText('Longest 5 of 7')).toBeInTheDocument();
+  });
+  it('says "No locks held" when there are none', () => {
+    wrap(<SystemLocksCard locks={[]} />);
+    expect(screen.getByRole('status')).toHaveTextContent('No locks held');
+    expect(screen.getByRole('group', { name: 'Lock totals' })).toHaveTextContent('Lock entries0Oldest lock—');
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+});
+
+describe('MemoryUsageChart', () => {
+  const series = [{ time: '14:00', usedGb: 12, allocatedGb: 21 }, { time: '15:00', usedGb: 13, allocatedGb: 21 }];
+  it('summarises used against allocated and opens its data table', async () => {
+    wrap(<MemoryUsageChart series={series} />);
+    expect(screen.getByRole('img', { name: /^Memory Usage\. Now 13\.0 GB of 21\.0 GB \(62%\) · Peak 13\.0 GB/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'View data' }));
+    const dialog = screen.getByRole('dialog', { name: 'Memory Usage, last 24 hours' });
+    expect(within(dialog).getAllByRole('row')).toHaveLength(3);
+    expect(within(dialog).getByText('62%')).toBeInTheDocument();
+  });
+  it('says so when there is no data', () => {
+    wrap(<MemoryUsageChart series={[]} />);
+    expect(screen.getByText('No data available for this period.')).toBeInTheDocument();
+    expect(screen.getByText('No memory data reported')).toBeInTheDocument();
   });
 });
 
@@ -150,19 +216,19 @@ describe('BackgroundJobsSummaryCard', () => {
 describe('SapPerformancePage T-code cards', () => {
   it('labels each card with its transaction and shows the analytics charts', async () => {
     wrap(<SapPerformancePage />, '/#health');
-    for (const [name, code] of [['ABAP Runtime Errors', 'ST22'], ['Server Topology', 'SM51'], ['Disk Usage', 'ST06'], ['DB Call Statistics', 'ST02']]) {
+    for (const [name, code] of [['ABAP Runtime Errors', 'ST22'], ['Server Topology', 'SM51'], ['Disk Usage', 'ST06'], ['Memory Pools', 'ST02'], ['DB Call Statistics', 'ST02']]) {
       expect(screen.getByRole('heading', { name: new RegExp(name) })).toHaveTextContent(code);
     }
     expect(screen.getByText('Nametab (NTAB)')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', { name: 'Jobs and processes' }));
-    for (const [name, code] of [['Background Jobs', 'SM37'], ['Work Processes', 'SM50']]) {
+    for (const [name, code] of [['Background Jobs', 'SM37'], ['System Locks', 'SM12'], ['Work Processes', 'SM50']]) {
       expect(screen.getByRole('heading', { name: new RegExp(name) })).toHaveTextContent(code);
     }
     expect(screen.getByRole('list', { name: 'Update and enqueue queues' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', { name: 'Analytics' }));
-    for (const chart of ['Job Duration', 'Dump Timeline', 'Buffer Hit', 'DB Calls']) {
+    for (const chart of ['Memory Usage', 'Job Duration', 'Dump Timeline', 'Buffer Hit', 'DB Calls']) {
       expect(screen.getByRole('img', { name: new RegExp(`^${chart}\\.`) })).toBeInTheDocument();
     }
     expect(screen.getByRole('img', { name: 'Work process mix by type' })).toBeInTheDocument();

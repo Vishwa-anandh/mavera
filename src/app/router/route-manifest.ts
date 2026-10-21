@@ -30,6 +30,7 @@ export const appPaths = {
   resetPassword: '/reset-password',
   subscriptionExpired: '/subscription-expired',
   publicInvoice: '/invoice/:token',
+  invoiceDemo: '/invoice-demo',
 
   adminLogin: '/admin/login',
   adminDashboard: '/admin/dashboard',
@@ -95,6 +96,7 @@ export const routeManifest: readonly AppRouteDefinition[] = [
   { id: 'reset-password', path: appPaths.resetPassword, access: pub, layout: 'full-screen' },
   { id: 'subscription-expired', path: appPaths.subscriptionExpired, access: pub, layout: 'full-screen' },
   { id: 'public-invoice', path: appPaths.publicInvoice, access: pub, layout: 'full-screen' },
+  { id: 'invoice-demo', path: appPaths.invoiceDemo, access: pub, layout: 'full-screen' },
 
   { id: 'admin-login', path: appPaths.adminLogin, access: pub, layout: 'full-screen' },
   // Legacy org-side URL: redirects to the super-admin invoice generator below.

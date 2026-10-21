@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, TOKEN_KEY } from '../../../data-access';
+import { api, invoicesRepository, TOKEN_KEY } from '../../../data-access';
 import { buildMode } from '../../../app/config/environment';
 import type { SpendTrendPoint } from '../../../shared/ui/SpendTrendChart';
 import { demoDailySpend, demoEarlierMonths } from './demoSpendHistory';
@@ -102,6 +102,8 @@ export interface InvoiceItem {
   provider?: string;
   total_cost?: number | string;
   invoice_date?: string;
+  /** First day of the billed period, when the API says; charts group by it rather than by the later invoice date. */
+  billing_period_start?: string;
   created_at?: string;
 }
 
@@ -206,16 +208,16 @@ function devMockData(): DashboardData {
         { provider: 'gcp', totalCost: 640, savingsRate: 0.29, savingsAmount: 192 },
       ],
     }),
+    // The same invoices the Cloud Invoices page lists (and deletes from), so the two views agree.
     invoices: loadedSource<InvoicesResponse>({
-      data: [
-        { id: 'i1', invoice_number: 'MSFT-2026-09-4471', provider: 'azure', total_cost: 2810, invoice_date: '2026-09-01' },
-        { id: 'i2', invoice_number: 'AWS-2026-09-1183', provider: 'aws', total_cost: 1770, invoice_date: '2026-09-01' },
-        { id: 'i3', invoice_number: 'SAP-BTP-2026-09-0207', provider: 'btp', total_cost: 620, invoice_date: '2026-09-01' },
-        { id: 'i4', invoice_number: 'MSFT-2026-08-4390', provider: 'azure', total_cost: 2705, invoice_date: '2026-08-01' },
-        { id: 'i5', invoice_number: 'AWS-2026-08-1102', provider: 'aws', total_cost: 1802, invoice_date: '2026-08-01' },
-        { id: 'i6', invoice_number: 'GCP-2026-08-9921', provider: 'gcp', total_cost: 310, invoice_date: '2026-08-01' },
-        { id: 'i7', invoice_number: 'MSFT-2026-07-4311', provider: 'azure', total_cost: 2590, invoice_date: '2026-07-01' },
-      ],
+      data: invoicesRepository.list().map((inv) => ({
+        id: inv.id,
+        invoice_number: inv.raw_summary.invoiceNumber ?? inv.file_name,
+        provider: inv.provider,
+        total_cost: inv.total_cost,
+        invoice_date: inv.raw_summary.invoiceDate ?? `${inv.year}-${String(inv.month).padStart(2, '0')}-01`,
+        billing_period_start: `${inv.year}-${String(inv.month).padStart(2, '0')}-01`,
+      })),
     }),
   };
 }

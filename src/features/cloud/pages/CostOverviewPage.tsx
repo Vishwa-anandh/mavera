@@ -37,6 +37,7 @@ import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
 import { ConnectCloudAccountWizard } from '../components/ConnectCloudAccountWizard';
 import { InvoicesSummaryView } from '../components/InvoicesSummaryView';
+import { invoiceItemsOf } from '../model/invoiceSavings';
 import {
   AlertTriangleIcon,
   BellIcon,
@@ -192,7 +193,7 @@ export function CostOverviewPage() {
     )}
 
     {view === 'invoices' ? (
-      <InvoicesSummaryView summary={invoiceSummary} loading={invoices.loading} error={invoices.error} />
+      <InvoicesSummaryView summary={invoiceSummary} invoices={invoiceItemsOf(invoices.data)} loading={invoices.loading} error={invoices.error} />
     ) : <>
     <div className="mv-kpi-row-4">
       <KpiShell loading={summary.loading} error={summary.error} icon={<CloudIcon size={22} />} tone="info">

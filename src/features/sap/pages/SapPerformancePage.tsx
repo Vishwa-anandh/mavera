@@ -6,15 +6,18 @@ import { AbapRuntimeErrorsCard } from '../components/AbapRuntimeErrorsCard';
 import { BackgroundJobsSummaryCard } from '../components/BackgroundJobsSummaryCard';
 import { DbCallStatsCard } from '../components/DbCallStatsCard';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
+import { MemoryPoolsCard } from '../components/MemoryPoolsCard';
+import { MemoryUsageChart } from '../components/MemoryUsageChart';
 import { MiniChart } from '../components/MiniChart';
 import { QueueIndicators } from '../components/QueueIndicators';
 import { SyncStatus } from '../components/SyncStatus';
+import { SystemLocksCard } from '../components/SystemLocksCard';
 import { TcodeBadge } from '../components/TcodeBadge';
 import { WorkProcessesPanel } from '../components/WorkProcessesPanel';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
 import { useHashTab } from '../../../shared/lib/useHashTab';
-import { WORK_PROCESS_LABEL, jobDurationSeries, jobDurationStats, processMix, trendStats } from '../model/sapPerformance';
+import { WORK_PROCESS_LABEL, jobDurationSeries, jobDurationStats, memoryStats, processMix, trendStats } from '../model/sapPerformance';
 import { clockTime } from '../model/useSyncCountdown';
 
 /** ABAP systems sync every five minutes. */
@@ -74,9 +77,12 @@ export function SapPerformancePage() {
     trends: sapRepository.getPerformanceTrends(),
     processes: sapRepository.listWorkProcesses(),
     queues: sapRepository.getQueueIndicators(),
+    pools: sapRepository.listMemoryPools(),
+    memory: sapRepository.getMemorySeries(),
+    locks: sapRepository.listSystemLocks(),
   }), []);
   const [tab, setTab] = useHashTab(TABS);
-  const { p, topology, disks, errors, jobs, stats, trends, processes, queues } = data;
+  const { p, topology, disks, errors, jobs, stats, trends, processes, queues, pools, memory, locks } = data;
   const [sync, setSync] = useState({ at: p.lastFetched, token: 0 });
   const refresh = useCallback(() => setSync((s) => ({ at: clockTime(), token: s.token + 1 })), []);
   const autoSync = useCallback(() => setSync((s) => ({ ...s, at: clockTime() })), []);
@@ -84,6 +90,8 @@ export function SapPerformancePage() {
   const durations = jobDurationStats(jobs);
   const durationSeries = jobDurationSeries(jobs);
   const mix = processMix(processes);
+  // The KPI strip reads the same series and lock list as the cards, so the figures cannot disagree.
+  const memoryPercent = memoryStats(memory).percent;
   const bufferStats = trendStats(trends.bufferHit);
   const callStats = trendStats(trends.dbCalls);
   const dumpsWeek = trends.dumps.reduce((sum, d) => sum + d.value, 0);
@@ -114,8 +122,8 @@ export function SapPerformancePage() {
         <article className="mv-kpi"><span className="mv-kpi-label">Work Processes</span><strong className="mv-kpi-value">{p.workProcessesUsed}/{p.workProcessesTotal}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">ABAP Dumps</span><strong className="mv-kpi-value">{p.abapDumps}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Aborted Jobs</span><strong className="mv-kpi-value">{p.abortedJobs}</strong></article>
-        <PercentKpi label="Memory Usage" value={p.memoryUsagePercent} />
-        <article className="mv-kpi"><span className="mv-kpi-label">System Locks</span><strong className="mv-kpi-value">{p.systemLocks}</strong></article>
+        <PercentKpi label="Memory Usage" value={memoryPercent} />
+        <article className="mv-kpi"><span className="mv-kpi-label">System Locks</span><strong className="mv-kpi-value">{locks.length}</strong></article>
       </div>
 
       <TabBar idPrefix="sap-performance" label="Performance sections" items={TAB_ITEMS} activeId={tab} onChange={(id) => setTab(id as PerformanceTab)} />
@@ -164,6 +172,8 @@ export function SapPerformancePage() {
             </section>
           </div>
 
+          <MemoryPoolsCard pools={pools} />
+
           <DbCallStatsCard stats={stats} />
         </div>
       )}
@@ -172,7 +182,10 @@ export function SapPerformancePage() {
         <div {...tabPanelProps('sap-performance', 'jobs')} className="mv-column-stack">
           <div className="mv-columns-16-8" style={{ '--mv-cols': '3fr 2fr' } as React.CSSProperties}>
             <BackgroundJobsSummaryCard jobs={jobs} />
-            <QueueIndicators queues={queues} />
+            <div className="mv-column-stack">
+              <QueueIndicators queues={queues} />
+              <SystemLocksCard locks={locks} />
+            </div>
           </div>
 
           <WorkProcessesPanel processes={processes} system={topology[0]?.id ?? p.system} />
@@ -186,6 +199,7 @@ export function SapPerformancePage() {
             <p className="mv-muted">Interactive charts · each has a data table behind View data</p>
           </div>
           <div className="mv-mini-grid">
+            <MemoryUsageChart series={memory} />
             <MiniChart
               title="Job Duration"
               kind="bar"

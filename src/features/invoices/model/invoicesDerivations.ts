@@ -1,10 +1,11 @@
+import { CSP_DISCOUNT_RATES } from '../../../data-access';
 import type { CloudProvider } from '../../../shared/types/auth';
 import type { Invoice, InvoiceService, ProviderFilter } from './invoicesTypes';
 
-/** One canonical rate map — the reference app kept two independent copies
+/** One canonical rate map (it lives in data-access): the reference app kept two independent copies
  * (a shared MSP_SAVINGS constant missing `gcp`, and a second hardcoded rate
  * inline on this page) that had silently drifted apart. */
-export const CSP_RATES: Record<CloudProvider, number> = { azure: 0.07, aws: 0.035, btp: 0.02, gcp: 0.035 };
+export const CSP_RATES: Record<CloudProvider, number> = CSP_DISCOUNT_RATES;
 
 export const PROVIDER_LABELS: Record<CloudProvider, string> = { azure: 'Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'Google Cloud' };
 
@@ -82,6 +83,50 @@ export function serviceSavingsRowsOf(services: InvoiceService[], provider: Cloud
 
 export function totalSavingsOf(rows: ServiceSavingsRow[]): number {
   return rows.reduce((sum, r) => sum + r.savings, 0);
+}
+
+export interface CspBreakdown {
+  /** The provider's flat CSP discount rate. */
+  rate: number;
+  /** What the rows break down: services, or subaccounts for a SAP BTP invoice that lists them. */
+  basis: 'service' | 'subaccount';
+  rows: ServiceSavingsRow[];
+  /** The charges the rows add up to, before tax. */
+  base: number;
+  /** Total saving over the rows. */
+  total: number;
+  /** Saving as a share of `base`; above the flat rate when a service has a negotiated discount. */
+  effectiveRate: number;
+}
+
+/**
+ * What the Maitsys CSP Savings block shows for one invoice: per-service rows (per-subaccount for a SAP BTP invoice
+ * that lists subaccounts), the saving in money terms and the rate it works out to. Azure services keep their own
+ * negotiated figure; everything else is cost times the flat provider rate. Empty rows mean the invoice has no
+ * breakdown to analyse.
+ */
+export function cspBreakdownOf(invoice: Invoice): CspBreakdown {
+  const rate = CSP_RATES[invoice.provider];
+  const isBtp = invoice.provider === 'btp';
+  const subaccounts = isBtp ? invoice.raw_summary.subaccountCosts ?? [] : [];
+  const globalLines = isBtp ? invoice.raw_summary.globalAccountCosts ?? [] : [];
+  const basis = subaccounts.length > 0 ? 'subaccount' : 'service';
+  const lines: InvoiceService[] = subaccounts.length > 0
+    ? subaccounts.map((s) => ({ name: s.name, cost: s.totalCost }))
+    : invoice.services.length > 0 || globalLines.length === 0
+      ? invoice.services
+      : globalLines.map((g) => ({ name: g.name, cost: g.cost }));
+  const rows = serviceSavingsRowsOf(lines, invoice.provider);
+  const base = rows.reduce((sum, r) => sum + r.cost, 0);
+  const total = totalSavingsOf(rows);
+  return { rate, basis, rows, base, total, effectiveRate: base > 0 ? total / base : 0 };
+}
+
+/** Invoice counts for the provider filter chips; `all` is every invoice. */
+export function providerCountsOf(invoices: Invoice[]): Record<ProviderFilter, number> {
+  const counts: Record<ProviderFilter, number> = { all: invoices.length, azure: 0, aws: 0, btp: 0, gcp: 0 };
+  for (const inv of invoices) counts[inv.provider] += 1;
+  return counts;
 }
 
 const CANNED_SERVICE_TEMPLATES: Record<CloudProvider, string[]> = {

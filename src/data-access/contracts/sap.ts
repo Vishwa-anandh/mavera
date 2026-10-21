@@ -200,3 +200,32 @@ export interface SapQueues {
   upd: SapQueueIndicator;
   enq: SapQueueIndicator;
 }
+
+/** One ST02 memory pool of the application server (Extended Memory, Roll Area, Paging Area, Heap Memory). Sizes are in MB. */
+export interface SapMemoryPool {
+  pool: string;
+  /** Configured size. */
+  sizeMb: number;
+  usedMb: number;
+  /** Highest use since the instance started. */
+  peakMb: number;
+}
+
+/** Application-server memory at one hour of the last day. */
+export interface SapMemoryPoint {
+  time: string;
+  usedGb: number;
+  allocatedGb: number;
+}
+
+export type SapLockMode = 'E' | 'S' | 'X' | 'O';
+
+/** One SM12 lock entry. */
+export interface SapLock {
+  id: string;
+  table: string;
+  mode: SapLockMode;
+  user: string;
+  /** Seconds the entry has been held at the time of the snapshot. */
+  ageSec: number;
+}

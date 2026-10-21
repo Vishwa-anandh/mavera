@@ -4,6 +4,7 @@ import { AppShell } from '../layouts/AppShell';
 import { CompanySignupPage, ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, SubscriptionExpiredPage } from '../../features/auth';
 import { NotFoundPage } from '../../features/system';
 import { PublicInvoicePage } from '../../features/billing';
+import { InvoiceDemoPage } from '../../features/invoiceDemo';
 import { SuperAdminGuard, SuperAdminShell } from '../../features/superAdmin';
 import { PageSkeleton, type PageSkeletonVariant } from '../../shared/ui/PageSkeleton';
 import { appPaths } from './route-manifest';
@@ -77,6 +78,7 @@ export function AppRoutes() {
       {/* Fully public — reached only via the token embedded in a "sent" invoice email link,
           no login, no app shell. */}
       <Route path={appPaths.publicInvoice} element={<PublicInvoicePage />} />
+      <Route path={appPaths.invoiceDemo} element={<InvoiceDemoPage />} />
 
       {/* Super Admin portal: its own session (sa_token), no org nav/shell — entirely separate from
           the org-level app below. There's no dedicated Super Admin login page: the unified /login

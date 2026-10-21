@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
+import { cumulativeSeries, topWithOther } from '../../../../shared/lib/costAnalysis';
+import { CumulativeSpendChart } from '../../../../shared/ui/CumulativeSpendChart';
+import { DetailGroup } from '../../../../shared/ui/DetailGroup';
+import { DonutChart } from '../../../../shared/ui/DonutChart';
+import { SpendTrendChart } from '../../../../shared/ui/SpendTrendChart';
+import { AdvisorRecommendationsPanel } from '../AdvisorRecommendationsPanel';
+import { BudgetAlertsPanel } from '../BudgetAlertsPanel';
+import { CspSavingsPanel } from '../CspSavingsPanel';
 import type { AzureCostTabProps } from '../../model/AzureCostTabProps';
 import type {
   AzureInvoice,
@@ -19,6 +27,13 @@ import { isSubscriptionWide } from '../../model/azureDerivations';
  * used/unused list) is its `AzureResourceBreakdownCard`. Reservation
  * utilization and raw invoices are also sourced from the `technical` block.
  *
+ * The long view is split into four stacked groups (resources and allocation,
+ * spend over time, savings and optimization, billing). Added from the
+ * reference: Annual Cost Trend, Temporal Spend Analysis (cumulative spend
+ * with a month-end projection), Service Distribution (top three services and
+ * Other), Maitsys CSP Savings Opportunities, Advisor Recommendations and
+ * Budget Alerts. Daily Cost History stays on the Operations view.
+ *
  * `data.topResources` and `data.resources` are intentionally zeroed out for
  * historical months (Azure doesn't retain resource-level granularity past
  * the current cycle) — those two sections are gated on `isCurrentMonth` and
@@ -27,54 +42,125 @@ import { isSubscriptionWide } from '../../model/azureDerivations';
  * render.
  */
 export function TechnicalTab(props: AzureCostTabProps) {
-  const { data, isCurrentMonth, reservationUtilization, invoices, mspRate, chartColors } = props;
+  const { data, yearlyData, budgets, alerts, advisorRecommendations, cspRecommendations, isCurrentMonth, reservationUtilization, invoices, mspRate, chartColors } = props;
 
   const historicalNotice = "Resource-level detail isn't available for historical months — switch to Month-to-Date to see it.";
 
+  const yearlyTotal = yearlyData.reduce((sum, m) => sum + m.totalCost, 0);
+  const yearlyAvg = yearlyData.length > 0 ? yearlyTotal / yearlyData.length : 0;
+  const peakMonth = [...yearlyData].sort((a, b) => b.totalCost - a.totalCost)[0];
+  const trendData = yearlyData.map((m) => ({ date: monthLabel(m.year, m.month), amount: m.totalCost }));
+  const lastYear = yearlyData[yearlyData.length - 1]?.year;
+
+  const cumulative = cumulativeSeries(data.dailyCosts, isCurrentMonth ? daysInMonthOf(data.dailyCosts[0]?.date) : undefined);
+  const donutColors = [chartColors.primary, chartColors.secondary, chartColors.tertiary, chartColors.axis];
+  const serviceSlices = topWithOther(data.services, 3).map((service, index) => ({ label: service.name, value: service.cost, color: donutColors[index % donutColors.length] }));
+
   return (
     <div>
-      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Top Resources by Cost</h2>
-        </div>
-        {!isCurrentMonth ? (
-          <div className="mv-notice">{historicalNotice}</div>
-        ) : (
-          <TopResourcesTable resources={data.topResources} mspRate={mspRate} />
-        )}
-      </section>
+      <DetailGroup title="Resources and allocation" description="Which resources, resource groups and locations the spend sits in.">
+        <section className="mv-panel">
+          <div className="mv-panel-header">
+            <h3 className="mv-panel-title">Top Resources by Cost</h3>
+          </div>
+          {!isCurrentMonth ? (
+            <div className="mv-notice">{historicalNotice}</div>
+          ) : (
+            <TopResourcesTable resources={data.topResources} mspRate={mspRate} />
+          )}
+        </section>
 
-      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Resource Inventory</h2>
-        </div>
-        {!isCurrentMonth ? (
-          <div className="mv-notice">{historicalNotice}</div>
-        ) : (
-          <ResourceInventorySection resources={data.resources} />
-        )}
-      </section>
+        <section className="mv-panel">
+          <div className="mv-panel-header">
+            <h3 className="mv-panel-title">Resource Inventory</h3>
+          </div>
+          {!isCurrentMonth ? (
+            <div className="mv-notice">{historicalNotice}</div>
+          ) : (
+            <ResourceInventorySection resources={data.resources} />
+          )}
+        </section>
 
-      <div className="mv-row-3col" style={{ marginBottom: '1rem' }}>
-        <NamedCostPanel title="By Resource Group" columnLabel="Resource Group" rows={data.resourceGroups} />
-        <NamedCostPanel title="By Location" columnLabel="Location" rows={data.locations} />
-      </div>
-
-      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Reservation Utilization (Daily)</h2>
+        <div className="mv-row-3col">
+          <NamedCostPanel title="By Resource Group" columnLabel="Resource Group" rows={data.resourceGroups} />
+          <NamedCostPanel title="By Location" columnLabel="Location" rows={data.locations} />
         </div>
-        <ReservationUtilizationChart data={reservationUtilization} colors={chartColors} />
-      </section>
+      </DetailGroup>
 
-      <section className="mv-panel">
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Raw Invoices</h2>
+      <DetailGroup title="Spend over time" description="How the bill built up this month, how it compares across the year and where it is concentrated.">
+        <section className="mv-panel">
+          <div className="mv-panel-header">
+            <h3 className="mv-panel-title">Annual Cost Trend{lastYear ? ` — ${lastYear}` : ''}</h3>
+          </div>
+          {yearlyData.length === 0 ? (
+            <p className="mv-muted">No monthly history is stored for this subscription yet.</p>
+          ) : (
+            <>
+              <div className="mv-kpi-row-4" style={{ marginBottom: '1rem' }}>
+                <article className="mv-kpi"><span className="mv-kpi-label">Yearly Total</span><strong className="mv-kpi-value">{formatCurrency(yearlyTotal)}</strong></article>
+                <article className="mv-kpi"><span className="mv-kpi-label">Avg per Month</span><strong className="mv-kpi-value">{formatCurrency(yearlyAvg)}</strong></article>
+                <article className="mv-kpi"><span className="mv-kpi-label">Peak Month</span><strong className="mv-kpi-value" style={{ fontSize: '1.125rem' }}>{peakMonth ? monthLabel(peakMonth.year, peakMonth.month) : '—'}</strong>{peakMonth && <span className="mv-muted">{formatCurrency(peakMonth.totalCost)}</span>}</article>
+              </div>
+              <SpendTrendChart title="Annual cost trend" data={trendData} />
+            </>
+          )}
+        </section>
+
+        <div className="mv-columns-split">
+          <section className="mv-panel">
+            <div className="mv-panel-header">
+              <div>
+                <h3 className="mv-panel-title">Temporal Spend Analysis</h3>
+                <p className="mv-muted mv-section-sub">{isCurrentMonth ? 'Spend so far this month, continued to month end at the current daily rate.' : 'Spend through the selected month.'}</p>
+              </div>
+            </div>
+            <CumulativeSpendChart title="Cumulative spend through the month" data={cumulative} />
+          </section>
+          <section className="mv-panel">
+            <div className="mv-panel-header">
+              <div>
+                <h3 className="mv-panel-title">Service Distribution</h3>
+                <p className="mv-muted mv-section-sub">The three biggest services and everything else.</p>
+              </div>
+            </div>
+            <DonutChart title="Service distribution" totalLabel="Month spend" data={serviceSlices} format={formatCurrency} />
+          </section>
         </div>
-        <InvoicesTable invoices={invoices} />
-      </section>
+      </DetailGroup>
+
+      <DetailGroup title="Savings and optimization" description="What Maitsys and Azure suggest, how reservations are used and which budgets need attention.">
+        <CspSavingsPanel recommendations={cspRecommendations} totalCost={data.totalCost} mspRate={mspRate} />
+        <AdvisorRecommendationsPanel recommendations={advisorRecommendations} />
+        <section className="mv-panel">
+          <div className="mv-panel-header">
+            <h3 className="mv-panel-title">Reservation Utilization (Daily)</h3>
+          </div>
+          <ReservationUtilizationChart data={reservationUtilization} colors={chartColors} />
+        </section>
+        <BudgetAlertsPanel budgets={budgets} alerts={alerts} />
+      </DetailGroup>
+
+      <DetailGroup title="Billing" description="The invoices Azure has issued for this subscription.">
+        <section className="mv-panel">
+          <div className="mv-panel-header">
+            <h3 className="mv-panel-title">Raw Invoices</h3>
+          </div>
+          <InvoicesTable invoices={invoices} />
+        </section>
+      </DetailGroup>
     </div>
   );
+}
+
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function monthLabel(year: number, month: number): string {
+  return `${MONTH_ABBR[month - 1] ?? month} ${year}`;
+}
+
+/** Days in the month an ISO date (`YYYY-MM-DD`) falls in; undefined when there is no date to read. */
+function daysInMonthOf(date: string | undefined): number | undefined {
+  const match = date ? /^(\d{4})-(\d{2})-/.exec(date) : null;
+  return match ? new Date(Number(match[1]), Number(match[2]), 0).getDate() : undefined;
 }
 
 function formatCurrency(value: number): string {
@@ -99,7 +185,7 @@ function TopResourcesTable({ resources, mspRate }: { resources: AzureResourceCos
   return (
     <>
       <div className="mv-table-wrap">
-        <table className="mv-table">
+        <table className="mv-table mv-table--stack">
           <thead>
             <tr>
               <th>#</th>
@@ -113,12 +199,12 @@ function TopResourcesTable({ resources, mspRate }: { resources: AzureResourceCos
           <tbody>
             {visible.map((resource, index) => (
               <tr key={resource.id}>
-                <td className="mv-muted">{String(index + 1).padStart(2, '0')}</td>
-                <UiTooltip content={resource.id}><td>{resourceLabel(resource.id, resource.name)}</td></UiTooltip>
-                <td>{resource.service}</td>
-                <td>{resource.resourceGroup ?? '—'}</td>
-                <td className="mv-num">{formatCurrency(resource.cost)}</td>
-                <td className="mv-num" style={{ color: 'var(--mv-success)' }}>{formatCurrency(resource.cost * mspRate)}</td>
+                <td data-label="#" className="mv-muted">{String(index + 1).padStart(2, '0')}</td>
+                <UiTooltip content={resource.id}><td data-label="Resource" className="mv-stack-title mv-wrap-anywhere">{resourceLabel(resource.id, resource.name)}</td></UiTooltip>
+                <td data-label="Service">{resource.service}</td>
+                <td data-label="Resource Group" className="mv-wrap-anywhere">{resource.resourceGroup ?? '—'}</td>
+                <td data-label="Month-to-Date Spend" className="mv-num">{formatCurrency(resource.cost)}</td>
+                <td data-label="Est. CSP Savings" className="mv-num" style={{ color: 'var(--mv-success)' }}>{formatCurrency(resource.cost * mspRate)}</td>
               </tr>
             ))}
           </tbody>
@@ -160,7 +246,6 @@ function ResourceInventorySection({ resources }: { resources: AzureResources }) 
         <div className="mv-service-tile-grid" style={{ marginBottom: '1.25rem' }}>
           {sortedTypes.map((type) => (
             <div className="mv-service-tile" key={type.type}>
-              <span className="mv-service-tile-badge">{(type.type.replace(/[^A-Za-z]/g, '').slice(0, 2) || '??').toUpperCase()}</span>
               <span className="mv-service-tile-name">{type.type}</span>
               <strong>{type.count.toLocaleString()}</strong>
             </div>
@@ -171,7 +256,7 @@ function ResourceInventorySection({ resources }: { resources: AzureResources }) 
       {sortedResources.length > 0 && (
         <>
           <div className="mv-table-wrap">
-            <table className="mv-table">
+            <table className="mv-table mv-table--stack">
               <thead>
                 <tr>
                   <th>Resource</th>
@@ -184,11 +269,11 @@ function ResourceInventorySection({ resources }: { resources: AzureResources }) 
               <tbody>
                 {visibleResources.map((resource) => (
                   <tr key={resource.id}>
-                    <UiTooltip content={resource.id}><td>{resourceLabel(resource.id, resource.name)}</td></UiTooltip>
-                    <td>{resource.type}</td>
-                    <td>{resource.resourceGroup}</td>
-                    <td><span className={`mv-status mv-status--${resource.hasSpend ? 'success' : 'neutral'}`}>{resource.hasSpend ? 'Active' : 'Unused'}</span></td>
-                    <td className="mv-num">{resource.hasSpend ? formatCurrency(resource.cost) : '$0.00'}</td>
+                    <UiTooltip content={resource.id}><td data-label="Resource" className="mv-stack-title mv-wrap-anywhere">{resourceLabel(resource.id, resource.name)}</td></UiTooltip>
+                    <td data-label="Type">{resource.type}</td>
+                    <td data-label="Resource Group" className="mv-wrap-anywhere">{resource.resourceGroup}</td>
+                    <td data-label="Status"><span className={`mv-status mv-status--${resource.hasSpend ? 'success' : 'neutral'}`}>{resource.hasSpend ? 'Active' : 'Unused'}</span></td>
+                    <td data-label="Spend" className="mv-num">{resource.hasSpend ? formatCurrency(resource.cost) : '$0.00'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -210,19 +295,19 @@ function NamedCostPanel({ title, columnLabel, rows }: { title: string; columnLab
   return (
     <section className="mv-panel">
       <div className="mv-panel-header">
-        <h2 className="mv-panel-title">{title}</h2>
+        <h3 className="mv-panel-title">{title}</h3>
       </div>
       {sorted.length === 0 ? (
         <p className="mv-muted">No data available.</p>
       ) : (
         <div className="mv-table-wrap">
-          <table className="mv-table">
+          <table className="mv-table mv-table--stack">
             <thead><tr><th>{columnLabel}</th><th className="mv-num">Cost</th></tr></thead>
             <tbody>
               {sorted.map((row) => (
                 <tr key={row.name}>
-                  <td>{row.name}</td>
-                  <td className="mv-num">{formatCurrency(row.cost)}</td>
+                  <td data-label={columnLabel} className="mv-wrap-anywhere">{row.name}</td>
+                  <td data-label="Cost" className="mv-num">{formatCurrency(row.cost)}</td>
                 </tr>
               ))}
             </tbody>
@@ -305,7 +390,7 @@ function InvoicesTable({ invoices }: { invoices: AzureInvoice[] }) {
 
   return (
     <div className="mv-table-wrap">
-      <table className="mv-table">
+      <table className="mv-table mv-table--stack">
         <thead>
           <tr>
             <th>Billing Period</th>
@@ -317,10 +402,10 @@ function InvoicesTable({ invoices }: { invoices: AzureInvoice[] }) {
         <tbody>
           {invoices.map((invoice) => (
             <tr key={invoice.name}>
-              <td>{formatBillingPeriod(invoice.billingPeriod, invoice.invoiceDate)}</td>
-              <td className="mv-code">{invoice.name}</td>
-              <td className="mv-num">{formatCurrency(invoice.totalAmount.amount)}</td>
-              <td>
+              <td data-label="Billing Period" className="mv-stack-title">{formatBillingPeriod(invoice.billingPeriod, invoice.invoiceDate)}</td>
+              <td data-label="Invoice" className="mv-code mv-wrap-anywhere">{invoice.name}</td>
+              <td data-label="Amount" className="mv-num">{formatCurrency(invoice.totalAmount.amount)}</td>
+              <td data-label="Download">
                 {invoice.downloadUrl ? (
                   <a className="mv-quiet-button" href={invoice.downloadUrl} download target="_blank" rel="noreferrer">Download ↓</a>
                 ) : (

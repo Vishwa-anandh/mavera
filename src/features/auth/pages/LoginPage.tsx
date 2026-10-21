@@ -220,6 +220,7 @@ export function LoginPage() {
 
       <footer className="mv-login-footer">
         <span className="mv-login-footer-brand">Powered by <img src={maitsysLogo} alt="Maitsys" className="mv-maitsys-logo" /></span>
+        <Link to="/invoice-demo">Try the invoice parser</Link>
         <a href="https://www.maitsys.com/contact-us" target="_blank" rel="noreferrer">Support</a>
         <a href="https://www.maitsys.com" target="_blank" rel="noreferrer">maitsys.com</a>
       </footer>

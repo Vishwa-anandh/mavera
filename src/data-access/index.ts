@@ -7,7 +7,7 @@ export type { CloudProviderId, CloudResource, CostAnalyticsDataset, CostBreakdow
 export { sapRepository } from './repositories/sapRepository';
 export type {
   HanaBackupEntry, HanaBackupKind, HanaBackupStatus, HanaDiskPartition, HanaPartitionUsage, HanaSessionUser, SapBufferStat, SapDbCallStatistics,
-  SapPerformanceTrends, SapQueueIndicator, SapQueues, SapServerNode, SapTrendPoint, SapWorkProcess, SapWorkProcessType,
+  SapLock, SapLockMode, SapMemoryPoint, SapMemoryPool, SapPerformanceTrends, SapQueueIndicator, SapQueues, SapServerNode, SapTrendPoint, SapWorkProcess, SapWorkProcessType,
 } from './contracts/sap';
 export type { HanaService, HanaSystem, HanaVitalPoint, SapAlertRecord, SapCondition, SapDiskMount, SapDump, SapJob, SapPerformanceSnapshot, SapSecurityNoteSummary, SapSystem } from './contracts/sap';
 export { resetSapAdminStore, sapAdminRepository, setSapAdminLatency } from './repositories/sapAdminRepository';
@@ -33,3 +33,11 @@ export { budgetsRepository } from './repositories/budgetsRepository';
 export type { AlertChannel, Budget, ChannelProvider, ChannelScope, CloudAccountOption, NewAlertChannel, NewBudget } from './contracts/budgets';
 export { subscriptionRepository } from './repositories/subscriptionRepository';
 export type { NewPlanChangeRequest, PlanChangeRequest, PlanId } from './contracts/subscription';
+export { resetSmartAlertsStore, smartAlertsRepository } from './repositories/smartAlertsRepository';
+export type {
+  AlertProvider, AlertSeverity, AlertStatus, AlertType, RecipientAlertType, RecipientConfig, SmartAlert, SmartAlertsSettings,
+} from './contracts/smartAlerts';
+export { CSP_DISCOUNT_RATES, invoicesRepository, resetInvoicesStore } from './repositories/invoicesRepository';
+export type {
+  BtpAccountInfo, BtpGlobalAccountCost, BtpSubaccountCost, BtpUsageRow, Invoice, InvoiceProvider, InvoiceRawSummary, InvoiceSection, InvoiceService,
+} from './contracts/invoices';

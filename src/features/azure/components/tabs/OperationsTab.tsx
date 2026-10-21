@@ -2,7 +2,8 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import type { AzureCostTabProps } from '../../model/AzureCostTabProps';
 import type { AzureBudget, AzureYearlyMonth } from '../../model/azureTypes';
 import { cspSavingsByService, momPct } from '../../model/azureDerivations';
-import { SpendTrendChart } from '../../../../shared/ui/SpendTrendChart';
+import { extendDailyHistory } from '../../../../shared/lib/costAnalysis';
+import { DailyCostHistory } from '../../../../shared/ui/DailyCostHistory';
 import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
 
 /**
@@ -18,12 +19,10 @@ import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
  * - The reference's "Monthly Spend by Service" chart offers a "Fetch
  *   12-Month History" backfill action when `yearlyData` is empty; there's no
  *   backfill endpoint here; the empty state below just says so.
- * - "Daily Cost History" reused the reference's own `DailyCostHistoryTabs`
- *   widget (a day/week/month tab-switcher shared with the Technical tab,
- *   which this port's Technical tab already omits). Its day-to-day role is
- *   covered here with the existing `SpendTrendChart` fed the already
- *   month-resolved `data.dailyCosts`, rather than re-building that shared
- *   widget from scratch.
+ * - "Daily Cost History" is the shared `DailyCostHistory` panel: a 7d | 14d |
+ *   30d range switch (segmented buttons) and a bar or area view over the
+ *   daily series. A month-to-date series is padded back to 30 days with the
+ *   end of the previous month from `yearlyData`, so the 30d window is full.
  *
  * `data.topResources` and `data.resources` (the raw per-resource inventory)
  * are Technical-tab content and intentionally not used here. Likewise, the
@@ -59,7 +58,7 @@ export function OperationsTab(props: AzureCostTabProps) {
   const budgetOver = mainBudget ? data.totalCost > mainBudget.amount : false;
 
   const movers = buildMovers(sortedServices, prevEntry?.topServices, data.totalCost);
-  const dailyTrend = data.dailyCosts.map((point) => ({ date: point.date, amount: point.cost }));
+  const dailyHistory = extendDailyHistory(data.dailyCosts, yearlyData);
 
   return (
     <div>
@@ -105,12 +104,9 @@ export function OperationsTab(props: AzureCostTabProps) {
         )}
       </section>
 
-      <section className="mv-panel" style={{ marginBottom: '1rem' }}>
-        <div className="mv-panel-header">
-          <h2 className="mv-panel-title">Daily Cost Trend</h2>
-        </div>
-        <SpendTrendChart title="Daily cost trend" data={dailyTrend} />
-      </section>
+      <div className="mv-detail-stack">
+        <DailyCostHistory series={dailyHistory} />
+      </div>
 
       <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">

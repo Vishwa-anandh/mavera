@@ -3,13 +3,13 @@ import type {
   SapSecurityNoteSummary, SapSystem,
 } from '../contracts/sap';
 import type {
-  HanaBackupEntry, HanaDiskPartition, SapDbCallStatistics, SapPerformanceTrends, SapQueues, SapServerNode, SapWorkProcess,
+  HanaBackupEntry, HanaDiskPartition, SapDbCallStatistics, SapLock, SapMemoryPoint, SapMemoryPool, SapPerformanceTrends, SapQueues, SapServerNode, SapWorkProcess,
 } from '../contracts/sap';
 import { MOCK_SAP_SYSTEMS } from '../../demo/sap/mockSapData';
 import { HANA_BACKUPS, HANA_DISK_PARTITIONS, HANA_SERVICES, HANA_SYSTEM, HANA_VITALS_TIMELINE } from '../../demo/sap/mockHanaData';
 import {
   SAP_ABAP_RUNTIME_ERRORS, SAP_BACKGROUND_JOBS, SAP_DB_CALL_STATISTICS, SAP_DISK_USAGE, SAP_PERFORMANCE, SAP_PERFORMANCE_TRENDS,
-  SAP_SERVER_TOPOLOGY, SAP_WORK_PROCESSES,
+  SAP_MEMORY_POOLS, SAP_MEMORY_SERIES, SAP_SERVER_TOPOLOGY, SAP_SYSTEM_LOCKS, SAP_WORK_PROCESSES,
 } from '../../demo/sap/mockSapPerformance';
 import { sapAdminRepository } from './sapAdminRepository';
 
@@ -73,6 +73,18 @@ export const sapRepository = {
   },
   getPerformanceTrends(): SapPerformanceTrends {
     return structuredClone(SAP_PERFORMANCE_TRENDS);
+  },
+  /** ST02 memory pools of the application server. */
+  listMemoryPools(): SapMemoryPool[] {
+    return structuredClone(SAP_MEMORY_POOLS);
+  },
+  /** Application-server memory, hourly over the last 24 hours (used against allocated). */
+  getMemorySeries(): SapMemoryPoint[] {
+    return structuredClone(SAP_MEMORY_SERIES);
+  },
+  /** SM12 lock entries held right now; the Performance KPI strip counts the same list. */
+  listSystemLocks(): SapLock[] {
+    return structuredClone(SAP_SYSTEM_LOCKS);
   },
   getQueueIndicators(): SapQueues {
     const busy = (type: SapWorkProcess['type']) => SAP_WORK_PROCESSES.filter((w) => w.type === type && w.status === 'Running').length;

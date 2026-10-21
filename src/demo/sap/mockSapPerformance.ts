@@ -1,6 +1,58 @@
+const hourLabel = (offsetFromNow: number) => `${String((15 + offsetFromNow + 24) % 24).padStart(2, '0')}:00`;
+const hourly = (values: number[]) => values.map((value, i) => ({ time: hourLabel(i - (values.length - 1)), value }));
+
+export interface MemoryPool {
+  pool: string;
+  sizeMb: number;
+  usedMb: number;
+  peakMb: number;
+}
+
+/** ST02 memory pools of the application server. The sizes are the configured profile values
+ * (em/initial_size_MB, ztta/roll_area, rdisp/PG_SHM, abap/heap_area_total). */
+export const SAP_MEMORY_POOLS: MemoryPool[] = [
+  { pool: 'Extended Memory', sizeMb: 16384, usedMb: 9830, peakMb: 12288 },
+  { pool: 'Roll Area', sizeMb: 512, usedMb: 118, peakMb: 264 },
+  { pool: 'Paging Area', sizeMb: 512, usedMb: 22, peakMb: 96 },
+  { pool: 'Heap Memory', sizeMb: 4096, usedMb: 3350, peakMb: 3890 },
+];
+
+export interface MemoryPoint {
+  time: string;
+  usedGb: number;
+  allocatedGb: number;
+}
+
+const POOLS_ALLOCATED_GB = Math.round((SAP_MEMORY_POOLS.reduce((sum, p) => sum + p.sizeMb, 0) / 1024) * 10) / 10;
+const POOLS_USED_GB = Math.round((SAP_MEMORY_POOLS.reduce((sum, p) => sum + p.usedMb, 0) / 1024) * 10) / 10;
+
+/** Application-server memory over the last 24 hours (hourly, ending at the 15:00 bucket). Allocated is the sum of the
+ * pools above; the final used value is the pools' current total, so the chart, the pool table and the KPI agree. */
+export const SAP_MEMORY_SERIES: MemoryPoint[] = [
+  9.8, 9.4, 9.1, 8.9, 8.8, 9.0, 9.7, 11.2, 12.6, 13.4, 13.9, 14.1, 13.6, 13.2, 14.4, 14.8, 14.2, 13.7, 12.9, 12.1, 11.6, 12.4, 12.8, POOLS_USED_GB,
+].map((usedGb, i, all) => ({ time: hourLabel(i - (all.length - 1)), usedGb, allocatedGb: POOLS_ALLOCATED_GB }));
+
+export interface SystemLock {
+  id: string;
+  table: string;
+  mode: 'E' | 'S' | 'X' | 'O';
+  user: string;
+  /** Seconds the lock entry has been held at the time of the snapshot. */
+  ageSec: number;
+}
+
+/** SM12 lock entries: the monthly-close batch job (started 15:30 by ANBARASU, see the background jobs) holds the finance
+ * documents, and one GRC dialog step holds a work item. */
+export const SAP_SYSTEM_LOCKS: SystemLock[] = [
+  { id: 'lock-1', table: 'BKPF', mode: 'E', user: 'ANBARASU', ageSec: 402 },
+  { id: 'lock-2', table: 'BSEG', mode: 'E', user: 'ANBARASU', ageSec: 399 },
+  { id: 'lock-3', table: 'GRFNMWRTITEM', mode: 'X', user: 'GRC_BTP_USER', ageSec: 38 },
+];
+
 /** PROTOTYPE MOCK DATA — a single ABAP system's performance deep dive.
  * A metric the source system doesn't report is `null` (the GRC sample returned 0 for its
- * buffer hit ratio and memory, which means "not collected", not a real 0%). */
+ * buffer hit ratio, which means "not collected", not a real 0%). Memory usage and system locks are
+ * derived from the memory series and the SM12 lock list above, so the KPI strip and the cards agree. */
 export const SAP_PERFORMANCE: {
   system: string; status: 'Connected'; lastFetched: string; nextSyncMinutes: number; responseTimeMs: number; activeUsers: number;
   dbHitRatioPercent: number | null; workProcessesUsed: number; workProcessesTotal: number; abapDumps: number; abortedJobs: number;
@@ -17,8 +69,8 @@ export const SAP_PERFORMANCE: {
   workProcessesTotal: 20,
   abapDumps: 0,
   abortedJobs: 0,
-  memoryUsagePercent: null,
-  systemLocks: 0,
+  memoryUsagePercent: Math.round((SAP_MEMORY_SERIES[SAP_MEMORY_SERIES.length - 1].usedGb / SAP_MEMORY_SERIES[SAP_MEMORY_SERIES.length - 1].allocatedGb) * 100),
+  systemLocks: SAP_SYSTEM_LOCKS.length,
 };
 
 export interface ServerTopologyNode {
@@ -157,9 +209,6 @@ export const SAP_DB_CALL_STATISTICS: {
     { buffer: 'Screen', hitRatioPercent: 98.5, calls: 29_230, swaps: 2 },
   ],
 };
-
-const hourLabel = (offsetFromNow: number) => `${String((15 + offsetFromNow + 24) % 24).padStart(2, '0')}:00`;
-const hourly = (values: number[]) => values.map((value, i) => ({ time: hourLabel(i - (values.length - 1)), value }));
 
 /** 24 hourly points ending at the 15:00 bucket. */
 export const SAP_PERFORMANCE_TRENDS = {

@@ -81,3 +81,49 @@ export const PRIORITY_TONE: Record<SecurityNotePriority, 'danger' | 'warning' | 
 export const DOWNLOAD_TONE: Record<NoteDownloadStatus, 'success' | 'info' | 'danger' | 'neutral'> = {
   'Already Downloaded': 'success', Downloaded: 'success', Pending: 'info', 'Not downloaded': 'neutral', 'Download failed': 'danger',
 };
+
+export const NOTE_FILE_MAX_BYTES = 1024 * 1024;
+const NOTE_FILE_EXTENSIONS = ['.csv', '.txt'];
+const SPREADSHEET_EXTENSIONS = ['.xlsx', '.xls', '.xlsm', '.ods'];
+
+export const NOTE_FILE_HELP = 'Or choose a .csv or .txt file with one or more note numbers per line. Excel files cannot be read here: in Excel use File, Save As, CSV, then choose that file.';
+
+export interface ParsedNoteFile {
+  /** Entries that are exactly seven digits, in file order (repeats kept; the dialog counts them). */
+  numbers: string[];
+  /** Entries that are not 7-digit numbers and were ignored. A header row is not counted. */
+  skipped: number;
+  /** True when the first line looked like a column header ("Note number") and was left out. */
+  headerRow: boolean;
+}
+
+/**
+ * Reads note numbers out of CSV or plain text. Entries are separated by commas, semicolons, tabs or spaces, one or many per
+ * line. A first line with no digits at all ("Note number,Title") is a header and is not counted. Anything else that is not
+ * exactly seven digits is ignored and counted in `skipped`. Surrounding quotes and a byte-order mark are removed.
+ */
+export function parseNoteFile(content: string): ParsedNoteFile {
+  const withoutMark = content.charCodeAt(0) === 0xfeff ? content.slice(1) : content;
+  const lines = withoutMark.split(/\r\n|\r|\n/).filter((line) => line.trim() !== '');
+  const entriesOf = (line: string) => line.split(/[\s,;]+/).map((cell) => cell.replace(/^["']+|["']+$/g, '')).filter(Boolean);
+  const headerRow = lines.length > 0 && !/\d/.test(lines[0]);
+  const result: ParsedNoteFile = { numbers: [], skipped: 0, headerRow };
+  for (const line of headerRow ? lines.slice(1) : lines) {
+    for (const entry of entriesOf(line)) {
+      if (NOTE_NUMBER_PATTERN.test(entry)) result.numbers.push(entry);
+      else result.skipped += 1;
+    }
+  }
+  return result;
+}
+
+/** Why a chosen file cannot be used, or null when it can. Only name and size are checked here. */
+export function noteFileProblem(file: { name: string; size: number }): string | null {
+  const name = file.name.toLowerCase();
+  const extension = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
+  if (SPREADSHEET_EXTENSIONS.includes(extension)) return `${file.name} is a spreadsheet. Save it as CSV from Excel (File, Save As, CSV) and choose that file.`;
+  if (!NOTE_FILE_EXTENSIONS.includes(extension)) return `${file.name} is not a .csv or .txt file.`;
+  if (file.size === 0) return `${file.name} is empty.`;
+  if (file.size > NOTE_FILE_MAX_BYTES) return `${file.name} is larger than 1 MB. A list of note numbers should be far smaller.`;
+  return null;
+}

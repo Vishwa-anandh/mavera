@@ -2,6 +2,8 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import type { AwsCostTabProps } from '../../model/AwsCostTabProps';
 import type { AwsInstance, AwsYearlyMonth } from '../../model/awsTypes';
 import { momPct } from '../../model/awsDerivations';
+import { extendDailyHistory } from '../../../../shared/lib/costAnalysis';
+import { DailyCostHistory } from '../../../../shared/ui/DailyCostHistory';
 import { DonutChart } from '../../../../shared/ui/DonutChart';
 import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
 
@@ -11,6 +13,9 @@ import { Tooltip as UiTooltip } from '../../../../shared/ui/Tooltip';
  * "Monthly Spend by Service" (12-month stacked-by-service chart), "Top
  * Services by Spend", "Cost by Region", the current-month-only "Service
  * Breakdown" table, "EC2 Instances", "Cost Movers" and "Budgets".
+ *
+ * "Daily Cost History" (the shared panel with a 7d | 14d | 30d switch and a
+ * bar or area view) follows the monthly chart, as in the reference.
  *
  * Mirrors Azure's already-built `azure/tabs/OperationsTab.tsx` structurally
  * (same stacked-chart-capped-to-3-services deviation, same `NamedListCard`/
@@ -40,6 +45,8 @@ export function OperationsTab(props: AwsCostTabProps) {
     value: r.cost,
     color: [chartColors.primary, chartColors.secondary, chartColors.tertiary, chartColors.axis][i % 4],
   }));
+
+  const dailyHistory = extendDailyHistory(data.dailyCosts, yearlyData);
 
   const runningCount = instances.filter((i) => i.State === 'running').length;
   const stoppedCount = instances.filter((i) => i.State === 'stopped').length;
@@ -88,6 +95,10 @@ export function OperationsTab(props: AwsCostTabProps) {
         )}
       </section>
 
+      <div className="mv-detail-stack">
+        <DailyCostHistory series={dailyHistory} />
+      </div>
+
       <section className="mv-panel" id="ops-top-services" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
           <h2 className="mv-panel-title">Top Services by Spend</h2>
@@ -129,7 +140,7 @@ export function OperationsTab(props: AwsCostTabProps) {
           <div className="mv-panel-header">
             <h2 className="mv-panel-title">Cost by Region</h2>
           </div>
-          <DonutChart title="Cost by region" totalLabel="Spend" data={regionSlices} />
+          <DonutChart title="Cost by region" totalLabel="Spend" data={regionSlices} format={formatCurrency} />
         </section>
       )}
 
@@ -139,17 +150,17 @@ export function OperationsTab(props: AwsCostTabProps) {
             <h2 className="mv-panel-title">Service Breakdown</h2>
           </div>
           <div className="mv-table-wrap">
-            <table className="mv-table">
+            <table className="mv-table mv-table--stack">
               <thead>
                 <tr><th>#</th><th>Service</th><th className="mv-num">Cost</th><th className="mv-num">CSP Savings ({(mspRate * 100).toFixed(1)}%)</th></tr>
               </thead>
               <tbody>
                 {data.details.map((row, i) => (
                   <tr key={`${row.service}-${row.usageType}`}>
-                    <td className="mv-muted">{i + 1}</td>
-                    <td>{row.service}<div className="mv-muted">{row.usageType}</div></td>
-                    <td className="mv-num">{formatCurrency(row.cost)}</td>
-                    <td className="mv-num" style={{ color: 'var(--mv-success)' }}>{formatCurrency(row.cost * mspRate)}</td>
+                    <td data-label="#" className="mv-muted">{i + 1}</td>
+                    <td data-label="Service" className="mv-stack-title">{row.service}<div className="mv-muted">{row.usageType}</div></td>
+                    <td data-label="Cost" className="mv-num">{formatCurrency(row.cost)}</td>
+                    <td data-label={`CSP Savings (${(mspRate * 100).toFixed(1)}%)`} className="mv-num" style={{ color: 'var(--mv-success)' }}>{formatCurrency(row.cost * mspRate)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -267,17 +278,17 @@ function buildMovers(sortedServices: Array<{ name: string; cost: number }>, prev
 function InstancesTable({ instances }: { instances: AwsInstance[] }) {
   return (
     <div className="mv-table-wrap">
-      <table className="mv-table">
+      <table className="mv-table mv-table--stack">
         <thead>
           <tr><th>Instance ID</th><th>Type</th><th>State</th><th>Region</th></tr>
         </thead>
         <tbody>
           {instances.map((inst) => (
             <tr key={inst.InstanceId}>
-              <UiTooltip content={inst.InstanceId}><td className="mv-code">{inst.InstanceId}</td></UiTooltip>
-              <td>{inst.InstanceType}</td>
-              <td><span className={`mv-status mv-status--${inst.State === 'running' ? 'success' : 'neutral'}`}>{inst.State}</span></td>
-              <td>{inst.Region}</td>
+              <UiTooltip content={inst.InstanceId}><td data-label="Instance ID" className="mv-code mv-stack-title mv-wrap-anywhere">{inst.InstanceId}</td></UiTooltip>
+              <td data-label="Type">{inst.InstanceType}</td>
+              <td data-label="State"><span className={`mv-status mv-status--${inst.State === 'running' ? 'success' : 'neutral'}`}>{inst.State}</span></td>
+              <td data-label="Region">{inst.Region}</td>
             </tr>
           ))}
         </tbody>

@@ -91,6 +91,12 @@ describe('LoginPage', () => {
     expect(navigateMock).toHaveBeenCalledWith('/');
   });
 
+  it('links to the public invoice parser from the footer', () => {
+    useAuthMock.mockReturnValue(auth());
+    renderAt('/login');
+    expect(screen.getByRole('link', { name: 'Try the invoice parser' })).toHaveAttribute('href', '/invoice-demo');
+  });
+
   it('shows an inline error message on invalid credentials', async () => {
     const login = vi.fn().mockRejectedValue({ response: { status: 401, data: { error: 'Invalid credentials' } } });
     useAuthMock.mockReturnValue(auth({ login }));

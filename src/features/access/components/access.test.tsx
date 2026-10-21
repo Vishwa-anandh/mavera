@@ -9,8 +9,6 @@ import { AccessProvider } from '../model/AccessProvider';
 import { useAccess } from '../model/accessContext';
 import { Can } from './Can';
 import { PermissionExplorer } from './PermissionExplorer';
-import { PreviewBanner } from './PreviewBanner';
-import { PreviewRoleMenu } from './PreviewRoleMenu';
 import { RouteAccessGuard } from './RouteAccessGuard';
 import { defaultMatrix, type PermissionMatrix as PermissionMatrixValue } from '../model/permissions';
 
@@ -121,22 +119,14 @@ describe('Can and RouteAccessGuard', () => {
     expect(screen.queryByText('Add user')).toBeNull();
   });
 
-  it('shows a friendly no-access state, never a blank page, and offers a way out', async () => {
-    sessionStorage.setItem('mavera.previewRole', 'viewer');
-    const user = userEvent.setup();
-    renderWithAccess(
-      <>
-        <PreviewBanner />
-        <RouteAccessGuard module="users"><p>Secret page</p></RouteAccessGuard>
-      </>,
-    );
+  it('shows a friendly no-access state, never a blank page, with a way back to the dashboard', () => {
+    useAuthMock.mockReturnValue({ user: { ...demoUser, demoRoleId: 'viewer' }, isDemoSession: true });
+    accessRepository.ensureMember({ userId: demoUser.id, fullName: 'Dev', email: demoUser.email, role: 'member', roleId: 'viewer', status: 'active' });
+    renderWithAccess(<RouteAccessGuard module="users"><p>Secret page</p></RouteAccessGuard>);
     expect(screen.queryByText('Secret page')).toBeNull();
     expect(screen.getByRole('alert')).toHaveTextContent('You don’t have access to this page');
     expect(screen.getByRole('alert')).toHaveTextContent('Viewer');
-    expect(screen.getByRole('status')).toHaveTextContent('Previewing Mavera as Viewer');
-    await user.click(screen.getAllByRole('button', { name: 'Exit preview' })[0]);
-    expect(screen.getByText('Secret page')).toBeInTheDocument();
-    expect(screen.queryByRole('status')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Go to dashboard' })).toHaveAttribute('href', '/');
   });
 
   it('opens routes with no module to everyone and records a real refusal in the audit trail', () => {
@@ -153,23 +143,5 @@ describe('Can and RouteAccessGuard', () => {
     expect(screen.queryByText('Audit page')).toBeNull();
     expect(auditRepository.getSnapshot().length).toBeGreaterThan(before);
     expect(auditRepository.getSnapshot()[0]).toMatchObject({ action: 'Access denied', result: 'denied' });
-  });
-});
-
-describe('preview as role', () => {
-  it('is offered only to the demo session, lists the roles and switches on click', async () => {
-    const user = userEvent.setup();
-    renderWithAccess(<><PreviewRoleMenu /><PreviewBanner /></>);
-    const group = screen.getByRole('group', { name: /Preview as role/ });
-    expect(within(group).getByRole('menuitemradio', { name: 'Owner (you)' })).toHaveAttribute('aria-checked', 'true');
-    await user.click(within(group).getByRole('menuitemradio', { name: 'Analyst' }));
-    expect(within(group).getByRole('menuitemradio', { name: 'Analyst' })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('status')).toHaveTextContent('Analyst');
-  });
-
-  it('is not available to a real (non-demo) session', () => {
-    useAuthMock.mockReturnValue({ user: { id: 'real', email: 'r@x.com', role: 'owner' }, isDemoSession: false });
-    renderWithAccess(<PreviewRoleMenu />);
-    expect(screen.queryByRole('group')).toBeNull();
   });
 });

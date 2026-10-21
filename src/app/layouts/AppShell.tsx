@@ -8,7 +8,7 @@ import { NotificationsDrawer } from './NotificationsDrawer';
 import { ProfileMenu } from './ProfileMenu';
 import { formatBadgeCount, useNotifications } from './notifications';
 import { AssistantWidget } from '../../features/assistant';
-import { PreviewBanner, RouteAccessGuard } from '../../features/access';
+import { RouteAccessGuard } from '../../features/access';
 import { productModuleFor, routeModuleFor } from '../router/route-manifest';
 import { ModuleNotSubscribed } from './ModuleNotSubscribed';
 import { SearchIcon, BellIcon, HelpIcon, MenuIcon } from '../../shared/ui/icons';
@@ -90,7 +90,6 @@ export function AppShell() {
             <ProfileMenu />
           </div>
         </header>
-        <PreviewBanner />
         <main className="mv-content" id="mv-main" tabIndex={-1}>
           {missingModule ? (
             <ModuleNotSubscribed module={missingModule} />

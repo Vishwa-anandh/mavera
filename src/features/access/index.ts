@@ -5,8 +5,6 @@ export type { AccessContextValue } from './model/accessContext';
 export { Can } from './components/Can';
 export { AccessDenied } from './components/AccessDenied';
 export { RouteAccessGuard } from './components/RouteAccessGuard';
-export { PreviewBanner } from './components/PreviewBanner';
-export { PreviewRoleMenu } from './components/PreviewRoleMenu';
 export { PermissionExplorer, PermissionLegend } from './components/PermissionExplorer';
 export {
   ACTIONS, ACTION_LABELS, MODULES, MODULE_GROUPS, isModuleId, moduleById, modulesInGroup,

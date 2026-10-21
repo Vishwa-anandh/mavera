@@ -10,7 +10,7 @@ interface AccessDeniedProps {
 
 /** The friendly state shown instead of a page the current role cannot view. Never a blank page. */
 export function AccessDenied({ module }: AccessDeniedProps) {
-  const { currentRole, previewRoleId, setPreviewRole } = useAccess();
+  const { currentRole } = useAccess();
   const label = module ? moduleById(module)?.label : undefined;
   return (
     <section className="mv-empty mv-access-denied" role="alert" aria-labelledby="access-denied-title">
@@ -21,7 +21,6 @@ export function AccessDenied({ module }: AccessDeniedProps) {
         doesn’t include permission to view {label ? <strong>{label}</strong> : 'this page'}. Ask an owner or an admin of your organisation to change your role if you need it.
       </p>
       <div className="mv-dialog-actions mv-access-denied-actions">
-        {previewRoleId && <button type="button" className="mv-secondary-button" onClick={() => setPreviewRole(null)}>Exit preview</button>}
         <Link className="mv-primary-button" to="/">Go to dashboard</Link>
       </div>
     </section>

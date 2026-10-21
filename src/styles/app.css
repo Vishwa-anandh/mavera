@@ -3205,3 +3205,65 @@ strong, b, th { font-weight: 500; }
 /* Phone-sized tables that fold their secondary columns into a sub-line need no minimum width. */
 .mv-table-wrap > .mv-table.mv-compact-table:not(.mv-table--stack):has(th:nth-child(1)) { min-width: 0; }
 @media (max-width: 40rem) { .mv-compact-table td, .mv-compact-table th { white-space: normal; } }
+
+/* ---- Login: Demo mode card (sample accounts, one click each) ---- */
+.mv-demo-panel { width: min(100%, 21rem); padding: 1.25rem 1.25rem 1rem; border: 1px solid var(--mv-divider); border-radius: 1rem; background: var(--mv-elevated); color: var(--mv-text); box-shadow: 0 1.5rem 3rem -1.5rem rgba(11, 26, 51, .45); }
+.mv-demo-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; }
+.mv-demo-panel-head h2 { margin: 0; font: 500 1rem/1.5rem var(--mv-font-heading); }
+.mv-demo-panel-copy { margin: 0 0 0.875rem; color: var(--mv-text-secondary); font-size: 0.8125rem; line-height: 1.25rem; }
+.mv-demo-panel-list { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.mv-demo-account { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; min-height: 2.75rem; padding: 0.375rem 0.875rem; border: 1px solid var(--mv-border); border-radius: 0.75rem; background: var(--mv-surface); color: var(--mv-text); text-align: left; cursor: pointer; }
+.mv-demo-account:hover:not(:disabled) { border-color: var(--mv-primary); background: var(--mv-selected); }
+.mv-demo-account:focus-visible { outline: 0.1875rem solid color-mix(in srgb, var(--mv-focus) 40%, transparent); outline-offset: 2px; }
+.mv-demo-account:disabled { opacity: .6; cursor: default; }
+.mv-demo-account-label { font-size: 0.875rem; font-weight: 500; }
+.mv-demo-account-email { min-width: 0; overflow-wrap: anywhere; color: var(--mv-text-muted); font-size: 0.8125rem; text-align: right; }
+.mv-demo-reopen { align-self: center; margin-top: 1rem; padding: 0.5rem 0.875rem; border: 1px solid rgba(255, 255, 255, .28); border-radius: 62.4375rem; background: rgba(255, 255, 255, .08); color: #fff; font: 500 0.8125rem/1rem var(--mv-font-body); cursor: pointer; }
+.mv-demo-reopen:hover { background: rgba(255, 255, 255, .16); }
+/* Wide screens: the card sits beside the sign-in form, in the corner; narrower screens stack it below the form. */
+.mv-login-stage { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem; }
+@media (min-width: 1280px) {
+  .mv-demo-panel, .mv-demo-reopen { position: fixed; left: clamp(1rem, 3vw, 2.5rem); bottom: clamp(1rem, 4vh, 2.5rem); z-index: 5; }
+}
+
+/* ---- Service Breakdown: services with a share bar; a row opens to its usage lines ---- */
+.mv-svc-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.mv-svc-item { border-top: 1px solid var(--mv-divider); }
+.mv-svc-row { display: grid; grid-template-columns: minmax(10rem, 2.2fr) minmax(5rem, 3fr) 3.5rem minmax(5rem, 1fr) 5rem 1rem; align-items: center; gap: 0.75rem; width: 100%; min-height: 2.75rem; padding: 0.375rem 0.25rem; border: 0; background: transparent; color: var(--mv-text); font: 400 0.875rem/1.25rem var(--mv-font-body); text-align: left; cursor: pointer; }
+.mv-svc-row:hover { background: var(--mv-surface-hover); }
+.mv-svc-row:focus-visible { outline: 0.1875rem solid color-mix(in srgb, var(--mv-focus) 40%, transparent); outline-offset: -0.1875rem; }
+.mv-svc-name { min-width: 0; overflow-wrap: anywhere; }
+.mv-svc-bar { display: block; height: 0.375rem; border-radius: 62.4375rem; background: var(--mv-surface-subtle); overflow: hidden; }
+.mv-svc-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--mv-primary); }
+.mv-svc-share { color: var(--mv-text-muted); font-size: 0.75rem; text-align: right; font-variant-numeric: tabular-nums; }
+.mv-svc-cost { font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+.mv-svc-types { justify-self: end; padding: 0 0.5rem; border-radius: 62.4375rem; background: var(--mv-surface-subtle); color: var(--mv-text-secondary); font-size: 0.6875rem; line-height: 1.25rem; white-space: nowrap; }
+.mv-svc-chevron { color: var(--mv-text-muted); transition: transform 120ms ease; }
+.mv-svc-chevron.is-open { transform: rotate(180deg); }
+.mv-svc-lines { display: grid; margin: 0 0 0.5rem; padding: 0 0.25rem 0 1.25rem; list-style: none; }
+.mv-svc-lines > li { display: grid; grid-template-columns: minmax(10rem, 1fr) 6rem 6rem; align-items: center; gap: 0.75rem; min-height: 2rem; border-top: 1px dashed var(--mv-divider); color: var(--mv-text-secondary); font-size: 0.8125rem; }
+.mv-svc-lines > li.mv-svc-lines-note { display: block; min-height: 0; padding-top: 0.375rem; border-top: 0; color: var(--mv-text-muted); font-size: 0.6875rem; text-align: right; }
+.mv-svc-usage { min-width: 0; overflow-wrap: anywhere; }
+.mv-svc-saving { color: var(--mv-success); text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 680px) {
+  .mv-svc-row { grid-template-columns: minmax(0, 1fr) auto 1rem; grid-template-areas: "name cost chev" "bar bar bar"; row-gap: 0.25rem; padding-block: 0.5rem; }
+  .mv-svc-name { grid-area: name; }
+  .mv-svc-cost { grid-area: cost; }
+  .mv-svc-chevron { grid-area: chev; }
+  .mv-svc-bar { grid-area: bar; }
+  .mv-svc-share, .mv-svc-types { display: none; }
+  .mv-svc-lines { padding-left: 0.5rem; }
+  .mv-svc-lines > li { grid-template-columns: minmax(0, 1fr) auto auto; gap: 0.5rem; }
+}
+
+/* ---- Cost page view switcher (Executive / Operations / Technical): one compact line, underline on the active view ---- */
+.mv-cost-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 1rem; padding: 0; border: 0; border-bottom: 1px solid var(--mv-divider); border-radius: 0; background: none; overflow: visible; }
+.mv-cost-tab { display: inline-flex; flex-direction: row; align-items: baseline; gap: 0.5rem; min-height: 2.5rem; padding: 0.5rem 0.875rem; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.mv-cost-tab:hover { background: transparent; }
+.mv-cost-tab.is-active { background: transparent; border-bottom-color: var(--mv-primary); }
+.mv-cost-tab span:first-child { font-size: 0.875rem; }
+.mv-cost-tab span:last-child { font-size: 0.75rem; }
+@media (max-width: 36rem) {
+  .mv-cost-tab span:last-child { display: none; }
+  .mv-cost-tab { padding-inline: 0.75rem; }
+}

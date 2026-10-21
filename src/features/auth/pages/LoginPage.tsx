@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth, DEMO_EMAIL, DEMO_PASSWORD, DEMO_CLOUD_EMAIL } from '../model/AuthContext';
+import { useAuth, DEMO_PASSWORD } from '../model/AuthContext';
 import { useSuperAdminAuth, DEMO_USERNAME as SA_DEMO_USERNAME, DEMO_PASSWORD as SA_DEMO_PASSWORD } from '../../superAdmin';
 import { LoginBackdrop } from '../components/LoginBackdrop';
+import { DemoModePanel } from '../components/DemoModePanel';
 import { PasswordField } from '../../../shared/ui/PasswordField';
 import { BuildingIcon, LockIcon, MailIcon, ShieldIcon } from '../../../shared/ui/icons';
 import maveraLogo from '../../../../assets/brand/mavera-logo.png';
 import maitsysLogo from '../../../../assets/brand/maitsys.png';
+
+const DEMO_PANEL_KEY = 'mavera.login.demoPanel';
 
 interface LoginErrorResponse { response?: { data?: { error?: string; isLocked?: boolean } }; }
 
@@ -29,15 +32,15 @@ export function LoginPage() {
   const [step, setStep] = useState<'email' | 'password'>('email');
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [passwordPrefill, setPasswordPrefill] = useState('');
+  const [passwordPrefill] = useState('');
   const [isSuperAdminFlow, setIsSuperAdminFlow] = useState(false);
 
   useEffect(() => { if (isAuthenticated) navigate('/', { replace: true }); }, [isAuthenticated, navigate]);
 
-  const handleLogin = async (identity: string, password: string) => {
+  const handleLogin = async (identity: string, password: string, superAdmin = isSuperAdminFlow) => {
     setError(null); setSubmitting(true);
     try {
-      if (isSuperAdminFlow) {
+      if (superAdmin) {
         await superAdminLogin(identity, password);
         navigate('/admin/dashboard');
       } else {
@@ -84,19 +87,15 @@ export function LoginPage() {
     setStep('email');
   };
 
-  const useDemoCredentials = () => {
-    setPasswordPrefill(DEMO_PASSWORD);
-    handleContinue(DEMO_EMAIL);
+  const [demoOpen, setDemoOpen] = useState(() => {
+    try { return sessionStorage.getItem(DEMO_PANEL_KEY) !== 'closed'; } catch { return true; }
+  });
+  const setDemoVisible = (open: boolean) => {
+    setDemoOpen(open);
+    try { sessionStorage.setItem(DEMO_PANEL_KEY, open ? 'open' : 'closed'); } catch { /* storage unavailable: the choice lasts for this visit */ }
   };
-
-  const useCloudDemoCredentials = () => {
-    setPasswordPrefill(DEMO_PASSWORD);
-    handleContinue(DEMO_CLOUD_EMAIL);
-  };
-
-  const useSuperAdminDemoCredentials = () => {
-    setPasswordPrefill(SA_DEMO_PASSWORD);
-    handleContinue(SA_DEMO_USERNAME);
+  const signInAsDemo = (identity: string, superAdmin: boolean) => {
+    void handleLogin(identity, superAdmin ? SA_DEMO_PASSWORD : DEMO_PASSWORD, superAdmin);
   };
 
   const sessionError = searchParams.get('error');
@@ -189,33 +188,15 @@ export function LoginPage() {
             )
           )}
 
-          {!accountLocked && step === 'email' && (
-            <div className="mv-notice">
-              Demo credentials: <strong>{DEMO_EMAIL}</strong> / <strong>{DEMO_PASSWORD}</strong>
-              <button type="button" className="mv-quiet-button" style={{ marginLeft: '0.625rem' }} onClick={useDemoCredentials}>
-                Use demo credentials
-              </button>
-            </div>
-          )}
-
-          {!accountLocked && step === 'email' && (
-            <div className="mv-notice">
-              Cloud Cost only organisation: <strong>{DEMO_CLOUD_EMAIL}</strong> / <strong>{DEMO_PASSWORD}</strong>
-              <button type="button" className="mv-quiet-button" style={{ marginLeft: '0.625rem' }} onClick={useCloudDemoCredentials}>
-                Use Cloud Cost only credentials
-              </button>
-            </div>
-          )}
-
-          {!accountLocked && step === 'email' && (
-            <div className="mv-notice">
-              Super Admin portal: <strong>{SA_DEMO_USERNAME}</strong> / <strong>{SA_DEMO_PASSWORD}</strong>
-              <button type="button" className="mv-quiet-button" style={{ marginLeft: '0.625rem' }} onClick={useSuperAdminDemoCredentials}>
-                Use Super Admin credentials
-              </button>
-            </div>
-          )}
         </section>
+
+        {!accountLocked && step === 'email' && (
+          demoOpen ? (
+            <DemoModePanel onPick={signInAsDemo} onClose={() => setDemoVisible(false)} superAdminUsername={SA_DEMO_USERNAME} disabled={submitting} />
+          ) : (
+            <button type="button" className="mv-demo-reopen" onClick={() => setDemoVisible(true)}>Demo accounts</button>
+          )
+        )}
       </div>
 
       <footer className="mv-login-footer">

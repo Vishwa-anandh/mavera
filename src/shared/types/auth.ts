@@ -8,6 +8,8 @@ export interface User {
    * header (MAVERA_DESIGN_SYSTEM.md §6.2). Optional until /auth/me sends it. */
   orgName?: string;
   role: 'admin' | 'owner' | 'member';
+  /** Demo sessions only: the role of the sample member (admin, analyst, viewer); absent means Owner. */
+  demoRoleId?: string;
   canViewAzure?: boolean;
   canViewAws?: boolean;
   canViewBtp?: boolean;

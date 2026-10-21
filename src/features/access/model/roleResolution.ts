@@ -47,7 +47,7 @@ export function isBuiltInRole(id: string): boolean {
 
 /** The directory entry for the signed-in user: the demo session is the Owner, everyone else maps from their API role. */
 export function buildSelfMember(user: User, isDemoSession: boolean | undefined): MemberRecord {
-  const roleId = isDemoSession ? 'owner' : legacyRoleToRoleId(user.role);
+  const roleId = isDemoSession ? (user.demoRoleId ?? 'owner') : legacyRoleToRoleId(user.role);
   return {
     userId: user.id,
     fullName: user.name || user.email.split('@')[0],

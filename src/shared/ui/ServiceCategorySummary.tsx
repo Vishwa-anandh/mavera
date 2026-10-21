@@ -14,8 +14,8 @@ export interface ServiceCategorySummaryProps {
 }
 
 /**
- * Service Category Summary: spend by category as a bar chart next to a Category / Services / Total Cost /
- * Share table. Each category row opens to the services inside it (Service / Monthly Cost / % of Total), so
+ * Service Category Summary: spend by category as a Category / Services / Total Cost / Share table next to a bar
+ * chart. Each category row opens to the services inside it (Service / Monthly Cost / % of Total), so
  * the chart, the roll-up and the detail all read from one grouping and the shares total exactly 100%.
  */
 export function ServiceCategorySummary({ summary, title = 'Service Category Summary', description = 'Spend grouped into categories. Open a category to see its services.', headingLevel = 'h2' }: ServiceCategorySummaryProps) {
@@ -44,16 +44,6 @@ export function ServiceCategorySummary({ summary, title = 'Service Category Summ
         <p className="mv-muted">No services to group yet.</p>
       ) : (
         <div className="mv-category-summary">
-          <div className="mv-category-chart">
-            <BarSeriesChart
-              title="Spend by service category"
-              data={summary.rows.map((row) => ({ name: row.category, cost: row.cost }))}
-              series={[{ key: 'cost', label: 'Total cost' }]}
-              format={money}
-              axisFormat={compactMoney}
-              height={220}
-            />
-          </div>
           <div className="mv-table-wrap">
             <table className="mv-table">
               <caption className="mv-sr-only">Service cost grouped by category. Each category can be opened to list its services.</caption>
@@ -102,6 +92,16 @@ export function ServiceCategorySummary({ summary, title = 'Service Category Summ
                 </tr>
               </tfoot>
             </table>
+          </div>
+          <div className="mv-category-chart">
+            <BarSeriesChart
+              title="Spend by service category"
+              data={summary.rows.map((row) => ({ name: row.category, cost: row.cost }))}
+              series={[{ key: 'cost', label: 'Total cost' }]}
+              format={money}
+              axisFormat={compactMoney}
+              height={220}
+            />
           </div>
         </div>
       )}

@@ -1,3 +1,4 @@
+import { ServiceBreakdownList } from '../../../../shared/ui/ServiceBreakdownList';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { AwsCostTabProps } from '../../model/AwsCostTabProps';
 import type { AwsInstance, AwsYearlyMonth } from '../../model/awsTypes';
@@ -145,28 +146,9 @@ export function OperationsTab(props: AwsCostTabProps) {
       )}
 
       {isCurrentMonth && data.details.length > 0 && (
-        <section className="mv-panel" id="aws-service-breakdown" style={{ marginBottom: '1rem' }}>
-          <div className="mv-panel-header">
-            <h2 className="mv-panel-title">Service Breakdown</h2>
-          </div>
-          <div className="mv-table-wrap">
-            <table className="mv-table mv-table--stack">
-              <thead>
-                <tr><th>#</th><th>Service</th><th className="mv-num">Cost</th><th className="mv-num">CSP Savings ({(mspRate * 100).toFixed(1)}%)</th></tr>
-              </thead>
-              <tbody>
-                {data.details.map((row, i) => (
-                  <tr key={`${row.service}-${row.usageType}`}>
-                    <td data-label="#" className="mv-muted">{i + 1}</td>
-                    <td data-label="Service" className="mv-stack-title">{row.service}<div className="mv-muted">{row.usageType}</div></td>
-                    <td data-label="Cost" className="mv-num">{formatCurrency(row.cost)}</td>
-                    <td data-label={`CSP Savings (${(mspRate * 100).toFixed(1)}%)`} className="mv-num" style={{ color: 'var(--mv-success)' }}>{formatCurrency(row.cost * mspRate)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <div id="aws-service-breakdown" style={{ marginBottom: '1rem' }}>
+          <ServiceBreakdownList lines={data.details} cspRate={mspRate} format={formatCurrency} />
+        </div>
       )}
 
       {instances.length > 0 && (

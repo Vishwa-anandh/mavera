@@ -43,7 +43,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   }, [userId, isDemoSession]);
 
   const member = userId ? members.find((m) => m.userId === userId) : undefined;
-  const ownRoleId = member?.roleId ?? (userId ? (isDemoSession ? 'owner' : legacyRoleToRoleId(user?.role)) : 'viewer');
+  const ownRoleId = member?.roleId ?? (userId ? (isDemoSession ? (user?.demoRoleId ?? 'owner') : legacyRoleToRoleId(user?.role)) : 'viewer');
   const canPreview = Boolean(isDemoSession) && ownRoleId === 'owner';
   const roleId = resolveEffectiveRoleId({ ownRoleId, previewRoleId: storedPreview, canPreview, roles });
   const currentRole = findRole(roles, roleId);

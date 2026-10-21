@@ -251,6 +251,36 @@ describe('AuthContext', () => {
     expect(postMock).not.toHaveBeenCalled();
   });
 
+  it('signs a demo account in with any password and gives each role its own member role', async () => {
+    const user = userEvent.setup();
+    function RoleConsumer() {
+      const { user: me, isDemoSession, modules, login } = useAuth();
+      return (
+        <div>
+          <span data-testid="who">{me?.email ?? 'none'}</span>
+          <span data-testid="role">{me?.demoRoleId ?? 'owner'}</span>
+          <span data-testid="demo">{String(isDemoSession)}</span>
+          <span data-testid="mods">{`${modules.cloudCost}/${modules.sapMonitoring}`}</span>
+          <button onClick={() => void login('Analyst@Mavera.local', 'whatever')}>analyst</button>
+          <button onClick={() => void login('sap@mavera.local', 'x')}>sap</button>
+          <button onClick={() => void login('viewer@mavera.local', '').catch(() => undefined)}>empty</button>
+        </div>
+      );
+    }
+    render(<AuthProvider><RoleConsumer /></AuthProvider>);
+    await user.click(screen.getByText('empty'));
+    expect(screen.getByTestId('who')).toHaveTextContent('none');
+
+    await user.click(screen.getByText('analyst'));
+    await waitFor(() => expect(screen.getByTestId('who')).toHaveTextContent('analyst@mavera.local'));
+    expect(screen.getByTestId('role')).toHaveTextContent('analyst');
+    expect(screen.getByTestId('demo')).toHaveTextContent('true');
+
+    await user.click(screen.getByText('sap'));
+    await waitFor(() => expect(screen.getByTestId('mods')).toHaveTextContent('false/true'));
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
   it('logout calls POST /auth/logout, then clears tokens, caches, onboarding flags, sessionStorage and user', async () => {
     localStorage.setItem(TOKEN_KEY, 'existing-token');
     localStorage.setItem(REFRESH_TOKEN_KEY, 'existing-refresh');

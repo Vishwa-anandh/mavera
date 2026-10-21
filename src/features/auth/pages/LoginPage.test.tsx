@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { LoginPage } from './LoginPage';
 import type { AuthContextValue } from '../model/AuthContext';
 import { DEMO_EMAIL, DEMO_PASSWORD, DEMO_CLOUD_EMAIL } from '../model/AuthContext';
-import { SuperAdminAuthProvider, DEMO_USERNAME as SA_DEMO_USERNAME, DEMO_PASSWORD as SA_DEMO_PASSWORD } from '../../superAdmin';
+import { SuperAdminAuthProvider, DEMO_USERNAME as SA_DEMO_USERNAME } from '../../superAdmin';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 
 const useAuthMock = vi.fn<() => AuthContextValue>();
@@ -183,50 +183,56 @@ describe('LoginPage', () => {
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
   });
 
-  it('fills the demo credentials and signs in with them in one click', async () => {
+  it('lists the demo accounts in a Demo mode card and signs in as one with a single click', async () => {
     const login = vi.fn().mockResolvedValue(undefined);
     useAuthMock.mockReturnValue(auth({ login }));
     const user = userEvent.setup();
 
     renderAt('/login');
-    expect(screen.getByText(DEMO_EMAIL)).toBeInTheDocument();
-    expect(screen.getAllByText(DEMO_PASSWORD).length).toBeGreaterThan(0);
+    const card = screen.getByRole('region', { name: 'Demo mode' });
+    expect(card).toHaveTextContent('No backend');
+    expect(card).toHaveTextContent('any password');
+    for (const label of ['Owner', 'Admin', 'Analyst', 'Viewer', 'Cloud Cost only', 'SAP Monitoring only', 'Super Admin']) {
+      expect(within(card).getByRole('button', { name: new RegExp(`^${label}`) })).toBeInTheDocument();
+    }
+    expect(within(card).getByText(DEMO_EMAIL)).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Use demo credentials' }));
-    expect(screen.getByText('Enter your password')).toBeInTheDocument();
-    expect(screen.getByLabelText('Password')).toHaveValue(DEMO_PASSWORD);
-
-    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    await user.click(within(card).getByRole('button', { name: /^Owner/ }));
     expect(login).toHaveBeenCalledWith(DEMO_EMAIL, DEMO_PASSWORD);
     expect(navigateMock).toHaveBeenCalledWith('/');
   });
 
-  it('offers the Cloud Cost only demo organisation and signs in with it', async () => {
+  it('signs in as the Cloud Cost only, SAP Monitoring only and role demo accounts', async () => {
     const login = vi.fn().mockResolvedValue(undefined);
     useAuthMock.mockReturnValue(auth({ login }));
     const user = userEvent.setup();
     renderAt('/login');
-    expect(screen.getByText(DEMO_CLOUD_EMAIL)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Use Cloud Cost only credentials' }));
-    expect(screen.getByLabelText('Password')).toHaveValue(DEMO_PASSWORD);
-    await user.click(screen.getByRole('button', { name: 'Sign in' }));
-    expect(login).toHaveBeenCalledWith(DEMO_CLOUD_EMAIL, DEMO_PASSWORD);
+    const card = screen.getByRole('region', { name: 'Demo mode' });
+    await user.click(within(card).getByRole('button', { name: /Cloud Cost only/ }));
+    expect(login).toHaveBeenLastCalledWith(DEMO_CLOUD_EMAIL, DEMO_PASSWORD);
+    await user.click(within(card).getByRole('button', { name: /SAP Monitoring only/ }));
+    expect(login).toHaveBeenLastCalledWith('sap@mavera.local', DEMO_PASSWORD);
+    await user.click(within(card).getByRole('button', { name: /^Viewer/ }));
+    expect(login).toHaveBeenLastCalledWith('viewer@mavera.local', DEMO_PASSWORD);
   });
 
-  it('routes the Super Admin credentials through the same form into the Super Admin dashboard', async () => {
+  it('can close the Demo mode card and bring it back', async () => {
+    useAuthMock.mockReturnValue(auth());
+    const user = userEvent.setup();
+    renderAt('/login');
+    await user.click(screen.getByRole('button', { name: 'Close demo mode' }));
+    expect(screen.queryByRole('region', { name: 'Demo mode' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Demo accounts' }));
+    expect(screen.getByRole('region', { name: 'Demo mode' })).toBeInTheDocument();
+  });
+
+
+  it('signs in to the Super Admin portal from the Demo mode card', async () => {
     useAuthMock.mockReturnValue(auth());
     const user = userEvent.setup();
 
     renderAt('/login');
-    expect(screen.getByText(SA_DEMO_USERNAME)).toBeInTheDocument();
-    expect(screen.getByText(SA_DEMO_PASSWORD)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Use Super Admin credentials' }));
-    expect(screen.getByText('Enter your password')).toBeInTheDocument();
-    expect(screen.getByText(SA_DEMO_USERNAME)).toBeInTheDocument();
-    expect(screen.getByLabelText('Password')).toHaveValue(SA_DEMO_PASSWORD);
-
-    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    await user.click(within(screen.getByRole('region', { name: 'Demo mode' })).getByRole('button', { name: /^Super Admin/ }));
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/admin/dashboard'));
   });
 

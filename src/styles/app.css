@@ -3855,3 +3855,24 @@ html:has(.mv-setup), body:has(.mv-setup) { overflow-x: clip; }
 
 /* Metric values and the dashboard side-card titles were weight 600 (body-text rule: 500 at most). */
 .mv-server-metrics dd, .mv-idemo-fact-total dd, .mv-side-card-header { font-weight: 500; }
+
+/* Members table: user, email, role, status and a row chevron; everything editable moved to the member drawer (MemberDetailsDrawer). */
+.mv-members-table .mv-member-cell { min-width: 0; }
+.mv-members-table .mv-member-name { flex-wrap: wrap; row-gap: 0.125rem; }
+.mv-members-table .mv-row-open strong { font-weight: 500; }
+.mv-members-table td.mv-member-email { margin: 0; font-size: 0.8125rem; overflow-wrap: anywhere; }
+.mv-detail-drawer .mv-member-role { min-width: 0; max-width: 18rem; }
+.mv-member-switch { display: inline-flex; align-items: center; gap: 0.5rem; }
+.mv-member-switch .mv-cell-caption { text-align: left; font-size: 0.75rem; line-height: 1rem; }
+.mv-member-access { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 0.75rem 1.25rem; }
+.mv-member-access-head { font-size: 0.75rem; font-weight: 500; }
+.mv-member-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+.mv-member-actions .mv-secondary-button { display: inline-flex; align-items: center; gap: 0.375rem; }
+/* Stacked cards run up to 768px but the chevron/hover card rules above stop at 680px: carry them across 681-768px so a clickable card shows no stray chevron row. */
+@media (min-width: 681px) and (max-width: 768px) {
+  .mv-table.mv-table--stack td.mv-row-chevron, .mv-table.mv-table--stack th.mv-row-chevron { display: none; }
+  .mv-table.mv-table--stack td:has(+ td.mv-row-chevron) { border-bottom: 0; }
+  .mv-table--stack tbody tr.mv-row-link:hover { background: var(--mv-surface); }
+  .mv-table.mv-table--stack td.mv-stack-title { padding-top: 0.625rem; font-weight: 500; }
+  .mv-content .mv-table.mv-table--stack td { height: auto; padding-inline: 0; }
+}

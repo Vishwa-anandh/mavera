@@ -43,6 +43,12 @@ async function openModule(user: ReturnType<typeof userEvent.setup>, area: string
   await user.click(within(screen.getByRole('navigation', { name: /^Modules for the/ })).getByRole('button', { name: new RegExp(`^${module}`) }));
 }
 
+/** Members open from their row into a drawer that holds every control; returns the drawer. */
+async function openMember(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(within(screen.getByRole('table', { name: /Members of your organisation/ })).getByRole('button', { name }));
+  return screen.getByRole('dialog', { name });
+}
+
 const rolesTable = () => screen.getByRole('table', { name: /Roles, who holds them/ });
 const lastAudit = () => auditRepository.getSnapshot()[0];
 
@@ -95,20 +101,67 @@ describe('UserManagementPage: members, roles and permissions in three tabs', () 
     expect(screen.queryByRole('searchbox', { name: 'Search members' })).toBeNull();
   });
 
-  it('lists the signed-in demo user as the Owner, with role and Elevate controls locked for them', () => {
-    setup();
+  it('lists the signed-in demo user as the Owner, with role and Elevate controls locked for them', async () => {
+    const user = setup();
     const row = screen.getByRole('row', { name: /Dev Preview/ });
     expect(within(row).getByText('You')).toBeInTheDocument();
-    expect(within(row).getByRole('button', { name: 'Role for Dev Preview' })).toBeDisabled();
-    expect(within(row).getByText(/Your own role can’t be changed/)).toBeInTheDocument();
-    expect(within(row).queryByRole('button', { name: /Elevate/ })).toBeNull();
-    expect(within(row).getByRole('button', { name: 'Deactivate Dev Preview' })).toBeDisabled();
+    expect(within(row).queryByRole('button', { name: /Role for|Elevate|Deactivate/ })).toBeNull();
+    const drawer = await openMember(user, 'Dev Preview');
+    expect(within(drawer).getByRole('button', { name: 'Role for Dev Preview' })).toBeDisabled();
+    expect(within(drawer).getByText(/Your own role can’t be changed/)).toBeInTheDocument();
+    expect(within(drawer).queryByRole('button', { name: /Elevate/ })).toBeNull();
+    expect(within(drawer).getByRole('button', { name: 'Deactivate Dev Preview' })).toBeDisabled();
+    expect(within(drawer).getByText('Cannot deactivate yourself')).toBeInTheDocument();
+  });
+
+  it('shows only user, email, role and status in the table, with a chevron to open', () => {
+    setup();
+    const table = screen.getByRole('table', { name: /Members of your organisation/ });
+    expect(within(table).getAllByRole('columnheader', { hidden: true }).map((h) => h.textContent)).toEqual(['User', 'Email', 'Role', 'Status', '']);
+    expect(within(table).queryByRole('switch')).toBeNull();
+    expect(within(table).queryByText(/Alerts|Full Access|Status & actions/)).toBeNull();
+    const row = within(table).getByRole('row', { name: /Marcus Chen/ });
+    expect(within(row).getByText('marcus.chen@maitsys.com')).toBeInTheDocument();
+    expect(within(row).getByText('Analyst')).toBeInTheDocument();
+    expect(within(row).getByText('Active')).toBeInTheDocument();
+    // Stacked cards on phones label each cell.
+    expect(row.querySelector('td[data-label="Email"]')).not.toBeNull();
+    expect(row.querySelector('td[data-label="Role"]')).not.toBeNull();
+    expect(row.querySelector('td[data-label="Status"]')).not.toBeNull();
+    expect(row.querySelector('.mv-row-chevron')).not.toBeNull();
+  });
+
+  it('opens a member’s drawer from anywhere on the row, closes with Escape and returns focus to the row button', async () => {
+    const user = setup();
+    await user.click(within(screen.getByRole('row', { name: /Marcus Chen/ })).getByText('marcus.chen@maitsys.com'));
+    const drawer = screen.getByRole('dialog', { name: 'Marcus Chen' });
+    expect(within(drawer).getByText('marcus.chen@maitsys.com')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    const opener = within(screen.getByRole('row', { name: /Priya Sharma/ })).getByRole('button', { name: 'Priya Sharma' });
+    opener.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('dialog', { name: 'Priya Sharma' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(opener).toHaveFocus();
+  });
+
+  it('shows the new role and status in the table after changes made in the drawer', async () => {
+    const user = setup();
+    await openMember(user, 'Marcus Chen');
+    await pickRole(user, 'Role for Marcus Chen', 'Viewer');
+    await user.keyboard('{Escape}');
+    expect(within(screen.getByRole('row', { name: /Marcus Chen/ })).getByText('Viewer')).toBeInTheDocument();
+    await openMember(user, 'Marcus Chen');
+    await user.click(screen.getByRole('button', { name: 'Deactivate Marcus Chen' }));
+    expect(within(screen.getByRole('row', { name: /Marcus Chen/ })).getByText('Inactive')).toBeInTheDocument();
   });
 });
 
 describe('members', () => {
   it('changes a member’s role from the select and records before and after', async () => {
     const user = setup();
+    await openMember(user, 'Marcus Chen');
     await pickRole(user, 'Role for Marcus Chen', 'Viewer');
     expect(screen.getByRole('button', { name: 'Role for Marcus Chen' })).toHaveTextContent('Viewer');
     expect(lastAudit()).toMatchObject({ action: 'Role changed', target: 'marcus.chen@maitsys.com', changes: [{ field: 'Role', before: 'Analyst', after: 'Viewer' }] });
@@ -116,12 +169,14 @@ describe('members', () => {
 
   it('never offers the Owner role to hand out', async () => {
     const user = setup();
+    await openMember(user, 'Marcus Chen');
     await user.click(screen.getByRole('button', { name: 'Role for Marcus Chen' }));
     expect(screen.getByRole('option', { name: 'Owner' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('elevates a member to Admin only after confirming', async () => {
     const user = setup();
+    await openMember(user, 'Marcus Chen');
     await user.click(screen.getByRole('button', { name: 'Elevate Marcus Chen to Admin' }));
     expect(screen.getByRole('alertdialog')).toHaveTextContent('Elevate Marcus Chen to Admin?');
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
@@ -135,6 +190,7 @@ describe('members', () => {
 
   it('turns alert e-mails on and off per member', async () => {
     const user = setup();
+    await openMember(user, 'Priya Sharma');
     const sw = screen.getByRole('switch', { name: 'Alert e-mails for Priya Sharma' });
     expect(sw).toHaveAttribute('aria-checked', 'false');
     await user.click(sw);
@@ -144,11 +200,36 @@ describe('members', () => {
 
   it('deactivates and reactivates', async () => {
     const user = setup();
+    await openMember(user, 'Marcus Chen');
     await user.click(screen.getByRole('button', { name: 'Deactivate Marcus Chen' }));
     expect(screen.getByRole('button', { name: 'Activate Marcus Chen' })).toBeInTheDocument();
     expect(lastAudit().action).toBe('User deactivated');
     await user.click(screen.getByRole('button', { name: 'Activate Marcus Chen' }));
     expect(lastAudit().action).toBe('User activated');
+  });
+
+  it('toggles per-provider view and full access in the drawer, privileged members always on', async () => {
+    const user = setup();
+    const drawer = await openMember(user, 'Marcus Chen');
+    const view = within(drawer).getByRole('switch', { name: /Azure view access for Marcus Chen/ });
+    const before = view.getAttribute('aria-checked');
+    await user.click(view);
+    expect(within(drawer).getByRole('switch', { name: /Azure view access for Marcus Chen/ })).toHaveAttribute('aria-checked', String(before !== 'true'));
+    expect(lastAudit().target).toBe('marcus.chen@maitsys.com');
+    await user.keyboard('{Escape}');
+    const admin = await openMember(user, 'Dev Preview');
+    const adminView = within(admin).getByRole('switch', { name: /Azure view access for Dev Preview/ });
+    expect(adminView).toBeDisabled();
+    expect(adminView).toHaveAttribute('aria-checked', 'true');
+    expect(within(admin).getByRole('switch', { name: /Azure full access for Dev Preview/ })).toBeDisabled();
+    expect(within(admin).getAllByText('Always On').length).toBeGreaterThan(0);
+  });
+
+  it('shows the Invoice access row only for invoice-only organisations', async () => {
+    useAuthMock.mockReturnValue(auth({ invoiceOnly: true, cloudAccess: [] }));
+    const user = setup();
+    const drawer = await openMember(user, 'Marcus Chen');
+    expect(within(drawer).getByRole('switch', { name: 'Invoice view access for Marcus Chen' })).toBeDisabled();
   });
 
   it('adds a user with a role and shows them in the table', async () => {
@@ -159,6 +240,7 @@ describe('members', () => {
     await user.type(within(dialog).getByLabelText('Work email'), 'nina@maitsys.com');
     await user.click(within(within(dialog).getByRole('group', { name: 'Role' })).getByRole('button', { name: 'SAP Operator (custom)' }));
     await user.click(within(dialog).getByRole('button', { name: 'Add user' }));
+    await openMember(user, 'Nina Patel');
     expect(screen.getByRole('button', { name: 'Role for Nina Patel' })).toHaveTextContent('SAP Operator');
     expect(lastAudit()).toMatchObject({ action: 'User added', target: 'nina@maitsys.com' });
   });
@@ -176,19 +258,21 @@ describe('members', () => {
     await user.keyboard('lena.fischer@maitsys.com{Enter}');
     await user.click(within(dialog).getByRole('button', { name: 'Done' }));
     expect(screen.queryByRole('dialog', { name: 'Add user' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Role for Omar Haddad' })).toHaveTextContent('Analyst');
-    expect(screen.getByRole('button', { name: 'Role for Lena Fischer' })).toHaveTextContent('Analyst');
+    const table = within(screen.getByRole('table', { name: /Members of your organisation/ }));
+    expect(within(table.getByRole('row', { name: /Omar Haddad/ })).getByText('Analyst')).toBeInTheDocument();
+    expect(within(table.getByRole('row', { name: /Lena Fischer/ })).getByText('Analyst')).toBeInTheDocument();
     expect(auditRepository.getSnapshot().filter((event) => event.action === 'User added')).toHaveLength(addedBefore + 2);
     // The role is remembered: the next Add user opens on Analyst.
     await user.click(screen.getByRole('button', { name: 'Add user' }));
     expect(within(screen.getByRole('group', { name: 'Role' })).getByRole('button', { name: 'Analyst' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('is read-only for a role without Edit on User Management', () => {
+  it('is read-only for a role without Edit on User Management', async () => {
     useAuthMock.mockReturnValue(auth({ user: { id: 'real-viewer', email: 'v@x.com', name: 'Vee', role: 'member' }, isDemoSession: false }));
     accessRepository.ensureMember({ userId: 'real-viewer', fullName: 'Vee', email: 'v@x.com', role: 'member', roleId: 'viewer', status: 'active' });
-    setup();
+    const user = setup();
     expect(screen.queryByRole('button', { name: 'Add user' })).toBeNull();
+    await openMember(user, 'Marcus Chen');
     expect(screen.getByRole('button', { name: 'Role for Marcus Chen' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Elevate Marcus Chen to Admin' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Deactivate Marcus Chen' })).toBeNull();
@@ -314,7 +398,9 @@ describe('roles', () => {
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(within(rolesTable()).getByRole('button', { name: 'View role details: Cost Auditor' })).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: /Members/ }));
+    await openMember(user, 'Priya Sharma');
     await pickRole(user, 'Role for Priya Sharma', 'Viewer');
+    await user.keyboard('{Escape}');
     await user.click(screen.getByRole('tab', { name: /Roles/ }));
     await user.click(screen.getByRole('button', { name: 'Delete role Cost Auditor' }));
     expect(screen.getByRole('alertdialog')).toHaveTextContent('Delete the Cost Auditor role?');

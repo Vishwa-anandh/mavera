@@ -488,8 +488,8 @@ export const FLOW_GUIDES: FlowGuide[] = [
     chipLabel: 'Help me manage users',
     reply: [
       "Here's how User Management works:",
-      '1. The member table lists everyone in your org with their role and access level.',
-      "2. Use Deactivate to revoke a member's access without deleting their history — Activate brings them back the same way.",
+      '1. The member table lists everyone in your org with their email, role and status. Click a row to open that member and change their role, access, alert e-mails or status.',
+      "2. Open a member and use Deactivate to revoke their access without deleting their history — Activate brings them back the same way.",
       "3. You can't deactivate your own account — that action is disabled so you're never locked out by accident.",
       "4. Only people whose role allows it can manage other members. Roles and their permissions are further down the same page.",
       '5. Under Roles you can add, edit, duplicate or delete roles; under Permissions you pick a role and switch what it can view, create, edit, delete or export.',
@@ -501,7 +501,7 @@ export const FLOW_GUIDES: FlowGuide[] = [
         steps: [
           { target: 'btn:Add user', title: 'Click Add user', tag: 'Step 1', body: 'The button is available while your plan has a free seat. If it is disabled, every seat is taken: deactivate someone first, or ask for more seats under Subscription.' },
           { target: 'css:table', title: 'Fill in the form', tag: 'Step 2', body: 'In the dialog, enter their name and email and pick a role. Admins and owners can manage other members; members cannot.' },
-          { target: 'css:table', title: 'Set their access', tag: 'Step 3', body: 'Once added they appear in this table. Switch View access on for each provider they should see, and choose Full or Read-only.' },
+          { target: 'css:table', title: 'Set their access', tag: 'Step 3', body: 'Once added they appear in this table. Click their row, then switch View access on for each provider they should see, and choose Full or Read-only.' },
         ],
       },
       {
@@ -509,24 +509,24 @@ export const FLOW_GUIDES: FlowGuide[] = [
         label: 'Deactivate or reactivate a user',
         steps: [
           { target: 'css:input[type="search"]', title: 'Find the member', tag: 'Step 1', body: 'Search by name or email to bring them to the top of the list.' },
-          { target: 'btn:Deactivate', title: 'Deactivate', tag: 'Step 2', body: "Revokes their access straight away but keeps their history. You can't deactivate yourself." },
-          { target: 'btn:Activate', title: 'Reactivate later', tag: 'Step 3', body: 'Activate brings a deactivated member back the same way. It needs a free seat if your seat count is full.' },
+          { target: 'css:table', title: 'Open the member and deactivate', tag: 'Step 2', body: "Click their row, then Deactivate. It revokes their access straight away but keeps their history. You can't deactivate yourself." },
+          { target: 'css:table', title: 'Reactivate later', tag: 'Step 3', body: 'Open the member again; Activate brings a deactivated member back the same way. It needs a free seat if your seat count is full.' },
         ],
       },
       {
         key: 'change-access',
         label: 'Change who can see what',
         steps: [
-          { target: 'css:table', title: 'Provider access', tag: 'Step 1', body: 'Each column is a cloud provider. Switch View access on or off per person, then choose Full or Read-only. Admins and owners always have full access.' },
+          { target: 'css:table', title: 'Provider access', tag: 'Step 1', body: 'Click a member to open their details, where each row is a cloud provider. Switch View access on or off, then choose Full or Read-only. Admins and owners always have full access.' },
         ],
       },
     ],
     steps: [
       { target: 'btn:Add user', title: 'Add a user', tag: 'Action', body: 'Invite someone to your organisation while you have a free seat. Choose their role and which cloud providers they can view.' },
       { target: 'css:input[type="search"]', title: 'Find a member', tag: 'Filters', body: 'Search by name or email.' },
-      { target: 'css:table', title: 'Access per provider', tag: 'Table', body: 'For each provider, switch View access on or off, and choose Full or Read-only. Admins and owners always have full access.' },
-      { target: 'btn:Deactivate', title: 'Deactivate', tag: 'Action', body: "Revoke a member's access without deleting their history; Activate brings them back. You cannot deactivate yourself, and a full seat count blocks re-activating until one is free." },
-      { target: 'btn:Elevate', title: 'Elevate to Admin', tag: 'Action', body: 'Promote a member to Admin after a confirmation. Use the Role column to give anyone else a different role. You cannot change your own role or the Owner’s.' },
+      { target: 'css:table', title: 'Access per provider', tag: 'Table', body: 'Click a member to open their details. For each provider, switch View access on or off, and choose Full or Read-only. Admins and owners always have full access.' },
+      { target: 'css:table', title: 'Deactivate', tag: 'Action', body: "In a member's details, revoke a member's access without deleting their history; Activate brings them back. You cannot deactivate yourself, and a full seat count blocks re-activating until one is free." },
+      { target: 'css:table', title: 'Elevate to Admin', tag: 'Action', body: 'In a member’s details, promote them to Admin after a confirmation. Use the Role selector there to give anyone else a different role. You cannot change your own role or the Owner’s.' },
       { target: 'panel:Roles', title: 'Roles', tag: 'Roles', body: 'The four built-in roles (Owner, Admin, Analyst, Viewer) and any custom roles. Add, edit, duplicate or delete a role; a role that members still hold cannot be deleted. Click a role name for who holds it and what it can do.' },
       { target: 'panel:Permissions', title: 'Permissions', tag: 'Matrix', body: 'Pick a role, then switch View, Create, Edit, Delete and Export per module. Dashed cells do not apply to that module. Built-in roles are read-only; save or discard your changes from the bar that appears at the bottom.' },
     ],

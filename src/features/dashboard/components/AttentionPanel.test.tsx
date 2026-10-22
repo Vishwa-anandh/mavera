@@ -76,10 +76,14 @@ describe('AttentionPanel', () => {
 
   it('offers Resolve all for the alert rows on show, and only when there is more than one', async () => {
     const { unmount } = render(panel([alertRow(1), plainRow]));
-    expect(screen.queryByRole('button', { name: /Resolve all/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Resolve (all )?\d/ })).toBeNull();
     unmount();
     const onAct = renderPanel([alertRow(1), alertRow(2), plainRow]);
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Resolve all 2 alerts' }));
+    // A non-alert row is on show, so the label must not claim "all": it names the count and what stays.
+    const button = screen.getByRole('button', { name: /^Resolve 2 alerts/ });
+    expect(button).toHaveTextContent('Resolve 2 alerts');
+    expect(button).toHaveAccessibleName(/1 other item is not alerts or not shown/);
+    await userEvent.setup().click(button);
     expect(onAct).toHaveBeenCalledWith([expect.objectContaining({ id: 'r1' }), expect.objectContaining({ id: 'r2' })], 'resolve');
   });
 
@@ -87,7 +91,8 @@ describe('AttentionPanel', () => {
     const onAct = renderPanel(Array.from({ length: 8 }, (_, i) => alertRow(i + 1)));
     const user = userEvent.setup();
     expect(screen.getAllByRole('listitem')).toHaveLength(6);
-    expect(screen.getByRole('button', { name: 'Resolve all 6 alerts' })).toBeInTheDocument();
+    // Two alerts are still hidden, so it resolves 6 and does not say "all".
+    expect(screen.getByRole('button', { name: /^Resolve 6 alerts/ })).toHaveTextContent(/^Resolve 6 alerts$/);
     await user.click(screen.getByRole('button', { name: 'Show 2 more' }));
     expect(screen.getAllByRole('listitem')).toHaveLength(8);
     await user.click(screen.getByRole('button', { name: 'Resolve all 8 alerts' }));

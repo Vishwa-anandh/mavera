@@ -36,6 +36,11 @@ export function AttentionPanel({ items, subtitle, empty, onAct = actOnAttention 
   const shown = expanded ? items : items.slice(0, VISIBLE);
   const hidden = items.length - shown.length;
   const actionable = actionableItems(shown);
+  // "all" only when every item in the list is one of those alerts; otherwise say how many it will resolve and what stays.
+  const coversEverything = actionable.length === items.length;
+  const resolveAllLabel = coversEverything
+    ? `Resolve all ${actionable.length} alerts`
+    : `Resolve ${actionable.length} alerts (cloud and SAP, as shown); ${items.length - actionable.length} other ${items.length - actionable.length === 1 ? 'item is' : 'items are'} not alerts or not shown and stay as they are`;
 
   return (
     <section className="mv-panel mv-attention" aria-labelledby={titleId}>
@@ -46,7 +51,9 @@ export function AttentionPanel({ items, subtitle, empty, onAct = actOnAttention 
         </div>
         <div className="mv-attention-header-actions">
           {actionable.length > 1 && (
-            <button type="button" className="mv-quiet-button" onClick={() => act(actionable, 'resolve')}>Resolve all {actionable.length} alerts</button>
+            <button type="button" className="mv-quiet-button" aria-label={resolveAllLabel} title={resolveAllLabel} onClick={() => act(actionable, 'resolve')}>
+              {coversEverything ? `Resolve all ${actionable.length} alerts` : `Resolve ${actionable.length} alerts`}
+            </button>
           )}
           <Link className="mv-quiet-button" to="/alerts">All alerts</Link>
         </div>

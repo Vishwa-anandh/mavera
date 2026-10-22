@@ -3876,3 +3876,14 @@ html:has(.mv-setup), body:has(.mv-setup) { overflow-x: clip; }
   .mv-table.mv-table--stack td.mv-stack-title { padding-top: 0.625rem; font-weight: 500; }
   .mv-content .mv-table.mv-table--stack td { height: auto; padding-inline: 0; }
 }
+
+/* ==========================================================================
+   Dashboard at-a-glance strip: one flat card. The tile groups must not pick up the
+   rounded, shadowed card look; titles, values and links share one left edge.
+   ========================================================================== */
+.mv-content .mv-glance-strip { overflow: hidden; }
+.mv-content .mv-glance-strip .mv-glance-tiles { border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
+.mv-content .mv-glance-strip .mv-glance-group { padding-top: 0.875rem; padding-bottom: 0.5rem; }
+.mv-content .mv-glance-strip .mv-glance-group-title { padding: 0 1.375rem; margin-bottom: 0.25rem; color: var(--mv-text); font-weight: 500; }
+.mv-content .mv-glance-strip .mv-glance-tiles > .mv-kpi { padding: 0.5rem 1rem 0.75rem !important; }
+.mv-content .mv-glance-strip .mv-kpi .mv-quiet-button { margin-left: calc(-1 * 0.5rem); }

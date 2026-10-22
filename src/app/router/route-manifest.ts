@@ -194,7 +194,7 @@ export function routeModuleFor(pathname: string): ModuleId | undefined {
 export type ProductModule = 'cloudCost' | 'sapMonitoring';
 
 const SAP_GROUPS = new Set(['sap']);
-const CLOUD_GROUPS = new Set(['cloud-cost', 'cloud-providers', 'governance']);
+const CLOUD_GROUPS = new Set(['cloud-cost']);
 
 /**
  * Which subscribed module `pathname` needs: SAP pages need SAP Monitoring; cost, provider, budget, alert and

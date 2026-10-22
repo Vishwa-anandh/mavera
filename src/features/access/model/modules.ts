@@ -16,13 +16,11 @@ export const ACTION_LABELS: Record<PermissionAction, string> = {
   EXPORT: 'Export',
 };
 
-export type ModuleGroupId = 'overview' | 'cloud-cost' | 'cloud-providers' | 'governance' | 'sap' | 'administration';
+export type ModuleGroupId = 'overview' | 'cloud-cost' | 'sap' | 'administration';
 
 export const MODULE_GROUPS: ReadonlyArray<{ id: ModuleGroupId; label: string; description: string }> = [
   { id: 'overview', label: 'Overview', description: 'Landing page and the assistant.' },
-  { id: 'cloud-cost', label: 'Cloud Cost', description: 'Spend, analytics and savings.' },
-  { id: 'cloud-providers', label: 'Cloud providers', description: 'Connected cloud accounts.' },
-  { id: 'governance', label: 'Budgets, alerts and billing', description: 'Limits, alerting and invoices.' },
+  { id: 'cloud-cost', label: 'Cloud Cost', description: 'Spend and savings, connected cloud accounts, budgets, alerts and invoices.' },
   { id: 'sap', label: 'SAP Monitoring', description: 'Systems, operations and security.' },
   { id: 'administration', label: 'Administration', description: 'People, access, subscription and records.' },
 ];
@@ -51,15 +49,15 @@ export const MODULES = [
   { id: 'cost.reservations', label: 'Reserved Instances', group: 'cloud-cost', description: 'Reservations and savings plans.', actions: VIEW_EXPORT },
   { id: 'cost.resources', label: 'Resource Inventory', group: 'cloud-cost', description: 'Every resource with its cost and tags.', actions: VIEW_EXPORT },
 
-  { id: 'provider.azure', label: 'Azure', group: 'cloud-providers', description: 'Azure subscriptions and their costs.', actions: FULL },
-  { id: 'provider.aws', label: 'AWS', group: 'cloud-providers', description: 'AWS accounts and their costs.', actions: FULL },
-  { id: 'provider.gcp', label: 'Google Cloud', group: 'cloud-providers', description: 'Google Cloud projects and their costs.', actions: FULL },
-  { id: 'provider.btp', label: 'SAP BTP', group: 'cloud-providers', description: 'SAP BTP global accounts and their costs.', actions: FULL },
+  { id: 'provider.azure', label: 'Azure', group: 'cloud-cost', description: 'Azure subscriptions and their costs.', actions: FULL },
+  { id: 'provider.aws', label: 'AWS', group: 'cloud-cost', description: 'AWS accounts and their costs.', actions: FULL },
+  { id: 'provider.gcp', label: 'Google Cloud', group: 'cloud-cost', description: 'Google Cloud projects and their costs.', actions: FULL },
+  { id: 'provider.btp', label: 'SAP BTP', group: 'cloud-cost', description: 'SAP BTP global accounts and their costs.', actions: FULL },
 
-  { id: 'budgets', label: 'Budgets', group: 'governance', description: 'Spend limits and threshold alerts.', actions: FULL },
-  { id: 'smartAlerts', label: 'Smart Alerts', group: 'governance', description: 'Anomaly and policy alerts.', actions: FULL },
-  { id: 'invoices', label: 'Invoices', group: 'governance', description: 'Invoices issued to your organisation.', actions: VIEW_EXPORT },
-  { id: 'billing', label: 'Billing', group: 'governance', description: 'Payment details and billing contacts.', actions: ['VIEW', 'EDIT'] },
+  { id: 'budgets', label: 'Budgets', group: 'cloud-cost', description: 'Spend limits and threshold alerts.', actions: FULL },
+  { id: 'smartAlerts', label: 'Smart Alerts', group: 'cloud-cost', description: 'Anomaly and policy alerts.', actions: FULL },
+  { id: 'invoices', label: 'Invoices', group: 'cloud-cost', description: 'Invoices issued to your organisation.', actions: VIEW_EXPORT },
+  { id: 'billing', label: 'Billing', group: 'cloud-cost', description: 'Payment details and billing contacts.', actions: ['VIEW', 'EDIT'] },
 
   { id: 'sap.overview', label: 'SAP Overview', group: 'sap', description: 'Landscape health and availability.', actions: VIEW_EXPORT },
   { id: 'sap.hana', label: 'HANA/DB Monitoring', group: 'sap', description: 'Memory, services and database vitals.', actions: VIEW_EXPORT },

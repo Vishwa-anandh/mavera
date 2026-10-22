@@ -50,7 +50,7 @@ describe('PermissionExplorer', () => {
     const user = userEvent.setup();
     render(<Harness />);
     expect(screen.getByRole('heading', { level: 3, name: 'Dashboard' })).toBeInTheDocument();
-    await open(user, 'Budgets', 'Budgets, alerts');
+    await open(user, 'Budgets', 'Cloud Cost');
     expect(screen.getByRole('heading', { level: 3, name: 'Budgets' })).toBeInTheDocument();
     for (const action of ['View', 'Create', 'Edit', 'Delete']) expect(screen.getByRole('switch', { name: `${action}: Budgets` })).toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'View: Dashboard' })).toBeNull();
@@ -59,7 +59,7 @@ describe('PermissionExplorer', () => {
   it('toggles a switch, turning View on with it, and shows the grant count beside the module', async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    await open(user, 'Budgets', 'Budgets, alerts');
+    await open(user, 'Budgets', 'Cloud Cost');
     const edit = screen.getByRole('switch', { name: 'Edit: Budgets' });
     expect(edit).toHaveAttribute('aria-checked', 'false');
     await user.click(edit);
@@ -75,13 +75,13 @@ describe('PermissionExplorer', () => {
     expect(screen.getByRole('img', { name: 'Delete: Cost Overview: not applicable' })).toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'Delete: Cost Overview' })).toBeNull();
     await open(user, 'Ownership transfer', 'Administration');
-    expect(screen.getByRole('img', { name: /Edit: Ownership transfer: only the Owner role/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Edit: Ownership transfer: not applicable/ })).toBeInTheDocument();
   });
 
   it('grants every action on a module, and clears them again', async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    await open(user, 'Budgets', 'Budgets, alerts');
+    await open(user, 'Budgets', 'Cloud Cost');
     await user.click(screen.getByRole('button', { name: 'Grant all actions on Budgets' }));
     for (const action of ['View', 'Create', 'Edit', 'Delete']) {
       expect(screen.getByRole('switch', { name: `${action}: Budgets` })).toHaveAttribute('aria-checked', 'true');

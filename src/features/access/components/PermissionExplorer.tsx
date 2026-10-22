@@ -47,7 +47,6 @@ export function PermissionLegend() {
       <li><span className="mv-toggle mv-matrix-sample" data-on="true" aria-hidden /> Granted</li>
       <li><span className="mv-toggle mv-matrix-sample" aria-hidden /> Not granted</li>
       <li><span className="mv-matrix-na" aria-hidden /> Not applicable</li>
-      <li><span className="mv-matrix-na mv-matrix-na--restricted" aria-hidden /> Owner only</li>
     </ul>
   );
 }
@@ -165,11 +164,10 @@ export function PermissionExplorer({ roleId, roleName, value, onChange, readOnly
                 <div className="mv-perm-action-text">
                   <span className="mv-perm-action-name">{ACTION_LABELS[action]}</span>
                   <span className="mv-perm-action-hint">
-                    {state === 'not_applicable' ? 'Not applicable to this module' : state === 'restricted' ? 'Only the Owner role can hold this' : ACTION_HINTS[action]}
+                    {state === 'not_applicable' || state === 'restricted' ? 'Not applicable to this module' : ACTION_HINTS[action]}
                   </span>
                 </div>
-                {state === 'not_applicable' && <span className="mv-matrix-na" role="img" aria-label={`${label}: not applicable`} />}
-                {state === 'restricted' && <span className="mv-matrix-na mv-matrix-na--restricted" role="img" aria-label={`${label}: only the Owner role can hold this`} />}
+                {(state === 'not_applicable' || state === 'restricted') && <span className="mv-matrix-na" role="img" aria-label={`${label}: not applicable`} />}
                 {(state === 'granted' || state === 'not_granted') && (
                   <button
                     type="button"

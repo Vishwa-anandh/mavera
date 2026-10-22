@@ -242,7 +242,7 @@ describe('roles', () => {
     expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('button', { name: 'Role' })).toHaveTextContent('Reviewer (custom)');
     expect(screen.getByRole('heading', { level: 3, name: 'Dashboard' })).toBeInTheDocument();
-    await openModule(user, 'Budgets, alerts', 'Budgets');
+    await openModule(user, 'Cloud Cost', 'Budgets');
     // Analyst can manage budgets, so the copy can too without a single switch being touched.
     expect(screen.getByRole('switch', { name: 'Edit: Budgets' })).toHaveAttribute('aria-checked', 'true');
   });
@@ -348,13 +348,13 @@ describe('permissions', () => {
   it('shows the legend beside the role picker', () => {
     setup('permissions');
     expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Granted');
-    expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('Owner only');
+    expect(screen.getByRole('list', { name: 'Legend' })).not.toHaveTextContent('Owner only');
   });
 
   it('collects edits in an unsaved bar that can be discarded or saved', async () => {
     const user = setup('permissions');
     await pickRole(user, 'Role', 'SAP Operator (custom)');
-    await openModule(user, 'Budgets, alerts', 'Budgets');
+    await openModule(user, 'Cloud Cost', 'Budgets');
     expect(screen.queryByRole('region', { name: 'Unsaved changes' })).toBeNull();
     await user.click(screen.getByRole('switch', { name: 'Delete: Budgets' }));
     const bar = screen.getByRole('region', { name: 'Unsaved changes' });
@@ -374,7 +374,7 @@ describe('permissions', () => {
   it('asks before switching roles with unsaved changes', async () => {
     const user = setup('permissions');
     await pickRole(user, 'Role', 'SAP Operator (custom)');
-    await openModule(user, 'Budgets, alerts', 'Budgets');
+    await openModule(user, 'Cloud Cost', 'Budgets');
     await user.click(screen.getByRole('switch', { name: 'Edit: Budgets' }));
     await pickRole(user, 'Role', 'Viewer');
     expect(screen.getByRole('alertdialog')).toHaveTextContent('Discard unsaved changes?');
@@ -390,7 +390,7 @@ describe('permissions', () => {
   it('keeps unsaved edits when you switch tab and come back, and flags them on the tab', async () => {
     const user = setup('permissions');
     await pickRole(user, 'Role', 'SAP Operator (custom)');
-    await openModule(user, 'Budgets, alerts', 'Budgets');
+    await openModule(user, 'Cloud Cost', 'Budgets');
     await user.click(screen.getByRole('switch', { name: 'Edit: Budgets' }));
     expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveTextContent('Unsaved');
     await user.click(screen.getByRole('tab', { name: /Members/ }));

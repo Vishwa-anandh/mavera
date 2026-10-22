@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CloseIcon, SparkleIcon } from '../../../shared/ui/icons';
 import { useAuth } from '../../auth';
@@ -9,6 +9,7 @@ import { AssistantLauncherFace } from './AssistantLauncherFace';
 import { GuidedTour } from './GuidedTour';
 import { TourPicker } from './TourPicker';
 import type { FlowGuide, FlowTour } from '../model/flowGuides';
+import { OPEN_ASSISTANT_EVENT, START_PAGE_TOUR_EVENT } from '../model/assistantCommands';
 
 const TIPS_KEY = 'mavera.assistant.flowPromptHidden';
 
@@ -64,6 +65,23 @@ export function AssistantWidget() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // The command palette (Ctrl+K) can open the chat, or start the tour of the page being viewed.
+  const latest = useRef({ flowGuide, startTour, finishIntro: intro.finish });
+  useEffect(() => { latest.current = { flowGuide, startTour, finishIntro: intro.finish }; });
+  useEffect(() => {
+    const openChat = () => { latest.current.finishIntro(); setOpen(true); };
+    const startPageTour = () => {
+      const { flowGuide: guide, startTour: start } = latest.current;
+      if (guide && guide.steps.length > 0) start(guide); else openChat();
+    };
+    window.addEventListener(OPEN_ASSISTANT_EVENT, openChat);
+    window.addEventListener(START_PAGE_TOUR_EVENT, startPageTour);
+    return () => {
+      window.removeEventListener(OPEN_ASSISTANT_EVENT, openChat);
+      window.removeEventListener(START_PAGE_TOUR_EVENT, startPageTour);
+    };
   }, []);
 
   return (

@@ -12,6 +12,13 @@ import {
   SAP_MEMORY_POOLS, SAP_MEMORY_SERIES, SAP_SERVER_TOPOLOGY, SAP_SYSTEM_LOCKS, SAP_WORK_PROCESSES,
 } from '../../demo/sap/mockSapPerformance';
 import { sapAdminRepository } from './sapAdminRepository';
+import { isEmptyWorkspace } from './workspaceProfile';
+
+/**
+ * A populated organisation always has the sample landscape. A new one has none until it connects its first
+ * SAP system (a destination in System Configuration), after which the sample landscape appears.
+ */
+const hasLandscape = (): boolean => !isEmptyWorkspace() || sapAdminRepository.destinations.count() > 0;
 
 /**
  * SAP Monitoring data (fleet, HANA, jobs, dumps, alerts, security notes).
@@ -19,7 +26,12 @@ import { sapAdminRepository } from './sapAdminRepository';
  * through ./rest when the SAP monitoring endpoints exist. Returns copies.
  */
 export const sapRepository = {
+  /** Whether any SAP system is connected; the monitoring pages show a "connect a system" state when not. */
+  isConnected(): boolean {
+    return hasLandscape();
+  },
   listSystems(): SapSystem[] {
+    if (!hasLandscape()) return [];
     return structuredClone(MOCK_SAP_SYSTEMS);
   },
   getHana(): { system: HanaSystem; timeline: HanaVitalPoint[]; services: HanaService[] } {
@@ -29,12 +41,15 @@ export const sapRepository = {
     return structuredClone(SAP_PERFORMANCE);
   },
   listDiskMounts(): SapDiskMount[] {
+    if (!hasLandscape()) return [];
     return structuredClone(SAP_DISK_USAGE);
   },
   listJobs(): SapJob[] {
+    if (!hasLandscape()) return [];
     return structuredClone(SAP_BACKGROUND_JOBS);
   },
   listDumps(): SapDump[] {
+    if (!hasLandscape()) return [];
     return structuredClone(SAP_ABAP_RUNTIME_ERRORS);
   },
   listAlerts(): SapAlertRecord[] {
@@ -54,18 +69,22 @@ export const sapRepository = {
 
   // ---- HANA Monitoring deep dive ----
   listHanaDiskPartitions(): HanaDiskPartition[] {
+    if (!hasLandscape()) return [];
     return structuredClone(HANA_DISK_PARTITIONS);
   },
   /** Recent data, log and catalog backups, oldest first. */
   listHanaBackups(): HanaBackupEntry[] {
+    if (!hasLandscape()) return [];
     return structuredClone(HANA_BACKUPS);
   },
 
   // ---- SAP Performance deep dive ----
   listServerTopology(): SapServerNode[] {
+    if (!hasLandscape()) return [];
     return structuredClone(SAP_SERVER_TOPOLOGY);
   },
   listWorkProcesses(): SapWorkProcess[] {
+    if (!hasLandscape()) return [];
     return structuredClone(SAP_WORK_PROCESSES);
   },
   getDbCallStatistics(): SapDbCallStatistics {
@@ -76,14 +95,17 @@ export const sapRepository = {
   },
   /** ST02 memory pools of the application server. */
   listMemoryPools(): SapMemoryPool[] {
+    if (!hasLandscape()) return [];
     return structuredClone(SAP_MEMORY_POOLS);
   },
   /** Application-server memory, hourly over the last 24 hours (used against allocated). */
   getMemorySeries(): SapMemoryPoint[] {
+    if (!hasLandscape()) return [];
     return structuredClone(SAP_MEMORY_SERIES);
   },
   /** SM12 lock entries held right now; the Performance KPI strip counts the same list. */
   listSystemLocks(): SapLock[] {
+    if (!hasLandscape()) return [];
     return structuredClone(SAP_SYSTEM_LOCKS);
   },
   getQueueIndicators(): SapQueues {

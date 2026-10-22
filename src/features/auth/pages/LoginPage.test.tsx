@@ -192,7 +192,7 @@ describe('LoginPage', () => {
     const card = screen.getByRole('region', { name: 'Demo mode' });
     expect(card).toHaveTextContent('No backend');
     expect(card).toHaveTextContent('any password');
-    for (const label of ['Owner', 'Admin', 'Analyst', 'Viewer', 'Cloud Cost only', 'SAP Monitoring only', 'Super Admin']) {
+    for (const label of ['Owner', 'Admin', 'Analyst', 'Viewer', 'Cloud Cost only', 'SAP Monitoring only', 'New organisation', 'Super Admin']) {
       expect(within(card).getByRole('button', { name: new RegExp(`^${label}`) })).toBeInTheDocument();
     }
     expect(within(card).getByText(DEMO_EMAIL)).toBeInTheDocument();
@@ -214,6 +214,8 @@ describe('LoginPage', () => {
     expect(login).toHaveBeenLastCalledWith('sap@mavera.local', DEMO_PASSWORD);
     await user.click(within(card).getByRole('button', { name: /^Viewer/ }));
     expect(login).toHaveBeenLastCalledWith('viewer@mavera.local', DEMO_PASSWORD);
+    await user.click(within(card).getByRole('button', { name: /^New organisation/ }));
+    expect(login).toHaveBeenLastCalledWith('new@mavera.local', DEMO_PASSWORD);
   });
 
   it('can close the Demo mode card and bring it back', async () => {

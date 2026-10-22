@@ -7,6 +7,7 @@ import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { TabBar } from '../../../shared/ui/TabBar';
 import { SearchField } from '../../../shared/ui/SearchField';
 import { useHashTab } from '../../../shared/lib/useHashTab';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { alertRecipients, seatSummary, type OrgMember } from '../model/userManagementTypes';
@@ -52,6 +53,10 @@ export function UserManagementPage() {
   const visibleProviders = PROVIDER_GROUPS.filter((p) => cloudAccess.includes(p.id));
   const showInvoiceColumn = invoiceOnly;
   const seats = seatSummary(members, maxUsers);
+
+  // Ctrl+K "Add user" / "Add role" land here with the dialog already open (when the role and seats allow it).
+  useOpenOnArrival('add-user', () => { if (canCreateUser && !seats.full) setAdding(true); });
+  useOpenOnArrival('add-role', () => { if (canCreateRole && canViewRoles) setAddingRole(true); });
 
   const addMember = (member: OrgMember) => {
     directoryActions.addMember(member);

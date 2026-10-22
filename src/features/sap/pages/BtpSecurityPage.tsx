@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
-import { MOCK_BTP_USERS, MOCK_BTP_ROLE_COLLECTIONS, MOCK_BTP_ROLES } from '../../../demo/sap/mockBtpSecurity';
+import { activityRepository } from '../../../data-access';
+import { SapConnectionGate } from '../components/SapConnectionGate';
 import { UsersIcon, HierarchyIcon, LockIcon, RefreshIcon } from '../../../shared/ui/icons';
 import { DestinationSwitcher } from '../components/DestinationSwitcher';
 import { Select } from '../../../shared/ui/Select';
@@ -15,7 +16,8 @@ const TABS = [
 
 /** New addition — SAP BTP users, role collections and roles for the
  * connected destination, matching MIO's BTP Security Assessment page. */
-export function BtpSecurityPage() {
+function BtpSecurityPageContent() {
+  const { users: btpUsers, roleCollections: btpRoleCollections, roles: btpRoles } = useMemo(() => activityRepository.getBtpSecurity(), []);
   const [tab, setTab] = useState<(typeof TABS)[number]['key']>('users');
   const [userSearch, setUserSearch] = useState('');
   const [statusFilter, setStatusFilter] = useRememberedState('sap', 'btp-users-status', 'All', oneOf(['All', 'Active', 'Inactive']));
@@ -45,12 +47,12 @@ export function BtpSecurityPage() {
 
       {tab === 'users' && (
         <section className="mv-panel">
-          <p className="mv-muted" style={{ marginBottom: '0.75rem' }}>{MOCK_BTP_USERS.length} of {MOCK_BTP_USERS.length} users</p>
+          <p className="mv-muted" style={{ marginBottom: '0.75rem' }}>{btpUsers.length} of {btpUsers.length} users</p>
           <div className="mv-table-wrap">
             <table className="mv-table">
               <thead><tr><th>Full Name</th><th>Username / Email</th><th>Groups</th><th>Status</th><th>Verified</th><th>Last Login</th><th>Created At</th></tr></thead>
               <tbody>
-                {MOCK_BTP_USERS.length === 0 && <tr><td colSpan={7} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No Users Found</td></tr>}
+                {btpUsers.length === 0 && <tr><td colSpan={7} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No Users Found</td></tr>}
               </tbody>
             </table>
           </div>
@@ -62,7 +64,7 @@ export function BtpSecurityPage() {
             <table className="mv-table">
               <thead><tr><th>Role Collection</th><th className="mv-num">Roles</th><th className="mv-num">Assigned Users</th></tr></thead>
               <tbody>
-                {MOCK_BTP_ROLE_COLLECTIONS.length === 0 && <tr><td colSpan={3} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No role collections found</td></tr>}
+                {btpRoleCollections.length === 0 && <tr><td colSpan={3} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No role collections found</td></tr>}
               </tbody>
             </table>
           </div>
@@ -74,12 +76,20 @@ export function BtpSecurityPage() {
             <table className="mv-table">
               <thead><tr><th>Role</th><th>Description</th><th>Scope</th></tr></thead>
               <tbody>
-                {MOCK_BTP_ROLES.length === 0 && <tr><td colSpan={3} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No roles found</td></tr>}
+                {btpRoles.length === 0 && <tr><td colSpan={3} className="mv-muted" style={{ textAlign: 'center', padding: '1.25rem' }}>No roles found</td></tr>}
               </tbody>
             </table>
           </div>
         </section>
       )}
     </div>
+  );
+}
+
+export function BtpSecurityPage() {
+  return (
+    <SapConnectionGate title="BTP Security Assessment" subtitle="Users, role collections & roles for the connected destination." willShow="BTP users, role collections and roles">
+      <BtpSecurityPageContent />
+    </SapConnectionGate>
   );
 }

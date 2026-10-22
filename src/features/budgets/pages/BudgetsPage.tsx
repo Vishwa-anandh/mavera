@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { budgetsRepository } from '../../../data-access';
 import { useAuth } from '../../auth';
@@ -10,6 +10,7 @@ import { PageHeader } from '../../../shared/ui/PageHeader';
 import { Select } from '../../../shared/ui/Select';
 import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
 import { useHashTab } from '../../../shared/lib/useHashTab';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { AddChannelDialog, type NewChannelValues } from '../components/AddChannelDialog';
 import { channelsForNewBudget, channelsNotifiedFor, channelSummary, linkedBudgetNames, providerLabel } from '../model/budgetChannels';
 import type { AlertChannel, Budget } from '../model/budgetsTypes';
@@ -44,6 +45,10 @@ export function BudgetsPage() {
   const [alsoNotify, setAlsoNotify] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tab, showTab] = useHashTab(TABS);
+  const nameRef = useRef<HTMLInputElement>(null);
+  // Ctrl+K "Add budget" focuses the create form's name; "Add notification channel" opens the Add channel dialog.
+  useOpenOnArrival('new', () => nameRef.current?.focus());
+  useOpenOnArrival('add-channel', () => { if (canManageBudgets) setDialogOpen(true); });
 
   const refresh = () => {
     setBudgets(budgetsRepository.listBudgets());
@@ -125,7 +130,7 @@ export function BudgetsPage() {
             <div className="mv-panel-header"><h3 id="create-budget-title" className="mv-panel-title">Create New Budget</h3></div>
             {canManageBudgets ? (
               <form onSubmit={createBudget}>
-                <label className="mv-field">Budget Name<input required value={budgetForm.name} onChange={(e) => setBudgetForm({ ...budgetForm, name: e.target.value })} placeholder="e.g. Q3 Engineering" /></label>
+                <label className="mv-field">Budget Name<input ref={nameRef} required value={budgetForm.name} onChange={(e) => setBudgetForm({ ...budgetForm, name: e.target.value })} placeholder="e.g. Q3 Engineering" /></label>
                 <Select
                   label="Budget Scope"
                   style={{ height: '2.75rem' }}
@@ -206,6 +211,7 @@ export function BudgetsPage() {
                 <div className="mv-empty-icon" aria-hidden><CreditCardIcon size={28} /></div>
                 <h2>No Budgets Found</h2>
                 <p>You haven't set up any budgets yet. Create one to start monitoring your cloud spend and receive alerts.</p>
+                {canManageBudgets && <button type="button" className="mv-primary-button" onClick={() => nameRef.current?.focus()}>Create your first budget</button>}
               </li>
             )}
           </ul>

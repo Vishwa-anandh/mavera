@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { RefreshIcon, ClockIcon, ServerIcon, UserIcon, FilterIcon } from '../../../shared/ui/icons';
 import { Tooltip } from '../../../shared/ui/Tooltip';
 import { Pagination } from '../../../shared/ui/Pagination';
 import { usePagination } from '../../../shared/ui/usePagination';
-import { MOCK_SYNC_LOGS } from '../../../demo/syncLogs/mockSyncLogsData';
+import { activityRepository } from '../../../data-access';
+import { firstConnectTarget, useWorkspaceVersion } from '../../workspace';
 import { STATUS_LABELS, STATUS_TONE, formatDuration, formatTimestamp } from '../model/syncLogsDerivations';
 import type { SyncLog, SyncLogStatus } from '../model/syncLogsTypes';
 import type { CloudProvider } from '../../../shared/types/auth';
@@ -25,9 +26,6 @@ const STATUS_FILTERS: Array<{ key: SyncLogStatus | 'all'; label: string }> = [
 const PROVIDER_LABELS: Record<CloudProvider, string> = { azure: 'Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'GCP' };
 const PROVIDER_PATHS: Record<CloudProvider, string> = { azure: '/azure', aws: '/aws', btp: '/btp', gcp: '/gcp' };
 
-/** The most recent sync start across the whole log — what "last updated" means for this page. */
-const LATEST_SYNC = new Date(Math.max(...MOCK_SYNC_LOGS.map((log) => new Date(log.startedAt).getTime())));
-
 /**
  * Ported from the reference CCM app's SyncLogsPage.jsx: a read-only audit
  * trail of every scheduled/user-triggered cloud data fetch. The reference
@@ -38,7 +36,13 @@ const LATEST_SYNC = new Date(Math.max(...MOCK_SYNC_LOGS.map((log) => new Date(lo
  * scope the rest of Mavera's Cloud Cost module already covers.
  */
 export function SyncLogsPage() {
-  const { cloudAccess } = useAuth();
+  const { cloudAccess, modules } = useAuth();
+  const navigate = useNavigate();
+  const version = useWorkspaceVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `version` changes when an account is connected or removed
+  const logs = useMemo(() => activityRepository.listSyncLogs(), [version]);
+  /** The most recent sync start across the whole log — what "last updated" means for this page. */
+  const latestSync = useMemo(() => (logs.length > 0 ? new Date(Math.max(...logs.map((log) => new Date(log.startedAt).getTime()))) : null), [logs]);
   const [statusFilter, setStatusFilter] = useState<SyncLogStatus | 'all'>('all');
   const [providerFilter, setProviderFilter] = useState<CloudProvider | 'all'>('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -47,15 +51,15 @@ export function SyncLogsPage() {
   const providerFilters = cloudAccess.length > 0 ? cloudAccess : (['azure', 'aws', 'btp', 'gcp'] as CloudProvider[]);
 
   const filtered = useMemo(() => {
-    return MOCK_SYNC_LOGS
+    return logs
       .filter((log) => statusFilter === 'all' || log.status === statusFilter)
       .filter((log) => providerFilter === 'all' || log.provider === providerFilter)
       .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
-  }, [statusFilter, providerFilter]);
+  }, [logs, statusFilter, providerFilter]);
 
   const paging = usePagination(filtered, 10, `${statusFilter}|${providerFilter}`);
 
-  const openLog: SyncLog | undefined = MOCK_SYNC_LOGS.find((log) => log.id === openId);
+  const openLog: SyncLog | undefined = logs.find((log) => log.id === openId);
   const clearFilters = () => { setStatusFilter('all'); setProviderFilter('all'); };
 
   const handleRefresh = () => {
@@ -63,9 +67,26 @@ export function SyncLogsPage() {
     window.setTimeout(() => setRefreshing(false), 600);
   };
 
+  if (logs.length === 0) {
+    return (
+      <div>
+        <PageHeader title="Sync Audit Logs" subtitle="Every cloud data fetch — scheduled and user-triggered." />
+        <section className="mv-panel">
+          <EmptyState
+            icon={<ClockIcon size={28} />}
+            heading="No syncs yet"
+            explanation="Every data fetch is logged here once a cloud account is connected."
+            actionLabel={firstConnectTarget(modules).label}
+            onAction={() => navigate(firstConnectTarget(modules).path)}
+          />
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageHeader title="Sync Audit Logs" subtitle="Every cloud data fetch — scheduled and user-triggered." updatedAt={LATEST_SYNC}>
+      <PageHeader title="Sync Audit Logs" subtitle="Every cloud data fetch — scheduled and user-triggered." updatedAt={latestSync}>
         <button className="mv-secondary-button" disabled={refreshing} onClick={handleRefresh}>
           <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />
           {refreshing ? 'Refreshing…' : 'Refresh'}

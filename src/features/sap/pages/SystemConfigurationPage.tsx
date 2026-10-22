@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { sapAdminRepository, type SapDestination, type SapDestinationInput } from '../../../data-access';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { StatusTag } from '../../../shared/ui/StatusTag';
 import { Tooltip } from '../../../shared/ui/Tooltip';
@@ -24,6 +25,8 @@ export function SystemConfigurationPage() {
   const [search, setSearch] = useState('');
   const [dialog, setDialog] = useState<{ mode: 'add' } | { mode: 'edit'; destination: SapDestination } | null>(null);
   const reload = () => setDestinations(repo.list());
+  // Ctrl+K "Connect SAP system" lands here with the Add destination form already open.
+  useOpenOnArrival('connect', () => setDialog({ mode: 'add' }));
 
   const connectedCount = destinations.filter((d) => d.status === 'Connected').length;
   const visible = filterDestinations(destinations, search);
@@ -65,7 +68,7 @@ export function SystemConfigurationPage() {
   return (
     <div>
       <PageHeader title="System Configuration" subtitle="Manage and connect your SAP environment endpoints.">
-        <button type="button" className="mv-primary-button" onClick={() => setDialog({ mode: 'add' })}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Destination</button>
+        {destinations.length > 0 && <button type="button" className="mv-primary-button" onClick={() => setDialog({ mode: 'add' })}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Destination</button>}
       </PageHeader>
 
       <div className="mv-config-bar">
@@ -77,7 +80,7 @@ export function SystemConfigurationPage() {
       </div>
 
       {destinations.length === 0 ? (
-        <div className="mv-empty-inline"><p><strong>No destinations yet.</strong></p><p>Add a destination to connect an SAP environment.</p><button type="button" className="mv-primary-button" onClick={() => setDialog({ mode: 'add' })}>Add Destination</button></div>
+        <div className="mv-empty-inline"><p><strong>No destinations yet.</strong></p><p>Add a destination to connect an SAP environment; its health, alerts, jobs and transports then appear across SAP Monitoring.</p><button type="button" className="mv-primary-button" onClick={() => setDialog({ mode: 'add' })}>Add Destination</button></div>
       ) : visible.length === 0 ? (
         <div className="mv-empty-inline"><p><strong>No destinations match “{search.trim()}”.</strong></p><button type="button" className="mv-quiet-button" onClick={() => setSearch('')}>Clear search</button></div>
       ) : (

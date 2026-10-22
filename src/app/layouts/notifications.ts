@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { activityRepository, isEmptyWorkspace } from '../../data-access';
 import type { NavModules } from '../router/navConfig';
 
 export interface NotificationItem {
@@ -23,6 +25,22 @@ const SEED: NotificationItem[] = [
   { id: 'n4', title: 'Monthly cost report is ready to download', module: 'Cloud Cost', timestamp: 'Yesterday', read: true, path: '/cloud/analytics' },
 ];
 
+/**
+ * A populated organisation gets the prototype feed above. A brand-new one has none until something it connected
+ * raises an alert: then its newest active alerts (the same ones the Alerts page lists) are its notifications.
+ */
+function baseItems(): NotificationItem[] {
+  if (!isEmptyWorkspace()) return SEED;
+  return activityRepository.listAlerts().slice(0, 5).map((alert) => ({
+    id: `n-${alert.id}`,
+    title: alert.summary.length > 110 ? `${alert.summary.slice(0, 107)}…` : alert.summary,
+    module: alert.module === 'SAP' ? 'SAP Monitoring' : 'Cloud Cost',
+    timestamp: alert.timestamp ? `Today, ${alert.timestamp}` : 'Recently',
+    read: false,
+    path: alert.module === 'SAP' ? '/sap/alerts' : '/smart-alerts',
+  }));
+}
+
 export interface NotificationsState {
   items: NotificationItem[];
   unreadCount: number;
@@ -36,13 +54,19 @@ export interface NotificationsState {
  * (MAVERA_DESIGN_SYSTEM.md §7.3).
  */
 export function useNotifications(modules: NavModules): NotificationsState {
-  const [all, setAll] = useState(SEED);
-  const items = useMemo(() => all.filter((item) => modules[MODULE_FLAG[item.module]]), [all, modules]);
+  // Which items were read; the feed itself is re-read when the page changes, so new alerts show up.
+  const [readIds, setReadIds] = useState<ReadonlySet<string>>(() => new Set(SEED.filter((item) => item.read).map((item) => item.id)));
+  const { pathname } = useLocation();
+  const all = useMemo(baseItems, [pathname]);
+  const items = useMemo(
+    () => all.map((item) => (readIds.has(item.id) ? { ...item, read: true } : item)).filter((item) => modules[MODULE_FLAG[item.module]]),
+    [all, readIds, modules],
+  );
   return {
     items,
     unreadCount: items.filter((item) => !item.read).length,
-    markRead: (id) => setAll((current) => current.map((item) => (item.id === id ? { ...item, read: true } : item))),
-    markAllRead: () => setAll((current) => current.map((item) => ({ ...item, read: true }))),
+    markRead: (id) => setReadIds((current) => new Set(current).add(id)),
+    markAllRead: () => setReadIds((current) => new Set([...current, ...all.map((item) => item.id)])),
   };
 }
 

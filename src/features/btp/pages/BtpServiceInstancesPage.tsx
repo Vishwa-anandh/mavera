@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeftIcon, RefreshIcon } from '../../../shared/ui/icons';
 import { useBtpAccounts } from '../model/BtpAccountContext';
-import { MOCK_BTP_SERVICE_INSTANCES, MOCK_BTP_SM_CONFIGS, MOCK_BTP_SUBACCOUNTS } from '../../../demo/btp/mockBtpData';
+import { cloudSamplesRepository } from '../../../data-access';
 
 /**
  * Standalone service-instances page, ported from the reference CCM app's
@@ -16,9 +16,9 @@ export function BtpServiceInstancesPage() {
   const navigate = useNavigate();
   const { getAccount } = useBtpAccounts();
   const account = getAccount(accountId ?? '');
-  const subaccount = MOCK_BTP_SUBACCOUNTS.find((s) => s.guid === subaccountId);
-  const config = subaccountId ? MOCK_BTP_SM_CONFIGS[subaccountId] : undefined;
-  const instances = subaccountId ? (MOCK_BTP_SERVICE_INSTANCES[subaccountId] ?? []) : [];
+  const subaccount = cloudSamplesRepository.btp.subaccounts().find((s) => s.guid === subaccountId);
+  const config = subaccountId ? cloudSamplesRepository.btp.smConfig(subaccountId) : undefined;
+  const instances = subaccountId ? cloudSamplesRepository.btp.serviceInstances(subaccountId) : [];
 
   return (
     <div>

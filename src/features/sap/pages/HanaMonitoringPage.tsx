@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { SapConnectionGate } from '../components/SapConnectionGate';
 import { sapRepository } from '../../../data-access';
 import { HanaVitalsChart } from '../components/HanaVitalsChart';
 import { HanaCoreServicesPanel } from '../components/HanaCoreServicesPanel';
@@ -35,7 +36,7 @@ function tone(condition: string): string {
  * this is what you land on after picking one system to inspect. The host line, KPI strip and destination switcher stay
  * above three tabs (`#vitals`, `#storage`, `#backups`).
  */
-export function HanaMonitoringPage() {
+function HanaMonitoringPageContent() {
   const [tab, setTab] = useHashTab(TABS);
   const { system: HANA_SYSTEM, timeline: HANA_VITALS_TIMELINE, services: HANA_SERVICES } = useMemo(() => sapRepository.getHana(), []);
   const partitions = useMemo(() => sapRepository.listHanaDiskPartitions(), []);
@@ -139,5 +140,14 @@ export function HanaMonitoringPage() {
         </div>
       )}
     </div>
+  );
+}
+
+
+export function HanaMonitoringPage() {
+  return (
+    <SapConnectionGate title='HANA/DB Monitoring' subtitle='Live host vitals for your connected HANA system.' willShow='HANA memory, CPU, disks and backups'>
+      <HanaMonitoringPageContent />
+    </SapConnectionGate>
   );
 }

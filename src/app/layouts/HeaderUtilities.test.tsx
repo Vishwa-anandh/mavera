@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AppShell } from './AppShell';
+import { ThemeProvider } from '../../shared/theme/ThemeProvider';
 import type { AuthContextValue } from '../../features/auth';
 
 const useAuthMock = vi.fn<() => AuthContextValue>();
@@ -48,13 +49,15 @@ function Where() {
 
 function renderShell(path = '/') {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route path="*" element={<Where />} />
-        </Route>
-      </Routes>
-    </MemoryRouter>,
+    <ThemeProvider>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route path="*" element={<Where />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </ThemeProvider>,
   );
 }
 
@@ -104,7 +107,7 @@ describe('page search', () => {
     renderShell();
 
     await user.keyboard('{Control>}k{/Control}');
-    const dialog = screen.getByRole('dialog', { name: 'Search pages' });
+    const dialog = screen.getByRole('dialog', { name: 'Search or run a command' });
     await user.type(within(dialog).getByRole('combobox'), 'budgets');
     expect(within(dialog).getByRole('option', { name: /Budgets & Alerts/ })).toHaveAttribute('aria-selected', 'true');
     await user.keyboard('{Enter}');
@@ -118,9 +121,9 @@ describe('page search', () => {
     const user = userEvent.setup();
     renderShell();
 
-    await user.click(screen.getByRole('button', { name: /Search pages/ }));
+    await user.click(screen.getByRole('button', { name: 'Search or run a command (Ctrl+K)' }));
     await user.type(screen.getByRole('combobox'), 'zzzz');
-    expect(screen.getByText('No pages match “zzzz”.')).toBeInTheDocument();
+    expect(screen.getByText('Nothing matches “zzzz”.')).toBeInTheDocument();
   });
 });
 

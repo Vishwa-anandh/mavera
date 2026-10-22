@@ -29,6 +29,8 @@ export interface AwsAccount {
   region: string;
   /** Never the full secret — the reference API never returns it either. */
   accessKey: string;
+  /** True for an account connected in this session: its cost data is the provider's sample dataset ("Sample data"). */
+  sample?: boolean;
 }
 
 export interface AwsAccountSummary {

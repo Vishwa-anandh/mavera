@@ -4,6 +4,7 @@ import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import { cssVars } from '../../../shared/lib/cssVars';
 import { fireToast } from '../../../shared/lib/toastEvents';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { invoicesRepository } from '../../../data-access';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
@@ -267,6 +268,8 @@ export function InvoicesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Ctrl+K "Upload invoice" lands here with the upload dialog already open.
+  useOpenOnArrival('upload', () => setUploadOpen(true));
 
   const kpis = invoiceKpisOf(invoices);
   const providerCounts = providerCountsOf(invoices);

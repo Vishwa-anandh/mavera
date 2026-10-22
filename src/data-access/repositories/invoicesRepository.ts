@@ -1,16 +1,24 @@
 import type { Invoice, InvoiceProvider } from '../contracts/invoices';
 import { SEED_INVOICES } from '../../demo/invoices/mockInvoicesData';
+import { getWorkspaceProfile, onWorkspaceProfileChange } from './workspaceProfile';
 
 /**
  * Uploaded cloud invoices. PROTOTYPE: parsing happens server-side in the real product and there is no backend
  * here, so the list lives in module memory. It survives moving between pages for the rest of the session (the
  * Cost Overview invoices view reads the same list) and is gone on reload. Reads return copies.
  */
-let invoices: Invoice[] = structuredClone(SEED_INVOICES);
+let invoices: Invoice[] = [];
+
+/** A brand-new organisation (empty profile) has uploaded no invoices yet. */
+function seed(): void {
+  invoices = getWorkspaceProfile() === 'empty' ? [] : structuredClone(SEED_INVOICES);
+}
+seed();
+onWorkspaceProfileChange(seed);
 
 /** Restores the seed list. Tests call this between cases; the app never does. */
 export function resetInvoicesStore(): void {
-  invoices = structuredClone(SEED_INVOICES);
+  seed();
 }
 
 /**

@@ -1,10 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { MOCK_GCP_ACCOUNTS } from '../../../demo/gcp/mockGcpData';
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
+import { workspaceRepository } from '../../../data-access';
+import { useWorkspaceAccounts } from '../../workspace';
 import type { GcpAccount } from './gcpTypes';
 
 interface GcpAccountContextValue {
   accounts: GcpAccount[];
-  addAccount: (account: GcpAccount) => void;
+  /** Connects a project; the store gives it its id and the provider's sample cost data under its name. */
+  addAccount: (account: Omit<GcpAccount, 'id'>) => GcpAccount;
   removeAccount: (id: string) => void;
   getAccount: (id: string) => GcpAccount | undefined;
 }
@@ -13,21 +15,14 @@ const GcpAccountContext = createContext<GcpAccountContextValue | undefined>(unde
 
 /** Mirrors the reference CCM app's gcp/context/GcpAccountContext.jsx: GCP
  * uses real nested routes (/gcp, /gcp/accounts, /gcp/account/:id), same as
- * AWS, so the account list lives above the router outlet — see
- * AwsAccountContext.tsx's doc comment for why that matters. No real
- * backend exists for this prototype, so this holds local state seeded from
- * mock data instead of calling `GET /gcp/accounts`. */
+ * AWS. No real backend exists for this prototype, so the projects are the
+ * organisation's connected GCP accounts in the workspace store (see
+ * AwsAccountContext.tsx) instead of `GET /gcp/accounts`. */
 export function GcpAccountProvider({ children }: { children: ReactNode }) {
-  const [accounts, setAccounts] = useState<GcpAccount[]>(MOCK_GCP_ACCOUNTS);
+  const accounts = useWorkspaceAccounts('gcp');
 
-  const addAccount = useCallback((account: GcpAccount) => {
-    setAccounts((current) => [...current, account]);
-  }, []);
-
-  const removeAccount = useCallback((id: string) => {
-    setAccounts((current) => current.filter((a) => a.id !== id));
-  }, []);
-
+  const addAccount = useCallback((account: Omit<GcpAccount, 'id'>) => workspaceRepository.addConnectedAccount('gcp', account), []);
+  const removeAccount = useCallback((id: string) => { workspaceRepository.removeAccount('gcp', id); }, []);
   const getAccount = useCallback((id: string) => accounts.find((a) => a.id === id), [accounts]);
 
   const value = useMemo<GcpAccountContextValue>(

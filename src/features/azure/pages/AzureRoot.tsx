@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { AzureOverallDashboard } from './AzureOverallDashboard';
 import { AzureAccountManager } from './AzureAccountManager';
-import { MOCK_AZURE_ACCOUNTS } from '../../../demo/azure/mockAzureData';
 import type { AzureAccount } from '../model/azureTypes';
 
 type AzureView = 'dashboard' | 'accounts';
@@ -18,6 +18,8 @@ type AzureView = 'dashboard' | 'accounts';
 export function AzureRoot() {
   const [view, setView] = useState<AzureView>('dashboard');
   const navigate = useNavigate();
+  // A "connect" request opens the account manager; the manager then opens the form (and clears the request).
+  useOpenOnArrival('connect', () => setView('accounts'), { consume: false });
 
   if (view === 'accounts') {
     return (
@@ -34,10 +36,7 @@ export function AzureRoot() {
     <div>
       <AzureOverallDashboard
         onManageAccounts={() => setView('accounts')}
-        onSelectAccount={(accountId) => {
-          const found = MOCK_AZURE_ACCOUNTS.find((a) => a.id === accountId);
-          navigate(`/azure/${found?.id ?? accountId}`);
-        }}
+        onSelectAccount={(accountId) => navigate(`/azure/${accountId}`)}
       />
     </div>
   );

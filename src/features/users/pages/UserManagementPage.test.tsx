@@ -320,3 +320,30 @@ describe('permissions', () => {
     expect(screen.getByRole('switch', { name: 'Edit: Ownership transfer' })).toBeDisabled();
   });
 });
+
+describe('UserManagementPage: opening a dialog on arrival (command palette)', () => {
+  const arriveAt = (url: string) => render(
+    <MemoryRouter initialEntries={[url]}>
+      <ConfirmProvider>
+        <AccessProvider><UserManagementPage /></AccessProvider>
+      </ConfirmProvider>
+    </MemoryRouter>,
+  );
+
+  it('?open=add-user opens the Add user dialog', () => {
+    arriveAt('/users?open=add-user');
+    expect(screen.getByRole('dialog', { name: 'Add user' })).toBeInTheDocument();
+  });
+
+  it('?open=add-role#roles opens the Add role dialog on the Roles tab', () => {
+    arriveAt('/users?open=add-role#roles');
+    expect(screen.getByRole('tab', { name: /^Roles/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('dialog', { name: 'Add role' })).toBeInTheDocument();
+  });
+
+  it('does not open Add user for a role without Create on users', () => {
+    sessionStorage.setItem('mavera.previewRole', 'viewer');
+    arriveAt('/users?open=add-user');
+    expect(screen.queryByRole('dialog', { name: 'Add user' })).not.toBeInTheDocument();
+  });
+});

@@ -1,21 +1,26 @@
 import type { User } from '../../../shared/types/auth';
+import type { WorkspaceProfile } from '../../../data-access';
 
 /**
  * The demo accounts offered on the login page ("Demo mode"). Each signs in locally with no backend: the owner
  * organisation (all modules), the same organisation as an Admin, Analyst or Viewer (to see what each role
- * can reach), and two organisations that subscribe to a single module.
+ * can reach), two organisations that subscribe to a single module, and a brand-new organisation with nothing
+ * connected yet (every module subscribed) for walking through first-time setup.
  */
 export interface DemoAccount {
   /** Short label on the login page. */
   label: string;
   email: string;
   user: User;
+  /** What the organisation starts with; `populated` (the default) is today's sample data, `empty` is a new organisation. */
+  workspace?: WorkspaceProfile;
 }
 
 export const DEMO_PASSWORD = 'Mavera@2026';
 export const DEMO_EMAIL = 'demo@mavera.local';
 export const DEMO_CLOUD_EMAIL = 'cloud@mavera.local';
 export const DEMO_SAP_EMAIL = 'sap@mavera.local';
+export const DEMO_NEW_ORG_EMAIL = 'new@mavera.local';
 export const DEMO_USER_ID = 'dev-preview-user';
 
 const ALL_CLOUDS: User['cloudAccess'] = ['azure', 'aws', 'btp', 'gcp'];
@@ -71,6 +76,17 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
       canViewBtp: false,
       canViewGcp: false,
       modules: { cloudCost: false, sapMonitoring: true },
+      ...subscribed,
+    },
+  },
+  {
+    label: 'New organisation',
+    email: DEMO_NEW_ORG_EMAIL,
+    workspace: 'empty',
+    user: {
+      ...fullOrg('demo-new-org-user', DEMO_NEW_ORG_EMAIL, 'Nora Newman'),
+      orgName: 'Northwind (new organisation)',
+      modules: { cloudCost: true, sapMonitoring: true },
       ...subscribed,
     },
   },

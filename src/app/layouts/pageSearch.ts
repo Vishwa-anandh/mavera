@@ -46,24 +46,36 @@ export function buildPageIndex(entries: ResolvedNavEntry[], canView?: (module: M
   return [...pages, ...extras.map(({ module: _module, ...page }) => page)];
 }
 
+/** Anything the palette can rank: a page or a command. */
+export interface Searchable {
+  label: string;
+  where: string;
+  keywords: string;
+}
+
 /**
- * Every word typed must appear somewhere in the page's name, location or keywords. Matches on
- * the page name rank first, then name prefixes, then everything else in menu order.
+ * Every word typed must appear somewhere in the item's name, location or keywords. Matches on
+ * the name rank first, then name prefixes, then everything else in the order given. Commands pass
+ * `matchWhere: false`: their location only describes them, so typing a page's name finds the page first.
  */
-export function searchPages(index: PageResult[], query: string): PageResult[] {
+export function rankItems<T extends Searchable>(items: T[], query: string, { matchWhere = true }: { matchWhere?: boolean } = {}): T[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (words.length === 0) return [];
-  const scored: Array<{ page: PageResult; score: number; order: number }> = [];
-  index.forEach((page, order) => {
-    const label = page.label.toLowerCase();
-    const haystack = `${label} ${page.where.toLowerCase()} ${page.keywords.toLowerCase()}`;
+  const scored: Array<{ item: T; score: number; order: number }> = [];
+  items.forEach((item, order) => {
+    const label = item.label.toLowerCase();
+    const haystack = `${label} ${matchWhere ? item.where.toLowerCase() : ''} ${item.keywords.toLowerCase()}`;
     if (!words.every((word) => haystack.includes(word))) return;
     let score = 0;
     for (const word of words) {
       if (label.startsWith(word) || label.includes(` ${word}`)) score += 3;
       else if (label.includes(word)) score += 2;
     }
-    scored.push({ page, score, order });
+    scored.push({ item, score, order });
   });
-  return scored.sort((a, b) => b.score - a.score || a.order - b.order).map((item) => item.page);
+  return scored.sort((a, b) => b.score - a.score || a.order - b.order).map((entry) => entry.item);
+}
+
+export function searchPages(index: PageResult[], query: string): PageResult[] {
+  return rankItems(index, query);
 }

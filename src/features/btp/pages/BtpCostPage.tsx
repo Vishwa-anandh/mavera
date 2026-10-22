@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { ChevronLeftIcon, RefreshIcon, SparkleIcon } from '../../../shared/ui/icons';
 import { Tooltip } from '../../../shared/ui/Tooltip';
 import { useBtpAccounts } from '../model/BtpAccountContext';
-import { btpCostsForAccount, MOCK_BTP_YEARLY } from '../../../demo/btp/mockBtpData';
+import { cloudSamplesRepository } from '../../../data-access';
+import { SampleDataBadge } from '../../workspace';
 import { buildAiInsights, directoriesWithCosts, momPct } from '../model/btpDerivations';
 import type { BtpCostTabProps } from '../model/BtpCostTabProps';
 import { ExecutiveTab } from '../components/tabs/ExecutiveTab';
@@ -58,13 +59,16 @@ export function BtpCostPage() {
   const colors = chartColors[mode];
   const { getAccount } = useBtpAccounts();
   const account = getAccount(accountId ?? '');
+  // The account's cost data: its own fixture, or the provider's sample dataset under its name.
+  const data = useMemo(() => (account ? cloudSamplesRepository.btp.costs(account) : null), [account]);
+  const yearly = useMemo(() => cloudSamplesRepository.btp.yearly(), []);
 
   const [activeTab, setActiveTab] = useState<TabKey>('executive');
   const [syncing, setSyncing] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const aiRef = useOutsideClose(aiOpen, () => setAiOpen(false));
 
-  if (!account) {
+  if (!account || !data) {
     return (
       <div>
         <div className="mv-empty">
@@ -76,11 +80,10 @@ export function BtpCostPage() {
     );
   }
 
-  const data = btpCostsForAccount(account.id);
   const currency = data.currency;
 
-  const currentEntry = MOCK_BTP_YEARLY[MOCK_BTP_YEARLY.length - 1];
-  const prevEntry = MOCK_BTP_YEARLY[MOCK_BTP_YEARLY.length - 2];
+  const currentEntry = yearly[yearly.length - 1];
+  const prevEntry = yearly[yearly.length - 2];
   const momChange = currentEntry && prevEntry ? momPct(currentEntry.totalCost, prevEntry.totalCost) : null;
 
   const topService = [...data.services].sort((a, b) => b.cost - a.cost)[0];
@@ -88,13 +91,13 @@ export function BtpCostPage() {
   const eomForecast = data.forecastData[0]?.projected_cost ?? data.totalCost;
   const forecastAboveMtd = data.totalCost > 0 ? ((eomForecast - data.totalCost) / data.totalCost) * 100 : 0;
 
-  const aiInsights = buildAiInsights(data, MOCK_BTP_YEARLY, BTP_MSP_RATE);
+  const aiInsights = buildAiInsights(data, yearly, BTP_MSP_RATE);
   const sync = () => { setSyncing(true); window.setTimeout(() => setSyncing(false), 700); };
 
   const tabProps: BtpCostTabProps = {
     account,
     data,
-    yearlyData: MOCK_BTP_YEARLY,
+    yearlyData: yearly,
     mspRate: BTP_MSP_RATE,
     chartColors: colors,
   };
@@ -107,6 +110,7 @@ export function BtpCostPage() {
           <button className="mv-icon-button" aria-label="Back to BTP overview" onClick={() => navigate('/btp')}><ChevronLeftIcon size={20} /></button>
           <span className="mv-status mv-status--info">BTP</span>
           <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: '1.25rem' }}>{account.name}</h1></Tooltip>
+          {account.sample && <SampleDataBadge />}
         </div>
         <div className="mv-cost-header-controls">
           <div style={{ position: 'relative' }} ref={aiRef}>

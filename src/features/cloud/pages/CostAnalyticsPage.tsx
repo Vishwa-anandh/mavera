@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { CloudConnectionGate } from '../components/CloudConnectionGate';
 import { Link } from 'react-router-dom';
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { cloudInsightsRepository, type CloudProviderId, type CostBreakdownRow } from '../../../data-access';
@@ -6,6 +7,7 @@ import { BarList } from '../../../shared/ui/BarList';
 import { Select } from '../../../shared/ui/Select';
 import { downloadCsv } from '../../../shared/lib/csv';
 import { fireToast } from '../../../shared/lib/toastEvents';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
@@ -31,7 +33,7 @@ function loadViews(): SavedView[] {
  * one currency: Azure, AWS and Google Cloud report USD; SAP BTP reports EUR and is analysed on
  * its own. Table and chart always share the same scope.
  */
-export function CostAnalyticsPage() {
+function CostAnalyticsPageContent() {
   const data = useMemo(() => cloudInsightsRepository.getCostAnalytics(), []);
   const { mode } = useMaveraTheme();
   const colors = chartColors[mode];
@@ -67,6 +69,13 @@ export function CostAnalyticsPage() {
 
   const exportRows = () => downloadCsv(`cost-by-${GROUP_LABEL[groupBy].toLowerCase()}-${data.currentMonth}.csv`, [GROUP_LABEL[groupBy], 'Provider', `Cost (${currency})`, 'Share %', `Last month (${currency})`, 'Change %'],
     rows.map((r) => [r.name, PROVIDER_LABEL[r.provider], r.cost, rowsTotal ? Math.round((r.cost / rowsTotal) * 1000) / 10 : 0, r.previousCost ?? '', percentChange(r.cost, r.previousCost) ?? '']));
+
+  // Ctrl+K "Export cost report" downloads the report for the view as it stands.
+  useOpenOnArrival('export', () => {
+    if (rows.length === 0) return;
+    exportRows();
+    fireToast({ type: 'success', message: 'Cost report exported.' });
+  });
 
   const saveView = () => {
     const name = `${SCOPE_LABEL[scope]} · ${range} months · by ${GROUP_LABEL[groupBy].toLowerCase()}`;
@@ -172,5 +181,13 @@ export function CostAnalyticsPage() {
         )}
       </section>
     </div>
+  );
+}
+
+export function CostAnalyticsPage() {
+  return (
+    <CloudConnectionGate title="Cost Analytics" subtitle="Investigate spend over time and by service, region or account." willShow="spend over time and by service, region or account">
+      <CostAnalyticsPageContent />
+    </CloudConnectionGate>
   );
 }

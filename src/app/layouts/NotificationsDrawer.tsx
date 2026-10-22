@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CloseIcon } from '../../shared/ui/icons';
 import type { NotificationsState } from './notifications';
 import { useModalOverlay } from '../../shared/ui/useOverlay';
+import { useConnectionStatus } from '../../features/workspace';
 
 /**
  * MAVERA_DESIGN_SYSTEM.md §11.5: shared notifications drawer — 400px from the right edge
@@ -15,6 +16,8 @@ export function NotificationsDrawer({ onClose, notifications }: { onClose: () =>
   const panelRef = useModalOverlay<HTMLElement>(onClose);
   const { items, unreadCount, markRead, markAllRead } = notifications;
   const visible = tab === 'unread' ? items.filter((item) => !item.read) : items;
+  // A brand-new organisation has nothing to be notified about yet: the one next step is its first connection.
+  const { nothingConnected, firstStep } = useConnectionStatus();
 
   return (
     <div className="mv-drawer-backdrop" onClick={onClose}>
@@ -42,7 +45,10 @@ export function NotificationsDrawer({ onClose, notifications }: { onClose: () =>
           {visible.length === 0 ? (
             <div className="mv-drawer-empty">
               <p className="mv-drawer-empty-title">{tab === 'unread' ? 'No unread notifications' : 'No notifications yet'}</p>
-              <p className="mv-muted">{tab === 'unread' ? 'You’re all caught up. Switch to All to see earlier notifications.' : 'Alerts from your subscribed modules will appear here.'}</p>
+              <p className="mv-muted">{tab === 'unread' ? 'You’re all caught up. Switch to All to see earlier notifications.' : nothingConnected ? 'Nothing is connected yet. Alerts from your subscribed modules appear here once an account or SAP system is connected.' : 'Alerts from your subscribed modules will appear here.'}</p>
+              {tab === 'all' && nothingConnected && (
+                <button type="button" className="mv-primary-button" onClick={() => { onClose(); navigate(firstStep.path); }}>{firstStep.label}</button>
+              )}
             </div>
           ) : (
             <ul className="mv-notification-list">

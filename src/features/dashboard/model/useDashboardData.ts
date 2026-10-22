@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { api, invoicesRepository, TOKEN_KEY } from '../../../data-access';
+import { api, invoicesRepository, isEmptyWorkspace, TOKEN_KEY } from '../../../data-access';
 import { buildMode } from '../../../app/config/environment';
 import type { SpendTrendPoint } from '../../../shared/ui/SpendTrendChart';
-import { demoDailySpend, demoEarlierMonths } from './demoSpendHistory';
+import { DEMO_LAST_DAY, DEMO_MONTHLY, demoDailySpend } from './demoSpendHistory';
+import { newOrganisationData } from './newOrganisationData';
 
 /*
  * Response shapes below are taken from the reference app's HomePage.jsx data
@@ -153,20 +154,22 @@ function isDevPreview(): boolean {
   return buildMode !== 'test' && !localStorage.getItem(TOKEN_KEY);
 }
 
-/** Two years of monthly spend: 18 generated earlier months, then the six months below. September is month-to-date. */
-const DEMO_LAST_DAY = '2026-09-28';
-const DEMO_MONTHLY: DashboardMonthlyRow[] = [
-  ...demoEarlierMonths(),
-  { key: '2026-04', total: 13100, azure: 6600, aws: 4900, btp: 1200, gcp: 400 },
-  { key: '2026-05', total: 14250, azure: 7100, aws: 5000, btp: 1650, gcp: 500 },
-  { key: '2026-06', total: 13800, azure: 6900, aws: 4950, btp: 1500, gcp: 450 },
-  { key: '2026-07', total: 15420, azure: 7800, aws: 5200, btp: 1720, gcp: 700 },
-  { key: '2026-08', total: 15840, azure: 7950, aws: 5350, btp: 1790, gcp: 750 },
-  { key: '2026-09', total: 16230, azure: 8420, aws: 5310, btp: 1860, gcp: 640 },
-];
+/** The invoices the Cloud Invoices page lists (and deletes from), in the dashboard's shape. */
+function invoiceItems(): InvoiceItem[] {
+  return invoicesRepository.list().map((inv) => ({
+    id: inv.id,
+    invoice_number: inv.raw_summary.invoiceNumber ?? inv.file_name,
+    provider: inv.provider,
+    total_cost: inv.total_cost,
+    invoice_date: inv.raw_summary.invoiceDate ?? `${inv.year}-${String(inv.month).padStart(2, '0')}-01`,
+    billing_period_start: `${inv.year}-${String(inv.month).padStart(2, '0')}-01`,
+  }));
+}
 
 /** Realistic placeholder data so the dashboard renders fully with no backend. */
 function devMockData(): DashboardData {
+  // A brand-new organisation has only what it has connected; everything else below is the populated sample.
+  if (isEmptyWorkspace()) return newOrganisationData(invoiceItems());
   return {
     summary: loadedSource<DashboardSummary>({
       totals: { azure: 8420, aws: 5310, btp: 1860, gcp: 640, forecast: 17400, forecastByProvider: { azure: 9050, aws: 5680, btp: 1990, gcp: 680 } },
@@ -210,14 +213,7 @@ function devMockData(): DashboardData {
     }),
     // The same invoices the Cloud Invoices page lists (and deletes from), so the two views agree.
     invoices: loadedSource<InvoicesResponse>({
-      data: invoicesRepository.list().map((inv) => ({
-        id: inv.id,
-        invoice_number: inv.raw_summary.invoiceNumber ?? inv.file_name,
-        provider: inv.provider,
-        total_cost: inv.total_cost,
-        invoice_date: inv.raw_summary.invoiceDate ?? `${inv.year}-${String(inv.month).padStart(2, '0')}-01`,
-        billing_period_start: `${inv.year}-${String(inv.month).padStart(2, '0')}-01`,
-      })),
+      data: invoiceItems(),
     }),
   };
 }

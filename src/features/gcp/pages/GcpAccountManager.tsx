@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { CloudIcon, ChevronRightIcon, TrashIcon, PlusIcon, LockIcon } from '../../../shared/ui/icons';
 import { useGcpAccounts } from '../model/GcpAccountContext';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
+import { SampleDataBadge } from '../../workspace';
 
 interface FormState {
   name: string;
@@ -53,6 +55,9 @@ export function GcpAccountManager() {
   const [errors, setErrors] = useState<Partial<Record<keyof FormState | 'general', string>>>({});
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
+  // Ctrl+K "Connect Google Cloud project": the form is always on this page, so arrival focuses its first field.
+  useOpenOnArrival('connect', () => formRef.current?.querySelector('input')?.focus());
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -64,7 +69,7 @@ export function GcpAccountManager() {
     setSaving(true);
     setErrors({});
     await new Promise((resolve) => setTimeout(resolve, 500));
-    addAccount({ id: `gcp-acc-${accounts.length + 1}`, name: form.name, projectId: form.projectId });
+    addAccount({ name: form.name.trim(), projectId: form.projectId.trim() });
     setForm(emptyForm);
     setSaving(false);
     setSuccess('GCP account added successfully.');
@@ -102,7 +107,7 @@ export function GcpAccountManager() {
                 <button type="button" className="mv-account-row-body" onClick={() => navigate(`/gcp/account/${account.id}`)}>
                   <span className="mv-avatar" style={{ background: 'var(--mv-selected)', color: '#3b82f6' }}><CloudIcon size={16} /></span>
                   <span className="mv-account-row-meta">
-                    <strong>{account.name}</strong>
+                    <strong>{account.name}{account.sample && <SampleDataBadge className="mv-account-sample" />}</strong>
                     <span className="mv-muted">{account.projectId}</span>
                   </span>
                 </button>
@@ -134,7 +139,7 @@ export function GcpAccountManager() {
           </div>
           {errors.general && <div className="mv-inline-error" role="alert" style={{ marginTop: '0.75rem' }}>{errors.general}</div>}
           {success && <div className="mv-notice" style={{ marginTop: '0.75rem' }}>{success}</div>}
-          <form onSubmit={submit} style={{ marginTop: '1rem' }}>
+          <form ref={formRef} onSubmit={submit} style={{ marginTop: '1rem' }}>
             <div className="mv-sa-field-grid">
               <label className="mv-field">
                 Display Name

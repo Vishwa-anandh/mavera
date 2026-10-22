@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { SapConnectionGate } from '../components/SapConnectionGate';
 import { useSearchParams } from 'react-router-dom';
 import { sapRepository, type SapJob } from '../../../data-access';
 import { DetailDrawer, DetailList } from '../../../shared/ui/DetailDrawer';
@@ -23,7 +24,7 @@ const TABS: JobsTab[] = ['jobs', 'dumps'];
  * Performance links in with `?status=` instead of keeping its own copy. The chip, search and "Show more" state is
  * held here so it survives a switch to the dumps tab and back.
  */
-export function SapJobsPage() {
+function SapJobsPageContent() {
   const [tab, setTab] = useHashTab(TABS);
   const [params] = useSearchParams();
   const requested = params.get('status');
@@ -133,5 +134,14 @@ export function SapJobsPage() {
         </DetailDrawer>
       )}
     </div>
+  );
+}
+
+
+export function SapJobsPage() {
+  return (
+    <SapConnectionGate title='Jobs & Dumps' subtitle='Background job runs (SM37) and ABAP runtime errors (ST22) across your connected systems.' willShow='background jobs and ABAP dumps'>
+      <SapJobsPageContent />
+    </SapConnectionGate>
   );
 }

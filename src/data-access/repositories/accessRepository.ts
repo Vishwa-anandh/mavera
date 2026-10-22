@@ -1,6 +1,7 @@
 import type { AccessSnapshot, CustomRoleRecord, MemberRecord } from '../contracts/access';
 import { MOCK_CUSTOM_ROLES } from '../../demo/access/mockAccessData';
 import { MOCK_MEMBERS } from '../../demo/users/mockMembersData';
+import { getWorkspaceProfile, onWorkspaceProfileChange } from './workspaceProfile';
 
 /**
  * Members and custom roles for the organisation.
@@ -13,8 +14,14 @@ import { MOCK_MEMBERS } from '../../demo/users/mockMembersData';
  */
 let state: AccessSnapshot = freshState();
 const listeners = new Set<() => void>();
+onWorkspaceProfileChange(() => {
+  state = freshState();
+  listeners.forEach((listener) => listener());
+});
 
+/** A brand-new organisation (empty profile) has no custom roles and no colleagues: only the signed-in owner, added by `ensureMember`. */
 function freshState(): AccessSnapshot {
+  if (getWorkspaceProfile() === 'empty') return { customRoles: [], members: [] };
   return { customRoles: structuredClone(MOCK_CUSTOM_ROLES), members: structuredClone(MOCK_MEMBERS) };
 }
 

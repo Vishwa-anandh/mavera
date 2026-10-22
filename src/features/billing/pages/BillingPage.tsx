@@ -1,3 +1,4 @@
+import { isEmptyWorkspace } from '../../../data-access';
 import { useBilling } from '../model/BillingContext';
 import { SELF_CUSTOMER_ID } from '../../../demo/billing/mockBillingData';
 import { CustomerBillingView } from '../components/CustomerBillingView';
@@ -17,7 +18,7 @@ export function BillingPage() {
     <div>
       <PageHeader title="Billing" subtitle="View and pay your invoices from Maitsys." />
 
-      <CustomerBillingView invoices={invoices.filter((inv) => inv.customerId === SELF_CUSTOMER_ID)} customer={customers.find((c) => c.id === SELF_CUSTOMER_ID)} onPay={payInvoice} />
+      <CustomerBillingView invoices={isEmptyWorkspace() ? [] : invoices.filter((inv) => inv.customerId === SELF_CUSTOMER_ID)} customer={customers.find((c) => c.id === SELF_CUSTOMER_ID)} onPay={payInvoice} />
     </div>
   );
 }

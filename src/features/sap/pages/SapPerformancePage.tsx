@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { SapConnectionGate } from '../components/SapConnectionGate';
 import { sapRepository } from '../../../data-access';
 import { DonutChart } from '../../../shared/ui/DonutChart';
 import { TrendUpIcon, RefreshIcon } from '../../../shared/ui/icons';
@@ -66,7 +67,7 @@ const TAB_ITEMS = [{ id: 'health', label: 'System health' }, { id: 'jobs', label
 /** Maps to MIO's "SAP Monitoring" (ABAP performance) deep dive — the fleet
  * list lives separately at /sap/systems. Each card carries the SAP transaction it comes from. The KPI strip and the
  * host/sync line stay above three tabs (`#health`, `#jobs`, `#analytics`): system health, jobs and processes, analytics. */
-export function SapPerformancePage() {
+function SapPerformancePageContent() {
   const data = useMemo(() => ({
     p: sapRepository.getPerformance(),
     topology: sapRepository.listServerTopology(),
@@ -259,5 +260,14 @@ export function SapPerformancePage() {
         </section>
       )}
     </div>
+  );
+}
+
+
+export function SapPerformancePage() {
+  return (
+    <SapConnectionGate title='Performance' subtitle='ABAP system performance — response time, work processes and disk health.' willShow='response time, work processes and locks'>
+      <SapPerformancePageContent />
+    </SapConnectionGate>
   );
 }

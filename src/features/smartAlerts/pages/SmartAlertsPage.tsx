@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { NothingConnected, useCloudEmpty } from '../../workspace';
 import { smartAlertsRepository } from '../../../data-access';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { useHashTab } from '../../../shared/lib/useHashTab';
@@ -55,6 +56,7 @@ export function SmartAlertsPage() {
   const [provider, setProvider] = useState<ProviderFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useHashTab(TABS);
+  const cloudEmpty = useCloudEmpty();
 
   const reload = () => { setAlerts(repo.list()); setAdjustments(repo.listAdjustments()); setFeedback(repo.getAccountFeedback()); };
   const settingsForm = useSettingsForm(reload);
@@ -148,7 +150,9 @@ export function SmartAlertsPage() {
               {filtersActive && <button type="button" className="mv-quiet-button" onClick={clearFilters}>Clear filters</button>}
             </div>
 
-            {filtered.length === 0 ? (
+            {filtered.length === 0 && alerts.length === 0 && cloudEmpty ? (
+              <NothingConnected target="cloud" heading="No cloud account connected yet" explanation="Cost spikes, budget breaches and new-resource alerts appear here once an account is connected." />
+            ) : filtered.length === 0 ? (
               <div className="mv-empty-inline">
                 <p><strong>{emptyTitle}</strong></p>
                 {filtersActive && <button type="button" className="mv-quiet-button" onClick={clearFilters}>Show active alerts</button>}

@@ -1,10 +1,11 @@
 import { ClickableRow, RowChevronCell, RowOpenButton } from '../../../shared/ui/ClickableRow';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CloudIcon, RefreshIcon, PlusIcon } from '../../../shared/ui/icons';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
 import { useAwsAccounts } from '../model/AwsAccountContext';
-import { awsAccountSummaries, awsTopServicesAllAccounts } from '../../../demo/aws/mockAwsData';
+import { cloudSamplesRepository } from '../../../data-access';
+import { NothingConnected, SampleDataBadge } from '../../workspace';
 import type { AwsAccountSummary } from '../model/awsTypes';
 
 function formatCurrency(value: number): string {
@@ -44,9 +45,10 @@ export function AwsOverallDashboard() {
   const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(false);
   const { accounts: awsAccounts } = useAwsAccounts();
-  const summaries: AwsAccountSummary[] = awsAccountSummaries();
+  const summaries: AwsAccountSummary[] = useMemo(() => cloudSamplesRepository.aws.summaries(awsAccounts), [awsAccounts]);
   const accounts = awsAccounts.map((account) => ({ account, summary: summaries.find((s) => s.id === account.id) }));
-  const topServices = awsTopServicesAllAccounts();
+  const topServices = useMemo(() => cloudSamplesRepository.aws.topServices(awsAccounts), [awsAccounts]);
+  const hasSample = awsAccounts.some((a) => a.sample);
   const totalCost = summaries.reduce((sum, a) => sum + a.totalCost, 0);
   const todaySpend = summaries.reduce((sum, a) => sum + (a.todayCost ?? 0), 0);
   const trend = summaries[0]?.sparkline.map((cost, i) => ({ date: `Day ${i + 1}`, amount: cost })) ?? [];
@@ -63,19 +65,25 @@ export function AwsOverallDashboard() {
           <span className="mv-avatar" style={{ background: '#f97316', borderRadius: '0.625rem' }}><CloudIcon size={18} /></span>
           <div>
             <h1 className="mv-title" style={{ fontSize: '1.375rem' }}>AWS Accounts Overview</h1>
-            <p className="mv-subtitle">Aggregated insights across {accounts.length} AWS environment{accounts.length === 1 ? '' : 's'}.</p>
+            <p className="mv-subtitle">{accounts.length === 0 ? 'Connect an AWS account to see its cost here.' : <>Aggregated insights across {accounts.length} AWS environment{accounts.length === 1 ? '' : 's'}. {hasSample && <SampleDataBadge />}</>}</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.625rem' }}>
-          <button className="mv-secondary-button" onClick={refresh} disabled={refreshing}>
-            <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}
-          </button>
-          <button className="mv-primary-button" onClick={() => navigate('/aws/accounts')}>
-            <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Manage Accounts
-          </button>
-        </div>
+        {accounts.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.625rem' }}>
+            <button className="mv-secondary-button" onClick={refresh} disabled={refreshing}>
+              <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}
+            </button>
+            <button className="mv-primary-button" onClick={() => navigate('/aws/accounts')}>
+              <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Manage Accounts
+            </button>
+          </div>
+        )}
       </div>
 
+      {accounts.length === 0 ? (
+        <NothingConnected target="aws" heading="No AWS accounts connected yet" explanation="Connect an account and its spend, services and budgets appear here within minutes." actionLabel="Connect AWS" />
+      ) : (
+        <>
       <div className="mv-kpi-row-4">
         <article className="mv-kpi"><span className="mv-kpi-label">Total Spend · Month-to-Date</span><strong className="mv-kpi-value">{formatCurrency(totalCost)}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">Today's Spend</span><strong className="mv-kpi-value">{todaySpend > 0 ? formatCurrency(todaySpend) : 'Syncing…'}</strong></article>
@@ -133,6 +141,8 @@ export function AwsOverallDashboard() {
           </div>
         </section>
       </div>
+        </>
+      )}
     </div>
   );
 }

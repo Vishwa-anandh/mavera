@@ -1,5 +1,6 @@
 import type { AuditActor, AuditEventInput, AuditEventRecord } from '../contracts/access';
 import { buildPendingAuditEvents, buildSeedAuditEvents } from '../../demo/audit/mockAuditData';
+import { getWorkspaceProfile, onWorkspaceProfileChange } from './workspaceProfile';
 
 /**
  * The audit feed.
@@ -8,8 +9,12 @@ import { buildPendingAuditEvents, buildSeedAuditEvents } from '../../demo/audit/
  */
 const FALLBACK_ACTOR: AuditActor = { name: 'Unknown user', email: '', kind: 'member', role: 'Member' };
 
-let events: readonly AuditEventRecord[] = buildSeedAuditEvents(new Date());
-let pending = buildPendingAuditEvents();
+/** A brand-new organisation (empty profile) has no history: the feed fills as its owner acts. */
+const seedEvents = (): readonly AuditEventRecord[] => (getWorkspaceProfile() === 'empty' ? [] : buildSeedAuditEvents(new Date()));
+const seedPending = () => (getWorkspaceProfile() === 'empty' ? [] : buildPendingAuditEvents());
+
+let events: readonly AuditEventRecord[] = seedEvents();
+let pending = seedPending();
 let actor: AuditActor = FALLBACK_ACTOR;
 let counter = 0;
 const listeners = new Set<() => void>();
@@ -68,9 +73,11 @@ export const auditRepository = {
     return arrived.length;
   },
   reset(): void {
-    events = buildSeedAuditEvents(new Date());
-    pending = buildPendingAuditEvents();
+    events = seedEvents();
+    pending = seedPending();
     actor = FALLBACK_ACTOR;
     commit(events);
   },
 };
+
+onWorkspaceProfileChange(() => auditRepository.reset());

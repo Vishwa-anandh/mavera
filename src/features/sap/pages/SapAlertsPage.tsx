@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SapConnectionGate } from '../components/SapConnectionGate';
 import { sapAdminRepository, type SapSmartAlert } from '../../../data-access';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { PageHeader } from '../../../shared/ui/PageHeader';
@@ -42,7 +43,7 @@ function statusOf(alert: SapSmartAlert): { label: string; tone: StatusTone } {
  * metric thresholds) and Recipients. The settings form state lives here so unsaved edits survive a tab switch.
  * Alert state lives in the data-access store, so it survives moving between pages.
  */
-export function SapAlertsPage() {
+function SapAlertsPageContent() {
   const [alerts, setAlerts] = useState<SapSmartAlert[]>(() => repo.list());
   const [adjustments, setAdjustments] = useState<string[]>(() => repo.listAdjustments());
   const [source, setSource] = useState<SourceFilter>('All');
@@ -164,5 +165,14 @@ export function SapAlertsPage() {
 
       {tab === 'recipients' && <div {...tabPanelProps('sap-alerts', 'recipients')}><AlertRecipientsPanel /></div>}
     </div>
+  );
+}
+
+
+export function SapAlertsPage() {
+  return (
+    <SapConnectionGate title='Alerts & Escalations' subtitle='Automated detection of threshold breaches across SAP HANA and ABAP monitoring metrics.' willShow='anomaly alerts'>
+      <SapAlertsPageContent />
+    </SapConnectionGate>
   );
 }

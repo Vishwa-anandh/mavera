@@ -4,6 +4,8 @@ import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { ConnectCloudAccountWizard } from '../../cloud';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
+import { SampleDataBadge, addAccountFromWizard } from '../../workspace';
 import { CreditCardIcon, PencilIcon, EyeIcon, TrashIcon, CheckIcon, CloseIcon, LockIcon, ChevronLeftIcon, PlusIcon } from '../../../shared/ui/icons';
 import { useAwsAccounts } from '../model/AwsAccountContext';
 import type { AwsAccount } from '../model/awsTypes';
@@ -30,7 +32,7 @@ export function AwsAccountManager() {
   const { user, cloudAccess, invoiceOnly, accountLimits } = useAuth();
   const permissions = derivePermissions(user, cloudAccess, invoiceOnly);
   const confirm = useConfirm();
-  const { accounts, addAccount, removeAccount, renameAccount } = useAwsAccounts();
+  const { accounts, removeAccount, renameAccount } = useAwsAccounts();
 
   const [wizardOpen, setWizardOpen] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -40,6 +42,9 @@ export function AwsAccountManager() {
   const isReadOnly = permissions.aws.readOnly && !permissions.isPrivileged;
   const maxAccounts = accountLimits.aws ?? 3;
   const atLimit = maxAccounts > 0 && accounts.length >= maxAccounts;
+
+  // Ctrl+K "Connect AWS account" lands here with the connect form already open.
+  useOpenOnArrival('connect', () => { if (!isReadOnly && !atLimit) setWizardOpen(true); });
 
   const startRename = (account: AwsAccount) => {
     setRenamingId(account.id);
@@ -111,7 +116,7 @@ export function AwsAccountManager() {
                         }}
                       />
                     ) : (
-                      <strong>{account.name}</strong>
+                      <strong>{account.name}{account.sample && <SampleDataBadge className="mv-account-sample" />}</strong>
                     )}
                     <span className="mv-muted">{account.region} · {maskAccessKey(account.accessKey)}</span>
                   </span>
@@ -166,12 +171,7 @@ export function AwsAccountManager() {
           onClose={() => setWizardOpen(false)}
           onSave={async (payload) => {
             await new Promise((resolve) => setTimeout(resolve, 500));
-            addAccount({
-              id: `aws-acc-${accounts.length + 1}`,
-              name: payload.name ?? 'New account',
-              region: 'us-east-1',
-              accessKey: payload.accessKey ?? '',
-            });
+            addAccountFromWizard('aws', payload);
           }}
         />
       )}

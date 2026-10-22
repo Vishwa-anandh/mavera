@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
@@ -6,12 +6,8 @@ import { ChevronLeftIcon, ChevronDownIcon, RefreshIcon, SparkleIcon } from '../.
 import { Tooltip } from '../../../shared/ui/Tooltip';
 import { CloudSpendSummary } from '../../../shared/ui/CloudSpendSummary';
 import { daysInMonthOf } from '../../../shared/lib/costAnalysis';
-import {
-  MOCK_AZURE_ACCOUNTS,
-  MOCK_AZURE_FULL,
-  MOCK_AZURE_YEARLY,
-  MOCK_AZURE_CSP_RECOMMENDATIONS,
-} from '../../../demo/azure/mockAzureData';
+import { cloudSamplesRepository } from '../../../data-access';
+import { SampleDataBadge, useWorkspaceAccounts } from '../../workspace';
 import type { AzureCosts, AzureYearlyMonth } from '../model/azureTypes';
 import { buildAiInsights, findYearlyMonth, momPct } from '../model/azureDerivations';
 import type { AzureCostTabProps } from '../model/AzureCostTabProps';
@@ -65,7 +61,12 @@ export function AzureCostPage() {
   const { mode } = useMaveraTheme();
   const colors = chartColors[mode];
 
-  const account = MOCK_AZURE_ACCOUNTS.find((a) => a.id === accountId);
+  const accounts = useWorkspaceAccounts('azure');
+  const account = accounts.find((a) => a.id === accountId);
+  // The account's cost data: its own fixture, or the provider's sample dataset under its name.
+  const full = useMemo(() => cloudSamplesRepository.azure.full(account), [account]);
+  const yearly = useMemo(() => cloudSamplesRepository.azure.yearly(), []);
+  const cspRecommendations = useMemo(() => cloudSamplesRepository.azure.cspRecommendations(account), [account]);
 
   const [activeTab, setActiveTab] = useState<TabKey>('executive');
   const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(null);
@@ -91,13 +92,13 @@ export function AzureCostPage() {
   }
 
   const isCurrentMonth = selectedMonth === null;
-  const histMonth = selectedMonth ? findYearlyMonth(MOCK_AZURE_YEARLY, selectedMonth.year, selectedMonth.month) : undefined;
-  const data: AzureCosts = isCurrentMonth ? MOCK_AZURE_FULL.costs : histMonth ? emptyCosts(histMonth) : MOCK_AZURE_FULL.costs;
+  const histMonth = selectedMonth ? findYearlyMonth(yearly, selectedMonth.year, selectedMonth.month) : undefined;
+  const data: AzureCosts = isCurrentMonth ? full.costs : histMonth ? emptyCosts(histMonth) : full.costs;
   const hasData = data.dailyCosts.length > 0 || data.services.length > 0 || data.topResources.length > 0 || (!isCurrentMonth && histMonth !== undefined);
   const isZeroCycle = isCurrentMonth && !hasData;
 
-  const currentYearly = MOCK_AZURE_YEARLY[MOCK_AZURE_YEARLY.length - 1];
-  const lastMonth = MOCK_AZURE_YEARLY[MOCK_AZURE_YEARLY.length - 2];
+  const currentYearly = yearly[yearly.length - 1];
+  const lastMonth = yearly[yearly.length - 2];
   const momChange = currentYearly && lastMonth ? momPct(currentYearly.totalCost, lastMonth.totalCost) : null;
   const dayOfMonth = new Date(2026, 8, 27).getDate();
   const dailyAvg = isCurrentMonth ? Math.round((data.totalCost / dayOfMonth) * 100) / 100 : null;
@@ -105,21 +106,21 @@ export function AzureCostPage() {
   const mspSavings = Math.round(data.totalCost * AZURE_MSP_RATE * 100) / 100;
   const grossSavingsPct = AZURE_MSP_RATE / (1 + AZURE_MSP_RATE) * 100;
 
-  const aiInsights = buildAiInsights(MOCK_AZURE_FULL.costs, MOCK_AZURE_YEARLY, AZURE_MSP_RATE);
+  const aiInsights = buildAiInsights(full.costs, yearly, AZURE_MSP_RATE);
 
   const sync = () => { setSyncing(true); window.setTimeout(() => setSyncing(false), 700); };
 
   const tabProps: AzureCostTabProps = {
     account,
     data,
-    forecast: MOCK_AZURE_FULL.costs.forecastData,
-    yearlyData: MOCK_AZURE_YEARLY,
-    budgets: MOCK_AZURE_FULL.budgets,
-    advisorRecommendations: MOCK_AZURE_FULL.recommendations,
-    cspRecommendations: MOCK_AZURE_CSP_RECOMMENDATIONS,
-    alerts: MOCK_AZURE_FULL.alerts,
-    invoices: MOCK_AZURE_FULL.invoices,
-    reservationUtilization: MOCK_AZURE_FULL.reservationUtilization,
+    forecast: full.costs.forecastData,
+    yearlyData: yearly,
+    budgets: full.budgets,
+    advisorRecommendations: full.recommendations,
+    cspRecommendations,
+    alerts: full.alerts,
+    invoices: full.invoices,
+    reservationUtilization: full.reservationUtilization,
     isCurrentMonth,
     hasData,
     isZeroCycle,
@@ -136,14 +137,15 @@ export function AzureCostPage() {
           <button className="mv-icon-button" aria-label="Back to Azure overview" onClick={() => navigate('/azure')}><ChevronLeftIcon size={20} /></button>
           <span className="mv-status mv-status--info">Azure</span>
           <Tooltip content={account.name}><h1 className="mv-title mv-cost-title">{account.name}</h1></Tooltip>
+          {account.sample && <SampleDataBadge />}
         </div>
         <div className="mv-cost-header-controls">
-          {MOCK_AZURE_ACCOUNTS.length > 1 && (
+          {accounts.length > 1 && (
             <div className="mv-cost-menu" ref={switchRef}>
               <button className="mv-secondary-button" onClick={() => setSwitchOpen((v) => !v)} aria-haspopup="menu" aria-expanded={switchOpen}>Switch account<ChevronDownIcon size={14} className="mv-cost-menu-chevron" /></button>
               {switchOpen && (
                 <div className="mv-nav-dropdown mv-cost-menu-list" role="menu">
-                  {MOCK_AZURE_ACCOUNTS.map((a) => (
+                  {accounts.map((a) => (
                     <button key={a.id} role="menuitem" className="mv-nav-dropdown-item mv-cost-menu-item" onClick={() => { setSwitchOpen(false); navigate(`/azure/${a.id}`); }}>
                       <span>{a.name}</span>
                     </button>
@@ -158,7 +160,7 @@ export function AzureCostPage() {
             </button>
             {monthOpen && (
               <div className="mv-nav-dropdown mv-cost-menu-list mv-cost-menu-list--months" role="menu">
-                {[...MOCK_AZURE_YEARLY].reverse().map((m) => {
+                {[...yearly].reverse().map((m) => {
                   const isCur = m.year === currentYearly.year && m.month === currentYearly.month;
                   return (
                     <button key={`${m.year}-${m.month}`} role="menuitem" className="mv-nav-dropdown-item mv-cost-menu-item" onClick={() => { setMonthOpen(false); tabProps.onSelectMonth(m.year, m.month); }}>

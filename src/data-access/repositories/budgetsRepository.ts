@@ -1,15 +1,30 @@
 import type { AlertChannel, Budget, CloudAccountOption, NewAlertChannel, NewBudget } from '../contracts/budgets';
 import { MOCK_BUDGETS, MOCK_CHANNELS, allCloudAccountOptions } from '../../demo/budgets/mockBudgetsData';
+import { getWorkspaceProfile, onWorkspaceProfileChange } from './workspaceProfile';
+import { workspaceStore } from './workspaceStore';
 
 /**
  * Budgets and their alert channels. PROTOTYPE: held in memory for the browser session (they come
  * back after a reload); swap each body for the `/budgets` and `/integrations` calls through ./rest
  * when the backend is wired. Every method returns copies.
  */
-let budgets: Budget[] = structuredClone(MOCK_BUDGETS);
-let channels: AlertChannel[] = structuredClone(MOCK_CHANNELS);
-let nextBudget = MOCK_BUDGETS.length + 1;
-let nextChannel = MOCK_CHANNELS.length + 1;
+let budgets: Budget[] = [];
+let channels: AlertChannel[] = [];
+let nextBudget = 1;
+let nextChannel = 1;
+
+/** A brand-new organisation (empty profile) has no budgets and no alert channels. */
+function seed(): void {
+  const empty = getWorkspaceProfile() === 'empty';
+  budgets = empty ? [] : structuredClone(MOCK_BUDGETS);
+  channels = empty ? [] : structuredClone(MOCK_CHANNELS);
+  nextBudget = budgets.length + 1;
+  nextChannel = channels.length + 1;
+}
+seed();
+onWorkspaceProfileChange(seed);
+
+const PROVIDER_LABEL = { azure: 'Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'GCP' } as const;
 
 export const budgetsRepository = {
   listBudgets(): Budget[] {
@@ -20,8 +35,12 @@ export const budgetsRepository = {
     return structuredClone(channels);
   },
 
+  /** Populated organisations list the sample accounts; a new one lists whatever it has connected. */
   listCloudAccounts(): CloudAccountOption[] {
-    return allCloudAccountOptions();
+    if (getWorkspaceProfile() !== 'empty') return allCloudAccountOptions();
+    return (['azure', 'aws', 'btp', 'gcp'] as const).flatMap((provider) =>
+      workspaceStore.list(provider).map((a) => ({ id: a.id, name: `${PROVIDER_LABEL[provider]} - ${a.name}`, provider })),
+    );
   },
 
   /** Creates a budget; `channel_ids` also ties those budget-based channels to it. */
@@ -61,9 +80,6 @@ export const budgetsRepository = {
 
   /** Back to the seeded sample data (tests, and "reset demo"). */
   reset(): void {
-    budgets = structuredClone(MOCK_BUDGETS);
-    channels = structuredClone(MOCK_CHANNELS);
-    nextBudget = MOCK_BUDGETS.length + 1;
-    nextChannel = MOCK_CHANNELS.length + 1;
+    seed();
   },
 };

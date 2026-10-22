@@ -25,7 +25,7 @@ export function AppShell() {
   const missingModule = neededModule && !modules[neededModule] ? neededModule : undefined;
   const unread = notifications.unreadCount;
 
-  // Ctrl/⌘+K opens page search from anywhere, the convention users bring from other tools.
+  // Ctrl/⌘+K opens the command palette (pages and commands) from anywhere, the convention users bring from other tools.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -70,7 +70,7 @@ export function AppShell() {
           </Link>
           <ModuleNavigation />
           <div className="mv-utility">
-            <button type="button" className="mv-icon-button" aria-label="Search pages (Ctrl+K)" title="Search pages (Ctrl+K)" onClick={() => setOverlay('search')}>
+            <button type="button" className="mv-icon-button" aria-label="Search or run a command (Ctrl+K)" title="Search or run a command (Ctrl+K)" onClick={() => setOverlay('search')}>
               <SearchIcon size={20} />
             </button>
             <button

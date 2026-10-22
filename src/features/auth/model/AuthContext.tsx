@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, clearCloudSummaryCaches, licenseRepository, TOKEN_KEY, REFRESH_TOKEN_KEY, type CompanySession } from '../../../data-access';
+import { api, clearCloudSummaryCaches, licenseRepository, setWorkspaceProfile, TOKEN_KEY, REFRESH_TOKEN_KEY, type CompanySession } from '../../../data-access';
+import { resetOpportunityStates } from '../../../shared/lib/opportunityStore';
 import type { User, CloudProvider } from '../../../shared/types/auth';
 import { isDevelopment } from '../../../app/config/environment';
 import { demoAccountFor, isDemoUserId, DEMO_ACCOUNTS } from './demoAccounts';
@@ -72,7 +73,7 @@ const DEFAULT_MODULES: Modules = { cloudCost: true, sapMonitoring: true };
  * credential. Swap the special-case in login() below for a plain API call
  * once a backend exists.
  */
-export { DEMO_EMAIL, DEMO_PASSWORD, DEMO_CLOUD_EMAIL, DEMO_SAP_EMAIL } from './demoAccounts';
+export { DEMO_EMAIL, DEMO_PASSWORD, DEMO_CLOUD_EMAIL, DEMO_SAP_EMAIL, DEMO_NEW_ORG_EMAIL } from './demoAccounts';
 /** The id of the local demo session's user; it has no backend account. */
 
 export interface AuthContextValue {
@@ -157,6 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // PROTOTYPE ONLY — see the doc comment on DEMO_EMAIL/DEMO_PASSWORD above.
   const applyDemoAccount = useCallback((account: (typeof DEMO_ACCOUNTS)[number]) => {
+    // Every demo sign-in starts from the account's own seed, so one demo login never sees another's changes.
+    setWorkspaceProfile(account.workspace ?? 'populated');
+    resetOpportunityStates();
     setUser({ ...account.user });
     setLoading(false);
   }, []);
@@ -165,6 +169,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // PROTOTYPE ONLY: the administrator of a company registered through /company-signup signs in
   // as an Admin of that organization, with the modules and seat limit its license granted.
   const applyCompanySession = useCallback((session: CompanySession) => {
+    setWorkspaceProfile('populated');
+    resetOpportunityStates();
     setUser({
       id: session.userId,
       email: session.email,
@@ -240,6 +246,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .filter((key) => key.startsWith('onboarded_cloud_'))
       .forEach((key) => localStorage.removeItem(key));
     sessionStorage.clear();
+    setWorkspaceProfile('populated');
+    resetOpportunityStates();
     setUser(null);
   }, []);
 

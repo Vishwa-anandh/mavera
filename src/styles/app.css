@@ -3391,3 +3391,23 @@ ul.mv-chart-legend { margin: 0; padding: 0; list-style: none; }
 .mv-exec-pair > * { min-width: 0; }
 .mv-exec-pair > * > .mv-panel, .mv-exec-pair > .mv-panel { height: 100%; margin-bottom: 0; }
 .mv-exec-pair .mv-category-summary { grid-template-columns: minmax(0, 1fr); }
+
+/* Command palette (Ctrl+K): commands above pages, an icon per row, the Enter hint on the highlighted row. One line per row on wide screens, two on narrow ones. */
+@media (min-width: 681px) { .mv-search-dialog { max-height: min(44rem, 80vh); } }
+.mv-search-group { margin: 0; padding: 0; list-style: none; }
+.mv-search-result { grid-template-columns: 1.75rem auto minmax(0, 1fr) auto; grid-template-areas: "icon label where trail"; column-gap: 0.75rem; padding: 0.375rem 0.625rem; }
+.mv-search-result-icon { grid-area: icon; display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: 0.375rem; background: var(--mv-surface-subtle); color: var(--mv-text-muted); }
+.mv-search-result--action .mv-search-result-icon { background: var(--mv-selected); color: var(--mv-primary); }
+.mv-search-result-label, .mv-search-result-where { min-width: 0; overflow-wrap: anywhere; }
+.mv-search-result .mv-nav-lock, .mv-search-result-key { grid-area: trail; }
+.mv-search-result-key { display: inline-flex; align-items: center; gap: 0.375rem; color: var(--mv-text-muted); font-size: 0.75rem; }
+@media (max-width: 680px) {
+  .mv-search-result { grid-template-columns: 1.75rem minmax(0, 1fr) auto; grid-template-areas: "icon label trail" "icon where trail"; column-gap: 0.625rem; padding: 0.5rem 0.625rem; }
+  .mv-search-result-key { display: none; }
+  .mv-search-field input { font-size: 1rem; }
+}
+
+/* New organisation: a connected account's cost data is sample data, so say so wherever it could be taken for live. */
+.mv-sample-badge { font-weight: 500; white-space: nowrap; }
+.mv-account-sample { margin-left: 0.5rem; vertical-align: 0.0625rem; }
+.mv-page-heading .mv-subtitle .mv-sample-badge, .mv-cost-header-title .mv-sample-badge { margin-left: 0.5rem; }

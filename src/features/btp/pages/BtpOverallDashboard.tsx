@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CloudIcon, RefreshIcon, PlusIcon, ChevronRightIcon } from '../../../shared/ui/icons';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
@@ -7,7 +7,8 @@ import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { useBtpAccounts } from '../model/BtpAccountContext';
 import { ServiceCategoryTable } from '../components/ServiceCategoryTable';
-import { btpAccountSummaries, btpTopServices } from '../../../demo/btp/mockBtpData';
+import { cloudSamplesRepository } from '../../../data-access';
+import { NothingConnected, SampleDataBadge } from '../../workspace';
 import { serviceCategoryOf } from '../model/btpDerivations';
 
 function formatCurrency(value: number, currency = 'EUR'): string {
@@ -27,8 +28,8 @@ export function BtpOverallDashboard() {
   const { mode } = useMaveraTheme();
   const colors = chartColors[mode];
   const [refreshing, setRefreshing] = useState(false);
-  const summaries = btpAccountSummaries();
-  const topServices = btpTopServices();
+  const summaries = useMemo(() => cloudSamplesRepository.btp.summaries(accounts), [accounts]);
+  const topServices = useMemo(() => cloudSamplesRepository.btp.topServices(accounts), [accounts]);
   const totalCost = summaries.reduce((sum, a) => sum + a.totalCost, 0);
   const avgPerAccount = accounts.length > 0 ? totalCost / accounts.length : 0;
   const topService = topServices[0];
@@ -48,15 +49,21 @@ export function BtpOverallDashboard() {
           <span className="mv-avatar" style={{ background: '#0070f2', borderRadius: '0.625rem' }}><CloudIcon size={18} /></span>
           <div>
             <h1 className="mv-title" style={{ fontSize: '1.375rem' }}>SAP BTP Overview</h1>
-            <p className="mv-subtitle">{accounts.length} account{accounts.length === 1 ? '' : 's'} monitored.</p>
+            <p className="mv-subtitle">{accounts.length} account{accounts.length === 1 ? '' : 's'} monitored. {accounts.some((a) => a.sample) && <SampleDataBadge />}</p>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '0.625rem' }}>
-          <button className="mv-secondary-button" onClick={refresh} disabled={refreshing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}</button>
-          <button className="mv-primary-button" onClick={() => navigate('/btp/accounts')}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Account</button>
-        </div>
+        {accounts.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.625rem' }}>
+            <button className="mv-secondary-button" onClick={refresh} disabled={refreshing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}</button>
+            <button className="mv-primary-button" onClick={() => navigate('/btp/accounts')}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Account</button>
+          </div>
+        )}
       </div>
 
+      {accounts.length === 0 ? (
+        <NothingConnected target="btp" heading="No SAP BTP accounts connected yet" explanation="Connect a global account and its consumption, services and subaccounts appear here after the first sync." actionLabel="Connect SAP BTP" />
+      ) : (
+        <>
       <div className="mv-kpi-row-5">
         <article className="mv-kpi"><span className="mv-kpi-label">Total Month-to-Date Spend</span><strong className="mv-kpi-value">{formatCurrency(totalCost)}</strong></article>
         <article className="mv-kpi"><span className="mv-kpi-label">BTP Accounts</span><strong className="mv-kpi-value">{accounts.length}</strong><span className="mv-muted">Active global accounts</span></article>
@@ -151,6 +158,8 @@ export function BtpOverallDashboard() {
           <div className="mv-panel-header"><h2 id="btp-trend-title" className="mv-panel-title">Cost Trend</h2></div>
           <SpendTrendChart title="Per-account spend trend" data={summaries.map((s) => ({ date: accounts.find((a) => a.id === s.id)?.name ?? s.id, amount: s.totalCost }))} />
         </section>
+      )}
+        </>
       )}
     </div>
   );

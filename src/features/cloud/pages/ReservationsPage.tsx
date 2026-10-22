@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { CloudConnectionGate } from '../components/CloudConnectionGate';
 import { Link } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { cloudInsightsRepository, type Reservation } from '../../../data-access';
@@ -28,7 +29,7 @@ function stateOf(r: Reservation): { label: string; tone: 'success' | 'warning' |
  * against. Provider recommendations are shown as estimates the provider supplied, never as
  * purchases or savings Mavera calculated itself.
  */
-export function ReservationsPage() {
+function ReservationsPageContent() {
   const reservations = useMemo(() => cloudInsightsRepository.listReservations().sort((a, b) => a.end.localeCompare(b.end)), []);
   const opportunities = useMemo(() => cloudInsightsRepository.listOptimizationOpportunities().filter((o) => o.category === 'Commitments'), []);
   const { mode } = useMaveraTheme();
@@ -126,5 +127,13 @@ export function ReservationsPage() {
         )}
       </section>
     </div>
+  );
+}
+
+export function ReservationsPage() {
+  return (
+    <CloudConnectionGate title="Reserved Instances" subtitle="How well your reservations and savings plans are used, and which expire soon." willShow="reservations, savings plans and their utilisation">
+      <ReservationsPageContent />
+    </CloudConnectionGate>
   );
 }

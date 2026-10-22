@@ -3,8 +3,10 @@ import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { ConnectCloudAccountWizard } from '../../cloud';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { CreditCardIcon, PencilIcon, EyeIcon, TrashIcon, CheckIcon, CloseIcon, LockIcon, ChevronLeftIcon, PlusIcon } from '../../../shared/ui/icons';
-import { MOCK_AZURE_ACCOUNTS } from '../../../demo/azure/mockAzureData';
+import { workspaceRepository } from '../../../data-access';
+import { SampleDataBadge, addAccountFromWizard, useWorkspaceAccounts } from '../../workspace';
 import type { AzureAccount } from '../model/azureTypes';
 
 function maskId(id: string): string {
@@ -31,7 +33,7 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
   const permissions = derivePermissions(user, cloudAccess, invoiceOnly);
   const confirm = useConfirm();
 
-  const [accounts, setAccounts] = useState<AzureAccount[]>(MOCK_AZURE_ACCOUNTS);
+  const accounts = useWorkspaceAccounts('azure');
   const [wizardOpen, setWizardOpen] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -41,6 +43,9 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
   const maxAccounts = accountLimits.azure ?? 3;
   const atLimit = maxAccounts > 0 && accounts.length >= maxAccounts;
 
+  // Ctrl+K "Connect Azure subscription" lands here with the connect form already open.
+  useOpenOnArrival('connect', () => { if (!isReadOnly && !atLimit) setWizardOpen(true); });
+
   const startRename = (account: AzureAccount) => {
     setRenamingId(account.id);
     setRenameValue(account.name);
@@ -48,7 +53,7 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
 
   const commitRename = () => {
     if (!renamingId) return;
-    setAccounts((current) => current.map((a) => (a.id === renamingId ? { ...a, name: renameValue.trim() || a.name } : a)));
+    workspaceRepository.renameAccount('azure', renamingId, renameValue);
     setRenamingId(null);
   };
 
@@ -59,7 +64,7 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
       variant: 'delete',
       okText: 'Delete',
     });
-    if (ok) setAccounts((current) => current.filter((a) => a.id !== account.id));
+    if (ok) workspaceRepository.removeAccount('azure', account.id);
   };
 
   return (
@@ -113,7 +118,7 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
                         }}
                       />
                     ) : (
-                      <strong>{account.name}</strong>
+                      <strong>{account.name}{account.sample && <SampleDataBadge className="mv-account-sample" />}</strong>
                     )}
                     <span className="mv-muted">Sub: {maskId(account.subscriptionId)} · Tenant: {maskId(account.tenantId)}</span>
                   </span>
@@ -168,16 +173,7 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
           onClose={() => setWizardOpen(false)}
           onSave={async (payload) => {
             await new Promise((resolve) => setTimeout(resolve, 500));
-            setAccounts((current) => [
-              ...current,
-              {
-                id: `az-acc-${current.length + 1}`,
-                name: payload.name ?? 'New subscription',
-                subscriptionId: payload.subscriptionId ?? '',
-                tenantId: payload.tenantId ?? '',
-                clientId: payload.clientId ?? '',
-              },
-            ]);
+            addAccountFromWizard('azure', payload);
           }}
         />
       )}

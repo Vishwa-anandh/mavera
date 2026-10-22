@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { CloudConnectionGate } from '../components/CloudConnectionGate';
 import { Link } from 'react-router-dom';
 import { cloudInsightsRepository, type CloudResource } from '../../../data-access';
 import { CopyButton } from '../../../shared/ui/CopyButton';
@@ -25,7 +26,7 @@ const sumByCurrency = (resources: CloudResource[]) => resources.reduce<Record<st
  * CLOUD-07 — every resource across providers with its cost and governance context. Missing tags
  * show as "Untagged"; a resource without reported cost shows "Not reported" (not free).
  */
-export function ResourceInventoryPage() {
+function ResourceInventoryPageContent() {
   const all = useMemo(() => cloudInsightsRepository.listResources(), []);
   const [search, setSearch] = useRememberedState('cloud', 'resources-search', '');
   const [provider, setProvider] = useRememberedState('cloud', 'resources-provider', ALL, oneOf([ALL, ...PROVIDERS]));
@@ -122,5 +123,13 @@ export function ResourceInventoryPage() {
         </DetailDrawer>
       )}
     </div>
+  );
+}
+
+export function ResourceInventoryPage() {
+  return (
+    <CloudConnectionGate title="Resource Inventory" subtitle="Find any resource across your clouds, with its cost, owner and tags." willShow="every resource with its cost, owner and tags">
+      <ResourceInventoryPageContent />
+    </CloudConnectionGate>
   );
 }

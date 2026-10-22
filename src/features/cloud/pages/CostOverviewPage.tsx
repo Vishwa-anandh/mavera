@@ -54,6 +54,8 @@ import {
   PiggyBankIcon,
 } from '../../../shared/ui/icons';
 import { PageHeader } from '../../../shared/ui/PageHeader';
+import { CONNECT_TARGETS, SampleDataBadge, addAccountFromWizard, useConnectionStatus, useHasSampleAccounts } from '../../workspace';
+import { useNavigate } from 'react-router-dom';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -113,6 +115,7 @@ function KpiShell({ loading, error, icon, tone = 'info', children }: { loading: 
 /** CLOUD-01 — Cost Overview (MAVERA_DESIGN_SYSTEM.md §13). */
 export function CostOverviewPage() {
   const { user, cloudAccess, invoiceOnly } = useAuth();
+  const navigate = useNavigate();
   const permissions = derivePermissions(user, cloudAccess, invoiceOnly);
   const { summary, recommendations, smartAlerts, budgets, mspSavings, invoices, refetch } = useDashboardData();
   const [wizardProvider, setWizardProvider] = useState<'azure' | 'aws' | null>(null);
@@ -120,6 +123,8 @@ export function CostOverviewPage() {
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [view, setView] = useState<'cloud' | 'invoices'>('cloud');
   const [period, setPeriod] = useState<SpendPeriod>(DEFAULT_SPEND_PERIOD);
+  const { cloudEmpty } = useConnectionStatus();
+  const hasSampleAccounts = useHasSampleAccounts();
 
   const loading = summary.loading || recommendations.loading || smartAlerts.loading || budgets.loading || mspSavings.loading || invoices.loading;
 
@@ -181,7 +186,7 @@ export function CostOverviewPage() {
           options={[{ value: 'cloud', label: 'Cloud', ariaLabel: 'Cloud costs' }, { value: 'invoices', label: 'Invoices', ariaLabel: 'Invoices summary' }]}
         />
         <button className="mv-secondary-button" disabled={refreshing} onClick={handleRefresh}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh'}</button>
-        {connectableProvider && <button className="mv-primary-button" onClick={() => setWizardProvider(connectableProvider)}>Connect cloud account</button>}
+        {connectableProvider && !cloudEmpty && <button className="mv-primary-button" onClick={() => setWizardProvider(connectableProvider)}>Connect cloud account</button>}
       </div>
     </PageHeader>
 
@@ -189,10 +194,19 @@ export function CostOverviewPage() {
       <p className="mv-muted" style={{ marginBottom: '1rem' }}>
         Showing <strong style={{ color: 'var(--mv-text)' }}>{totalAccounts} account{totalAccounts !== 1 ? 's' : ''}</strong> · <strong style={{ color: 'var(--mv-text)' }}>{connectedProviders.length} provider{connectedProviders.length !== 1 ? 's' : ''}</strong>
         {connectedProviders.length > 0 && <> ({connectedProviders.map((p) => PROVIDER_META[p].label).join(', ')})</>}
+        {hasSampleAccounts && <> <SampleDataBadge /></>}
       </p>
     )}
 
-    {view === 'invoices' ? (
+    {view === 'cloud' && cloudEmpty ? (
+      <EmptyState
+        icon={<CloudIcon size={28} />}
+        heading="Connect your first cloud account"
+        explanation="Spend, trends, budgets and savings for Azure, AWS, Google Cloud and SAP BTP appear here once an account is connected."
+        actionLabel="Connect your first account"
+        onAction={() => (connectableProvider ? setWizardProvider(connectableProvider) : navigate(CONNECT_TARGETS.cloud.path))}
+      />
+    ) : view === 'invoices' ? (
       <InvoicesSummaryView summary={invoiceSummary} invoices={invoiceItemsOf(invoices.data)} loading={invoices.loading} error={invoices.error} />
     ) : <>
     <div className="mv-kpi-row-4">
@@ -484,6 +498,18 @@ export function CostOverviewPage() {
 
     </>}
 
-    {wizardProvider && <ConnectCloudAccountWizard provider={wizardProvider} open onClose={() => setWizardProvider(null)} />}
+    {wizardProvider && (
+      <ConnectCloudAccountWizard
+        provider={wizardProvider}
+        open
+        onClose={() => setWizardProvider(null)}
+        onSave={async (payload) => {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          addAccountFromWizard(wizardProvider, payload);
+          // The overview's figures are built from the connected accounts, so reload them.
+          refetch();
+        }}
+      />
+    )}
   </div>;
 }

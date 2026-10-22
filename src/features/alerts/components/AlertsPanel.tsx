@@ -1,4 +1,8 @@
-import { MOCK_ALERTS, SEVERITY_LABEL, SEVERITY_TONE } from '../../../demo/alerts/mockAlerts';
+import type { GlobalAlertRow, GlobalAlertSeverity } from '../../../data-access';
+import { useGlobalAlerts } from '../model/useGlobalAlerts';
+
+const SEVERITY_LABEL: Record<GlobalAlertSeverity, string> = { critical: 'Critical', warning: 'Warning', info: 'Info' };
+const SEVERITY_TONE: Record<GlobalAlertSeverity, 'danger' | 'warning' | 'info'> = { critical: 'danger', warning: 'warning', info: 'info' };
 
 interface AlertsPanelProps {
   limit?: number;
@@ -6,10 +10,14 @@ interface AlertsPanelProps {
    * this renders a condensed list instead. The standalone /alerts page uses
    * the full table (default). */
   compact?: boolean;
+  /** Rows to show; defaults to the organisation's active alerts. */
+  rows?: GlobalAlertRow[];
 }
 
-export function AlertsPanel({ limit, compact = false }: AlertsPanelProps) {
-  const rows = limit ? MOCK_ALERTS.slice(0, limit) : MOCK_ALERTS;
+export function AlertsPanel({ limit, compact = false, rows: given }: AlertsPanelProps) {
+  const all = useGlobalAlerts();
+  const source = given ?? all;
+  const rows = limit ? source.slice(0, limit) : source;
 
   if (rows.length === 0) {
     return <p className="mv-muted">No active alerts.</p>;

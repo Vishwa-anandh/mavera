@@ -1,4 +1,4 @@
-import { cloudInsightsRepository, sapRepository, type CloudProviderId } from '../../../data-access';
+import { cloudInsightsRepository, isEmptyWorkspace, sapRepository, workspaceRepository, type CloudProviderId } from '../../../data-access';
 
 export interface AnswerModules {
   cloudCost: boolean;
@@ -12,6 +12,20 @@ const usd = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', c
 const eur = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
+/** A brand-new organisation has connected nothing yet: there is no sample figure to quote, only the next step. */
+const cloudNotConnected = () => isEmptyWorkspace() && workspaceRepository.accountCount() === 0;
+const sapNotConnected = () => isEmptyWorkspace() && !sapRepository.isConnected();
+
+const CLOUD_NOTHING_CONNECTED = [
+  'Nothing is connected yet, so there is no cloud spend to report.',
+  'Next step: connect your first account. Open Azure from the Cloud Cost menu and choose Connect, or use “Connect your first account” on the dashboard. Once an account is connected I can answer from its (sample) data.',
+].join('\n');
+
+const SAP_NOTHING_CONNECTED = [
+  'Nothing is connected yet, so there are no SAP systems to report on.',
+  'Next step: connect your first SAP system. Open System Configuration under SAP Monitoring and choose Add Destination. Once it is connected I can answer from its (sample) data.',
+].join('\n');
+
 function needs(module: 'cloud' | 'sap', modules: AnswerModules): string | null {
   if (module === 'cloud' && !modules.cloudCost) return "Cloud Cost isn't part of your organisation's subscription, so I have nothing to report on it.";
   if (module === 'sap' && !modules.sapMonitoring) return "SAP Monitoring isn't part of your organisation's subscription, so I have nothing to report on it.";
@@ -20,6 +34,7 @@ function needs(module: 'cloud' | 'sap', modules: AnswerModules): string | null {
 
 // ───────────────────────────────────────────────────────────── cloud answers
 function spendAnswer(): string {
+  if (cloudNotConnected()) return CLOUD_NOTHING_CONNECTED;
   const data = cloudInsightsRepository.getCostAnalytics();
   const current = data.monthly.filter((m) => m.month === data.currentMonth);
   const months = [...new Set(data.monthly.map((m) => m.month))].filter((m) => m < data.currentMonth).sort();
@@ -39,6 +54,7 @@ function spendAnswer(): string {
 }
 
 function topServicesAnswer(): string {
+  if (cloudNotConnected()) return CLOUD_NOTHING_CONNECTED;
   const services = [...cloudInsightsRepository.getCostAnalytics().services].filter((s) => s.currency === 'USD').sort((a, b) => b.cost - a.cost).slice(0, 5);
   return [
     'The five services costing the most this month:',
@@ -48,6 +64,7 @@ function topServicesAnswer(): string {
 }
 
 function savingsAnswer(): string {
+  if (cloudNotConnected()) return CLOUD_NOTHING_CONNECTED;
   const all = cloudInsightsRepository.listOptimizationOpportunities();
   const counted = all.filter((o) => !o.overlapsWith || !all.some((x) => x.id === o.overlapsWith));
   const total = counted.reduce((s, o) => s + o.monthlySaving, 0);
@@ -60,6 +77,7 @@ function savingsAnswer(): string {
 }
 
 function reservationsAnswer(): string {
+  if (cloudNotConnected()) return CLOUD_NOTHING_CONNECTED;
   const items = cloudInsightsRepository.listReservations().sort((a, b) => a.end.localeCompare(b.end));
   const under = items.filter((r) => r.utilizationPercent < 80);
   return [
@@ -72,6 +90,7 @@ function reservationsAnswer(): string {
 
 // ───────────────────────────────────────────────────────────── SAP answers
 function sapHealthAnswer(): string {
+  if (sapNotConnected()) return SAP_NOTHING_CONNECTED;
   const systems = sapRepository.listSystems();
   const count = (c: string) => systems.filter((s) => s.condition === c).length;
   const notHealthy = systems.filter((s) => s.condition !== 'healthy');
@@ -83,6 +102,7 @@ function sapHealthAnswer(): string {
 }
 
 function sapAlertsAnswer(): string {
+  if (sapNotConnected()) return SAP_NOTHING_CONNECTED;
   const alerts = sapRepository.listAlerts();
   const unread = alerts.filter((a) => !a.read);
   return [
@@ -93,6 +113,7 @@ function sapAlertsAnswer(): string {
 }
 
 function hanaAnswer(): string {
+  if (sapNotConnected()) return SAP_NOTHING_CONNECTED;
   const { system, timeline, services } = sapRepository.getHana();
   const peak = timeline.reduce((best, p) => (p.cpuPercent > best.cpuPercent ? p : best), timeline[0]);
   const stopped = services.filter((s) => s.status === 'stopped');
@@ -105,6 +126,7 @@ function hanaAnswer(): string {
 }
 
 function jobsAnswer(): string {
+  if (sapNotConnected()) return SAP_NOTHING_CONNECTED;
   const jobs = sapRepository.listJobs();
   const dumps = sapRepository.listDumps();
   const by = (s: string) => jobs.filter((j) => j.status === s).length;
@@ -116,6 +138,7 @@ function jobsAnswer(): string {
 }
 
 function diskAnswer(): string {
+  if (sapNotConnected()) return SAP_NOTHING_CONNECTED;
   const mounts = sapRepository.listDiskMounts().sort((a, b) => b.percent - a.percent);
   const full = mounts.filter((m) => m.percent >= 85);
   return [
@@ -126,6 +149,7 @@ function diskAnswer(): string {
 }
 
 function securityAnswer(): string {
+  if (sapNotConnected()) return SAP_NOTHING_CONNECTED;
   const notes = sapRepository.getSecurityNoteSummary();
   return [
     `You track ${plural(notes.total, 'SAP security note')}. ${notes.actionable} can be applied now and ${notes.hotNews} Hot News ${notes.hotNews === 1 ? 'note is' : 'notes are'} not yet implemented.`,
@@ -134,6 +158,7 @@ function securityAnswer(): string {
 }
 
 function performanceAnswer(): string {
+  if (sapNotConnected()) return SAP_NOTHING_CONNECTED;
   const p = sapRepository.getPerformance();
   return [
     `ABAP response time is ${p.responseTimeMs} ms with ${p.activeUsers} active users and ${p.workProcessesUsed} of ${p.workProcessesTotal} work processes in use.`,
@@ -186,6 +211,12 @@ export function answerFromDemoData(question: string, modules: AnswerModules): st
   if (!text) return null;
 
   if (GREETING.test(text)) {
+    const cloudWaiting = modules.cloudCost && cloudNotConnected();
+    const sapWaiting = modules.sapMonitoring && sapNotConnected();
+    // Every module the organisation has is still waiting for its first connection: say so, and name the next step.
+    if ((cloudWaiting || sapWaiting) && !(modules.cloudCost && !cloudWaiting) && !(modules.sapMonitoring && !sapWaiting)) {
+      return `Hello! Nothing is connected yet, so I have no data to quote. ${modules.cloudCost ? 'Connect your first cloud account (Azure is the quickest)' : 'Connect your first SAP system in System Configuration'} and I can answer questions about it.`;
+    }
     const topics = answerableTopics(modules).join('; ');
     return `Hello! I can answer from the sample data about: ${topics || 'your workspace'}. Try “What is our cloud spend this month?” or open the help button on any page for a guided tour.`;
   }
@@ -208,6 +239,10 @@ export function answerFromDemoData(question: string, modules: AnswerModules): st
     const parts: string[] = [];
     if (modules.sapMonitoring) parts.push(sapHealthAnswer().split('\n')[0]);
     if (modules.cloudCost) parts.push(savingsAnswer().split('\n')[0]);
+    if ((!modules.cloudCost || cloudNotConnected()) && (!modules.sapMonitoring || sapNotConnected())) {
+      const next = modules.cloudCost ? 'connect your first cloud account (Azure is the quickest)' : 'connect your first SAP system in System Configuration';
+      return `Nothing is connected yet, so there is nothing to flag. Next step: ${next}. Then the dashboard's “Needs attention” list ranks everything across your modules.`;
+    }
     return `${parts.join('\n')}\nThe dashboard's “Needs attention” list ranks everything across your modules.${SAMPLE_NOTE}`;
   }
   return null;

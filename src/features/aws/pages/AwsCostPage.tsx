@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
@@ -7,7 +7,8 @@ import { Tooltip } from '../../../shared/ui/Tooltip';
 import { CloudSpendSummary } from '../../../shared/ui/CloudSpendSummary';
 import { daysInMonthOf } from '../../../shared/lib/costAnalysis';
 import { useAwsAccounts } from '../model/AwsAccountContext';
-import { MOCK_AWS_FULL, MOCK_AWS_YEARLY } from '../../../demo/aws/mockAwsData';
+import { cloudSamplesRepository } from '../../../data-access';
+import { SampleDataBadge } from '../../workspace';
 import type { AwsCosts, AwsYearlyMonth } from '../model/awsTypes';
 import { buildAiInsights, findYearlyMonth } from '../model/awsDerivations';
 import type { AwsCostTabProps } from '../model/AwsCostTabProps';
@@ -62,6 +63,9 @@ export function AwsCostPage() {
   const { accounts, getAccount } = useAwsAccounts();
 
   const account = getAccount(accountId ?? '');
+  // Cost data: the provider's dataset (a connected account carries the sample dataset under its own name).
+  const full = useMemo(() => cloudSamplesRepository.aws.full(), []);
+  const yearly = useMemo(() => cloudSamplesRepository.aws.yearly(), []);
 
   const [activeTab, setActiveTab] = useState<TabKey>('executive');
   const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(null);
@@ -87,35 +91,35 @@ export function AwsCostPage() {
   }
 
   const isCurrentMonth = selectedMonth === null;
-  const histMonth = selectedMonth ? findYearlyMonth(MOCK_AWS_YEARLY, selectedMonth.year, selectedMonth.month) : undefined;
-  const data: AwsCosts = isCurrentMonth ? MOCK_AWS_FULL.costs : histMonth ? emptyCosts(histMonth) : MOCK_AWS_FULL.costs;
+  const histMonth = selectedMonth ? findYearlyMonth(yearly, selectedMonth.year, selectedMonth.month) : undefined;
+  const data: AwsCosts = isCurrentMonth ? full.costs : histMonth ? emptyCosts(histMonth) : full.costs;
   const hasData = data.dailyCosts.length > 0 || data.services.length > 0;
 
-  const currentYearly = MOCK_AWS_YEARLY[MOCK_AWS_YEARLY.length - 1];
-  const lastMonth = MOCK_AWS_YEARLY[MOCK_AWS_YEARLY.length - 2];
+  const currentYearly = yearly[yearly.length - 1];
+  const lastMonth = yearly[yearly.length - 2];
   const topService = [...data.services].sort((a, b) => b.cost - a.cost)[0];
   const topRegion = [...data.regions].sort((a, b) => b.cost - a.cost)[0];
   const mspSavings = Math.round(data.totalCost * AWS_MSP_RATE * 100) / 100;
-  const optimizationSavings = MOCK_AWS_FULL.recommendations.reduce((sum, r) => sum + r.estimated_savings, 0);
+  const optimizationSavings = full.recommendations.reduce((sum, r) => sum + r.estimated_savings, 0);
   const totalSavingsPct = data.totalCost > 0 ? ((data.totalCost * AWS_MSP_RATE + optimizationSavings) / data.totalCost) * 100 : 0;
   const monthChange = lastMonth && lastMonth.totalCost ? Math.round(((data.totalCost - lastMonth.totalCost) / lastMonth.totalCost) * 1000) / 10 : null;
   const dailyAverage = isCurrentMonth && data.dailyCosts.length > 0 ? Math.round((data.totalCost / data.dailyCosts.length) * 100) / 100 : null;
   const todayCost = isCurrentMonth ? (data.dailyCosts[data.dailyCosts.length - 1]?.cost ?? null) : null;
 
-  const aiInsights = buildAiInsights(MOCK_AWS_FULL.costs, MOCK_AWS_YEARLY, AWS_MSP_RATE);
+  const aiInsights = buildAiInsights(full.costs, yearly, AWS_MSP_RATE);
 
   const sync = () => { setSyncing(true); window.setTimeout(() => setSyncing(false), 700); };
 
   const tabProps: AwsCostTabProps = {
     account,
     data,
-    forecastSeries: MOCK_AWS_FULL.costs.dailyCosts,
-    yearlyData: MOCK_AWS_YEARLY,
-    resources: MOCK_AWS_FULL.resources,
-    budgets: MOCK_AWS_FULL.budgets,
-    instances: MOCK_AWS_FULL.instances,
-    s3Buckets: MOCK_AWS_FULL.s3Buckets,
-    cspRecommendations: MOCK_AWS_FULL.recommendations,
+    forecastSeries: full.costs.dailyCosts,
+    yearlyData: yearly,
+    resources: full.resources,
+    budgets: full.budgets,
+    instances: full.instances,
+    s3Buckets: full.s3Buckets,
+    cspRecommendations: full.recommendations,
     isCurrentMonth,
     hasData,
     mspRate: AWS_MSP_RATE,
@@ -131,6 +135,7 @@ export function AwsCostPage() {
           <button className="mv-icon-button" aria-label="Back to AWS overview" onClick={() => navigate('/aws')}><ChevronLeftIcon size={20} /></button>
           <span className="mv-status mv-status--warning">AWS</span>
           <Tooltip content={account.name}><h1 className="mv-title mv-cost-title">{account.name}</h1></Tooltip>
+          {account.sample && <SampleDataBadge />}
         </div>
         <div className="mv-cost-header-controls">
           {accounts.length > 1 && (
@@ -153,7 +158,7 @@ export function AwsCostPage() {
             </button>
             {monthOpen && (
               <div className="mv-nav-dropdown mv-cost-menu-list mv-cost-menu-list--months" role="menu">
-                {[...MOCK_AWS_YEARLY].reverse().map((m) => {
+                {[...yearly].reverse().map((m) => {
                   const isCur = m.year === currentYearly.year && m.month === currentYearly.month;
                   return (
                     <button key={`${m.year}-${m.month}`} role="menuitem" className="mv-nav-dropdown-item mv-cost-menu-item" onClick={() => { setMonthOpen(false); tabProps.onSelectMonth(m.year, m.month); }}>
@@ -217,7 +222,7 @@ export function AwsCostPage() {
         ]}
         facts={activeTab !== 'executive' ? [] : [
           { label: 'Active service types', value: data.services.length.toLocaleString(), detail: `${data.details.length} usage line item${data.details.length === 1 ? '' : 's'}` },
-          { label: 'Total resources', value: MOCK_AWS_FULL.resources.total.toLocaleString(), detail: `${MOCK_AWS_FULL.resources.byType.length} resource types` },
+          { label: 'Total resources', value: full.resources.total.toLocaleString(), detail: `${full.resources.byType.length} resource types` },
           { label: 'Top service', value: topService?.name ?? '—', detail: topService ? formatCurrency(topService.cost) : undefined },
           { label: 'Top region', value: topRegion?.region ?? '—', detail: topRegion ? formatCurrency(topRegion.cost) : undefined },
         ]}

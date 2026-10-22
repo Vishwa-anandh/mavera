@@ -6,6 +6,7 @@ import { SEED_SECURITY_NOTES, SEED_NOTE_HISTORY, simulateNoteCheck } from '../..
 import { SEED_SAP_DESTINATIONS } from '../../demo/sap/mockSystemConfiguration';
 import { seedTransportState } from '../../demo/sap/mockTransportManagement';
 import { DEFAULT_ALERT_SETTINGS, DETECTION_SCHEDULE, SEED_ALERT_RECIPIENTS, SEED_SAP_ALERTS, seedThresholds } from '../../demo/sap/mockSapAlerts';
+import { getWorkspaceProfile, onWorkspaceProfileChange } from './workspaceProfile';
 
 /**
  * Security Notes, System Configuration, Transport Management and SAP Alerts.
@@ -28,28 +29,57 @@ const simulate = <T>(work: () => T): Promise<T> => new Promise<T>((resolve) => {
 
 // ---- State -----------------------------------------------------------------------------------
 
-let notes: SecurityNote[] = structuredClone(SEED_SECURITY_NOTES);
-let noteHistory: NoteHistoryEntry[] = structuredClone(SEED_NOTE_HISTORY);
-let destinations: SapDestination[] = structuredClone(SEED_SAP_DESTINATIONS);
-let transport: TransportState = seedTransportState();
-let alerts: SapSmartAlert[] = structuredClone(SEED_SAP_ALERTS);
+let notes: SecurityNote[] = [];
+let noteHistory: NoteHistoryEntry[] = [];
+let destinations: SapDestination[] = [];
+let transport: TransportState = emptyTransportState();
+let alerts: SapSmartAlert[] = [];
 let alertSettings: AlertSettings = { ...DEFAULT_ALERT_SETTINGS };
 let thresholds: AlertThresholds = seedThresholds();
-let recipients: string[] = [...SEED_ALERT_RECIPIENTS];
+let recipients: string[] = [];
 /** When settings or thresholds were last saved; the alerts page counts this month's. */
 let adjustments: string[] = [];
 
-/** Restores every store to its seed. Tests call this between cases; the app never does. */
-export function resetSapAdminStore(): void {
-  notes = structuredClone(SEED_SECURITY_NOTES);
-  noteHistory = structuredClone(SEED_NOTE_HISTORY);
-  destinations = structuredClone(SEED_SAP_DESTINATIONS);
-  transport = seedTransportState();
-  alerts = structuredClone(SEED_SAP_ALERTS);
+/** No STMS connection, no requests, no log: what a new organisation sees until it connects a system. */
+function emptyTransportState(): TransportState {
+  return { stmsConnected: false, lastSync: null, route: null, transports: [], activity: [] };
+}
+
+/**
+ * Starting point of the active profile. A populated organisation has the whole sample landscape; a new one
+ * has nothing connected, no notes, no alerts and no recipients (its monitoring data appears when the first
+ * SAP system is connected, see `seedMonitoringSample`).
+ */
+function seed(): void {
+  const empty = getWorkspaceProfile() === 'empty';
+  notes = empty ? [] : structuredClone(SEED_SECURITY_NOTES);
+  noteHistory = empty ? [] : structuredClone(SEED_NOTE_HISTORY);
+  destinations = empty ? [] : structuredClone(SEED_SAP_DESTINATIONS);
+  transport = empty ? emptyTransportState() : seedTransportState();
+  alerts = empty ? [] : structuredClone(SEED_SAP_ALERTS);
   alertSettings = { ...DEFAULT_ALERT_SETTINGS };
   thresholds = seedThresholds();
-  recipients = [...SEED_ALERT_RECIPIENTS];
+  recipients = empty ? [] : [...SEED_ALERT_RECIPIENTS];
   adjustments = [];
+}
+seed();
+onWorkspaceProfileChange(seed);
+
+/** The first SAP system connected to a new organisation brings in the sample STMS queue and sample alerts. */
+function seedMonitoringSample(): void {
+  transport = seedTransportState();
+  alerts = structuredClone(SEED_SAP_ALERTS);
+}
+
+/** Back to the empty starting point once the last system is removed from a new organisation. */
+function clearMonitoringSample(): void {
+  transport = emptyTransportState();
+  alerts = [];
+}
+
+/** Restores every store to its seed. Tests call this between cases; the app never does. */
+export function resetSapAdminStore(): void {
+  seed();
 }
 
 /** Test hook: how long simulated calls take. */
@@ -159,9 +189,14 @@ const destinationRepo = {
   list(): SapDestination[] {
     return structuredClone(destinations);
   },
+  count(): number {
+    return destinations.length;
+  },
   add(input: SapDestinationInput): SapDestination {
     const created = buildDestination(nextId('dest'), input);
+    const first = destinations.length === 0;
     destinations = [...destinations, created];
+    if (first && getWorkspaceProfile() === 'empty') seedMonitoringSample();
     return structuredClone(created);
   },
   update(id: string, input: SapDestinationInput): SapDestination | null {
@@ -174,6 +209,7 @@ const destinationRepo = {
   remove(id: string): boolean {
     const before = destinations.length;
     destinations = destinations.filter((d) => d.id !== id);
+    if (before > 0 && destinations.length === 0 && getWorkspaceProfile() === 'empty') clearMonitoringSample();
     return destinations.length < before;
   },
   setConnected(id: string, connected: boolean): SapDestination | null {

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import {
@@ -22,7 +22,9 @@ import { Sparkline } from '../../../shared/ui/Sparkline';
 import { DonutChart } from '../../../shared/ui/DonutChart';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
+import { EmptyState } from '../../../shared/ui/EmptyState';
 import { ServerIcon, CloudIcon } from '../../../shared/ui/icons';
+import { CONNECT_TARGETS, useConnectionStatus, useHasSampleAccounts } from '../../workspace';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -67,11 +69,15 @@ export function HomePage() {
 
   const sap = useSapFleetSnapshot();
   const cloud = useCloudAttentionSources();
+  const navigate = useNavigate();
+  // A brand-new organisation has nothing connected: its modules show an empty state instead of sample figures.
+  const { cloudEmpty, sapEmpty, nothingConnected, firstStep } = useConnectionStatus();
+  const hasSampleAccounts = useHasSampleAccounts();
   const sapCounts = sap.counts;
   const noCloudAccessAtAll = !permissions.azure.orgHasAccess && !permissions.aws.orgHasAccess && !permissions.btp.orgHasAccess && !permissions.gcp.orgHasAccess;
   const cloudSubscribed = !noCloudAccessAtAll || invoiceOnly;
 
-  const sapMeter = {
+  const sapMeter = sapEmpty ? { segments: Array<MeterSegment>(METER_LENGTH).fill('empty'), caption: 'No SAP system connected yet' } : {
     // Most severe first, so problems lead the meter.
     segments: (['critical', 'warning', 'healthy'] as const)
       .flatMap((condition) => Array<MeterSegment>(sapCounts[condition]).fill(condition === 'critical' ? 'crit' : condition === 'warning' ? 'warn' : 'ok')),
@@ -80,12 +86,12 @@ export function HomePage() {
 
   const spend = summary.data ? totalSpendOf(summary.data) : 0;
   const forecast = summary.data?.totals?.forecast ?? null;
-  const cloudMeter = forecast && forecast > 0 ? {
+  const cloudMeter = cloudEmpty ? { segments: Array<MeterSegment>(METER_LENGTH).fill('empty'), caption: 'No cloud account connected yet' } : forecast && forecast > 0 ? {
     segments: proportionalSegments([
       { value: Math.min(spend, forecast), segment: 'fill' },
       { value: Math.max(forecast - spend, 0), segment: 'empty' },
     ]),
-    caption: `${Math.round((spend / forecast) * 100)}% of the ${formatCurrency(forecast)} month-end forecast`,
+    caption: `${Math.round((spend / forecast) * 100)}% of the ${formatCurrency(forecast)} month-end forecast${hasSampleAccounts ? ' · Sample data' : ''}`,
   } : undefined;
 
   // The summary now carries two years of months; the at-a-glance sparkline stays a six-month glance.
@@ -128,8 +134,8 @@ export function HomePage() {
           { label: 'Active alerts', value: smartAlerts.data ? String(activeAlertCountOf(smartAlerts.data)) : '—' },
         ]}
         features={['Cost visibility across Azure, AWS, GCP and SAP BTP', 'Optimisation recommendations', 'Budgets and smart alerts']}
-        actionLabel="Open Cost Overview"
-        actionPath="/cloud/overview"
+        actionLabel={cloudEmpty ? CONNECT_TARGETS.cloud.label : 'Open Cost Overview'}
+        actionPath={cloudEmpty ? CONNECT_TARGETS.cloud.path : '/cloud/overview'}
       />
     ),
     modules.sapMonitoring && (
@@ -144,8 +150,8 @@ export function HomePage() {
           { label: 'Warning', value: String(sapCounts.warning) },
           { label: 'Critical', value: String(sapCounts.critical) },
         ]}
-        actionLabel="Open SAP System Monitoring"
-        actionPath="/sap/systems"
+        actionLabel={sapEmpty ? CONNECT_TARGETS.sap.label : 'Open SAP System Monitoring'}
+        actionPath={sapEmpty ? CONNECT_TARGETS.sap.path : '/sap/systems'}
       />
     ),
   ].filter(Boolean);
@@ -157,7 +163,11 @@ export function HomePage() {
           <h2 id="sap-health-title" className="mv-panel-title">System & Service Health Overview</h2>
           <Link className="mv-quiet-button" to="/sap/systems">View all</Link>
         </div>
-        <SapSystemsPanel limit={5} showCounts={false} compact />
+        {sapEmpty ? (
+          <p className="mv-muted">No SAP system is connected yet. <Link to={CONNECT_TARGETS.sap.path}>{CONNECT_TARGETS.sap.label}</Link> to see its health here.</p>
+        ) : (
+          <SapSystemsPanel limit={5} showCounts={false} compact />
+        )}
       </section>
     ),
     modules.cloudCost && (
@@ -166,7 +176,9 @@ export function HomePage() {
           <h2 id="cost-by-provider-title" className="mv-panel-title">Cloud Cost by Provider</h2>
           <Link className="mv-quiet-button" to="/cloud/overview">View all</Link>
         </div>
-        {summary.data ? (
+        {cloudEmpty ? (
+          <p className="mv-muted">No cloud account is connected yet. <Link to={CONNECT_TARGETS.cloud.path}>{CONNECT_TARGETS.cloud.label}</Link> to see spend by provider here.</p>
+        ) : summary.data ? (
           <CostByProviderDonut totals={summary.data.totals ?? {}} />
         ) : (
           <p className="mv-muted">{summary.loading ? 'Loading…' : 'No cost data available.'}</p>
@@ -224,7 +236,7 @@ export function HomePage() {
             {modules.sapMonitoring && (
               <article className="mv-kpi">
                 <span className="mv-kpi-label">HANA memory</span>
-                <strong className="mv-kpi-value">{sap.hanaMemoryPercent}%</strong>
+                <strong className="mv-kpi-value">{sapEmpty ? '—' : `${sap.hanaMemoryPercent}%`}</strong>
                 <Link className="mv-quiet-button" to="/sap/databases">Open HANA</Link>
               </article>
             )}
@@ -235,6 +247,18 @@ export function HomePage() {
             </article>
           </div>
 
+          {nothingConnected ? (
+            <section className="mv-panel">
+              <EmptyState
+                icon={<CloudIcon size={28} />}
+                heading="Connect your first account"
+                explanation="Spend, alerts and system health from every module fill this dashboard as soon as one account or SAP system is connected."
+                actionLabel={firstStep.label}
+                onAction={() => navigate(firstStep.path)}
+              />
+            </section>
+          ) : (
+            <>
           <section className="mv-panel" aria-labelledby="attention-title">
             <div className="mv-panel-header">
               <div>
@@ -250,6 +274,8 @@ export function HomePage() {
           <div className="mv-row-3col">
             {healthRows}
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>

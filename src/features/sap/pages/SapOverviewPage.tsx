@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { SapConnectionGate } from '../components/SapConnectionGate';
 import { Link } from 'react-router-dom';
 import { sapRepository } from '../../../data-access';
 import { SapHealthSummary, SapSystemsPanel, sapConditionCounts } from '../components/SapSystemsPanel';
@@ -19,7 +20,7 @@ const SEVERITY_TONE = { Critical: 'danger', High: 'warning', Medium: 'primary', 
  * operations have going on, above the one systems table. Replaces the former System Health page;
  * `/sap/health` redirects here.
  */
-export function SapOverviewPage() {
+function SapOverviewPageContent() {
   const { systems, alerts, jobs, dumps, disks, notes } = useMemo(
     () => ({
       systems: sapRepository.listSystems(),
@@ -104,5 +105,14 @@ export function SapOverviewPage() {
         <SapSystemsPanel />
       </section>
     </div>
+  );
+}
+
+
+export function SapOverviewPage() {
+  return (
+    <SapConnectionGate title='SAP Overview' subtitle='Health at a glance, where the load is, and what needs attention across your connected systems.' willShow='system health, load and alerts'>
+      <SapOverviewPageContent />
+    </SapConnectionGate>
   );
 }

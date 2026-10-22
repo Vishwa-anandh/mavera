@@ -1,10 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { MOCK_BTP_ACCOUNTS } from '../../../demo/btp/mockBtpData';
+import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
+import { workspaceRepository } from '../../../data-access';
+import { useWorkspaceAccounts } from '../../workspace';
 import type { BtpAccount } from './btpTypes';
 
 interface BtpAccountContextValue {
   accounts: BtpAccount[];
-  addAccount: (account: BtpAccount) => void;
+  /** Connects an account; the store gives it its id and the provider's sample cost data under its name. */
+  addAccount: (account: Omit<BtpAccount, 'id'>) => BtpAccount;
   removeAccount: (id: string) => void;
   renameAccount: (id: string, name: string) => void;
   getAccount: (id: string) => BtpAccount | undefined;
@@ -13,23 +15,14 @@ interface BtpAccountContextValue {
 const BtpAccountContext = createContext<BtpAccountContextValue | undefined>(undefined);
 
 /** Mirrors the reference CCM app's btp/context/BtpAccountContext.jsx — same
- * nested-route pattern as AWS/GCP (see AwsAccountContext.tsx's doc comment
- * for why the account list needs to live above the router outlet). */
+ * nested-route pattern as AWS/GCP; the accounts are the organisation's
+ * connected BTP accounts in the workspace store (see AwsAccountContext.tsx). */
 export function BtpAccountProvider({ children }: { children: ReactNode }) {
-  const [accounts, setAccounts] = useState<BtpAccount[]>(MOCK_BTP_ACCOUNTS);
+  const accounts = useWorkspaceAccounts('btp');
 
-  const addAccount = useCallback((account: BtpAccount) => {
-    setAccounts((current) => [...current, account]);
-  }, []);
-
-  const removeAccount = useCallback((id: string) => {
-    setAccounts((current) => current.filter((a) => a.id !== id));
-  }, []);
-
-  const renameAccount = useCallback((id: string, name: string) => {
-    setAccounts((current) => current.map((a) => (a.id === id ? { ...a, name } : a)));
-  }, []);
-
+  const addAccount = useCallback((account: Omit<BtpAccount, 'id'>) => workspaceRepository.addConnectedAccount('btp', account), []);
+  const removeAccount = useCallback((id: string) => { workspaceRepository.removeAccount('btp', id); }, []);
+  const renameAccount = useCallback((id: string, name: string) => workspaceRepository.renameAccount('btp', id, name), []);
   const getAccount = useCallback((id: string) => accounts.find((a) => a.id === id), [accounts]);
 
   const value = useMemo<BtpAccountContextValue>(

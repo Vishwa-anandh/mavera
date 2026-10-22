@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { SapConnectionGate } from '../components/SapConnectionGate';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { fireToast } from '../../../shared/lib/toastEvents';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { Pagination } from '../../../shared/ui/Pagination';
@@ -34,7 +36,7 @@ const KPI_HELP: Record<(typeof NOTE_STATUSES)[number], string> = {
  * filterable, searchable, paged table of notes. Upload, Check Status and History sit in the page header;
  * every row can be rechecked against SAP or deleted. SAP itself is simulated in the data-access store.
  */
-export function SecurityNotesPage() {
+function SecurityNotesPageContent() {
   const confirm = useConfirm();
   const { notes, history, busy, upload, checkStatus, recheck, remove } = useSecurityNotes();
   const [search, setSearch] = useState('');
@@ -43,6 +45,8 @@ export function SecurityNotesPage() {
   const [download, setDownload] = useRememberedState<NoteFilters['download']>('sap', 'security-notes-download', 'All', oneOf(['All', ...NOTE_DOWNLOAD_STATUSES]));
   const [historyOpen, setHistoryOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  // Ctrl+K "Upload security notes" lands here with the upload dialog already open.
+  useOpenOnArrival('upload', () => setUploadOpen(true));
 
   const counts = securityNoteCounts(notes);
   const filtered = filterNotes(notes, { search, priority, status, download });
@@ -182,5 +186,14 @@ export function SecurityNotesPage() {
       {historyOpen && <NotesHistoryDrawer entries={history} onClose={() => setHistoryOpen(false)} />}
       {uploadOpen && <UploadNotesDialog trackedNumbers={notes.map((n) => n.noteNumber)} busy={busy?.kind === 'upload'} onClose={() => setUploadOpen(false)} onSubmit={onUpload} />}
     </div>
+  );
+}
+
+
+export function SecurityNotesPage() {
+  return (
+    <SapConnectionGate title='Security Notes' subtitle='SAP Security Notes tracking & management.' willShow='your security notes'>
+      <SecurityNotesPageContent />
+    </SapConnectionGate>
   );
 }

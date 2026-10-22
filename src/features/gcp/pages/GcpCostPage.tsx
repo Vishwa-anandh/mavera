@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { ChevronLeftIcon, RefreshIcon, SparkleIcon } from '../../../shared/ui/icons';
 import { Tooltip } from '../../../shared/ui/Tooltip';
 import { useGcpAccounts } from '../model/GcpAccountContext';
-import { MOCK_GCP_COSTS } from '../../../demo/gcp/mockGcpData';
+import { cloudSamplesRepository } from '../../../data-access';
+import { SampleDataBadge } from '../../workspace';
 import { buildAiInsights } from '../model/gcpDerivations';
 import type { GcpCostTabProps } from '../model/GcpCostTabProps';
 import { ExecutiveTab } from '../components/tabs/ExecutiveTab';
@@ -52,6 +53,8 @@ export function GcpCostPage() {
   const colors = chartColors[mode];
   const { getAccount } = useGcpAccounts();
   const account = getAccount(accountId ?? '');
+  // The provider's sample dataset; a connected project's own id is shown as its top project.
+  const data = useMemo(() => cloudSamplesRepository.gcp.costs(account), [account]);
 
   const [activeTab, setActiveTab] = useState<TabKey>('executive');
   const [syncing, setSyncing] = useState(false);
@@ -70,7 +73,6 @@ export function GcpCostPage() {
     );
   }
 
-  const data = MOCK_GCP_COSTS;
   const hasData = data.dailyCosts.length > 0 || data.services.length > 0;
   const dailyAvg = data.dailyCosts.length > 0 ? data.totalCost / data.dailyCosts.length : 0;
   const eomForecast = data.forecastData[0]?.projected_cost ?? null;
@@ -96,6 +98,7 @@ export function GcpCostPage() {
           <button className="mv-icon-button" aria-label="Back to GCP overview" onClick={() => navigate('/gcp')}><ChevronLeftIcon size={20} /></button>
           <span className="mv-status mv-status--info">GCP</span>
           <Tooltip content={account.name}><h1 className="mv-title" style={{ fontSize: '1.25rem' }}>{account.name}</h1></Tooltip>
+          {account.sample && <SampleDataBadge />}
         </div>
         <div className="mv-cost-header-controls">
           <div style={{ position: 'relative' }} ref={aiRef}>

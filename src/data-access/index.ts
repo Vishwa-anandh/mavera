@@ -41,3 +41,13 @@ export { CSP_DISCOUNT_RATES, invoicesRepository, resetInvoicesStore } from './re
 export type {
   BtpAccountInfo, BtpGlobalAccountCost, BtpSubaccountCost, BtpUsageRow, Invoice, InvoiceProvider, InvoiceRawSummary, InvoiceSection, InvoiceService,
 } from './contracts/invoices';
+export { workspaceRepository } from './repositories/workspaceRepository';
+export { cloudSamplesRepository } from './repositories/cloudSamplesRepository';
+export type { RecommendationInputs } from './repositories/cloudSamplesRepository';
+export { getWorkspaceProfile, isEmptyWorkspace, setWorkspaceProfile } from './repositories/workspaceProfile';
+export type {
+  AwsAccountRecord, AzureAccountRecord, BtpAccountRecord, GcpAccountRecord, NewWorkspaceAccount, OnboardingState, OnboardingStep, OnboardingStepId,
+  WorkspaceAccountRecord, WorkspaceAccountsByProvider, WorkspaceProfile, WorkspaceProvider, WorkspaceSampleSpend,
+} from './contracts/workspace';
+export { activityRepository } from './repositories/activityRepository';
+export type { BtpSecurityAssessment, BtpSecurityUser, GlobalAlertModule, GlobalAlertRow, GlobalAlertSeverity, SyncLogRecord } from './contracts/alerts';

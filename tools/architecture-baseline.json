@@ -1,28 +1,8 @@
 {
   "_note": "Files that import demo fixtures directly. Ratchet: entries may only be removed (replace with a repository in src/data-access); the check fails on new importers and on stale entries.",
   "demoImports": [
-    "src/features/alerts/components/AlertsPanel.tsx",
-    "src/features/aws/model/AwsAccountContext.tsx",
-    "src/features/aws/pages/AwsCostPage.tsx",
-    "src/features/aws/pages/AwsOverallDashboard.tsx",
-    "src/features/azure/pages/AzureAccountManager.tsx",
-    "src/features/azure/pages/AzureCostPage.tsx",
-    "src/features/azure/pages/AzureOverallDashboard.tsx",
-    "src/features/azure/pages/AzureRoot.tsx",
     "src/features/billing/model/BillingContext.tsx",
     "src/features/billing/pages/BillingPage.tsx",
-    "src/features/billing/pages/CustomersPage.tsx",
-    "src/features/btp/components/tabs/HierarchyTab.tsx",
-    "src/features/btp/model/BtpAccountContext.tsx",
-    "src/features/btp/pages/BtpAccountManager.tsx",
-    "src/features/btp/pages/BtpCostPage.tsx",
-    "src/features/btp/pages/BtpOverallDashboard.tsx",
-    "src/features/btp/pages/BtpServiceInstancesPage.tsx",
-    "src/features/gcp/model/GcpAccountContext.tsx",
-    "src/features/gcp/pages/GcpCostPage.tsx",
-    "src/features/gcp/pages/GcpOverallDashboard.tsx",
-    "src/features/recommendations/model/recommendationsDerivations.ts",
-    "src/features/sap/pages/BtpSecurityPage.tsx",
-    "src/features/syncLogs/pages/SyncLogsPage.tsx"
+    "src/features/billing/pages/CustomersPage.tsx"
   ]
 }

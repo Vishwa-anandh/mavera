@@ -235,3 +235,33 @@ describe('BudgetsPage', () => {
     expect(screen.queryByRole('button', { name: 'Add Budget' })).not.toBeInTheDocument();
   });
 });
+
+describe('BudgetsPage: opening a form on arrival (command palette)', () => {
+  const arriveAt = (url: string) => render(<MemoryRouter initialEntries={[url]}><ConfirmProvider><BudgetsPage /></ConfirmProvider></MemoryRouter>);
+  beforeEach(() => {
+    budgetsRepository.reset();
+    authState.role = 'admin';
+  });
+
+  it('?open=new focuses the budget name', () => {
+    arriveAt('/budgets?open=new');
+    expect(screen.getByLabelText('Budget Name')).toHaveFocus();
+  });
+
+  it('?open=add-channel#integrations opens the Add channel dialog on the integrations tab', () => {
+    arriveAt('/budgets?open=add-channel#integrations');
+    expect(screen.getByRole('tab', { name: /Alert integrations/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('dialog', { name: 'Add notification channel' })).toBeInTheDocument();
+  });
+
+  it('does not open the dialog for a member who cannot manage integrations', () => {
+    authState.role = 'member';
+    arriveAt('/budgets?open=add-channel#integrations');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('opens nothing without a request', () => {
+    arriveAt('/budgets#integrations');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});

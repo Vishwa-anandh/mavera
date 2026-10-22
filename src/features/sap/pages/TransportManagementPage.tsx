@@ -1,4 +1,5 @@
 import { SearchField } from '../../../shared/ui/SearchField';
+import { SapConnectionGate } from '../components/SapConnectionGate';
 import { FilterBar } from '../../../shared/ui/FilterBar';
 import { useState } from 'react';
 import { sapAdminRepository, type TransportState, type TransportStatus } from '../../../data-access';
@@ -27,7 +28,7 @@ type StatusFilter = TransportStatus | 'All';
  * The STMS data is sample data held in the data-access store; refreshing, setting a route, exporting and
  * importing all leave an entry in the log.
  */
-export function TransportManagementPage() {
+function TransportManagementPageContent() {
   const actor = useActor();
   const [state, setState] = useState<TransportState>(() => repo.getState());
   const [status, setStatus] = useState<StatusFilter>('All');
@@ -186,5 +187,14 @@ export function TransportManagementPage() {
 
       {logOpen && <ActivityLogDrawer entries={state.activity} onClose={() => setLogOpen(false)} />}
     </div>
+  );
+}
+
+
+export function TransportManagementPage() {
+  return (
+    <SapConnectionGate title='Transport Management' subtitle='SAP landscape transport intelligence & operations.' willShow='transport requests and the import queue'>
+      <TransportManagementPageContent />
+    </SapConnectionGate>
   );
 }

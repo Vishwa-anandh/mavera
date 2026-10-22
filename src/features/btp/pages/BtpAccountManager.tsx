@@ -1,10 +1,12 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { CloudIcon, ChevronDownIcon, ChevronRightIcon, TrashIcon, PencilIcon, CheckIcon, CloseIcon, PlusIcon, LockIcon } from '../../../shared/ui/icons';
 import { useBtpAccounts } from '../model/BtpAccountContext';
-import { MOCK_BTP_SM_CONFIGS, MOCK_BTP_SUBACCOUNTS } from '../../../demo/btp/mockBtpData';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
+import { cloudSamplesRepository } from '../../../data-access';
+import { SampleDataBadge } from '../../workspace';
 import { btpRegionLabel } from '../model/btpDerivations';
 import type { BtpAccount } from '../model/btpTypes';
 
@@ -84,6 +86,9 @@ export function BtpAccountManager() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  // Ctrl+K "Connect SAP BTP account": the form is always on this page, so arrival focuses its first field.
+  useOpenOnArrival('connect', () => formRef.current?.querySelector('input')?.focus());
 
   const update = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [key]: e.target.value });
   const blurAppendOAuth = (key: 'tokenUrl' | 'cisTokenUrl') => () => setForm((f) => ({ ...f, [key]: appendOAuthPath(f[key]) }));
@@ -96,7 +101,6 @@ export function BtpAccountManager() {
     setSaving(true);
     await new Promise((resolve) => setTimeout(resolve, 500));
     addAccount({
-      id: `btp-acc-${accounts.length + 1}`,
       name: form.name,
       targetUrl: form.targetUrl,
       region: subdomainOf(form.targetUrl) ?? undefined,
@@ -132,7 +136,7 @@ export function BtpAccountManager() {
           <div className="mv-panel-header"><h2 className="mv-panel-title">Connected Accounts</h2></div>
           <ul className="mv-account-list">
             {accounts.map((account) => {
-              const subaccounts = account.hasCis ? MOCK_BTP_SUBACCOUNTS : [];
+              const subaccounts = account.hasCis ? cloudSamplesRepository.btp.subaccounts() : [];
               const expanded = expandedId === account.id;
               return (
                 <li key={account.id} className="mv-account-row" style={{ flexWrap: 'wrap' }}>
@@ -149,7 +153,7 @@ export function BtpAccountManager() {
                         {renamingId === account.id ? (
                           <input autoFocus className="mv-account-rename-input" value={renameValue} onClick={(e) => e.stopPropagation()} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setRenamingId(null); }} />
                         ) : (
-                          <strong>{account.name}{account.hasCis && <span className="mv-status mv-status--info" style={{ marginLeft: '0.5rem' }}>CIS</span>}</strong>
+                          <strong>{account.name}{account.hasCis && <span className="mv-status mv-status--info" style={{ marginLeft: '0.5rem' }}>CIS</span>}{account.sample && <SampleDataBadge className="mv-account-sample" />}</strong>
                         )}
                         <span className="mv-muted">{account.targetUrl}</span>
                       </span>
@@ -171,7 +175,7 @@ export function BtpAccountManager() {
                   {expanded && subaccounts.length > 0 && (
                     <div style={{ width: '100%', marginTop: '0.625rem', paddingLeft: '2.5rem', display: 'grid', gap: '0.5rem' }}>
                       {subaccounts.map((sub) => {
-                        const smConfig = MOCK_BTP_SM_CONFIGS[sub.guid];
+                        const smConfig = cloudSamplesRepository.btp.smConfig(sub.guid);
                         return (
                           <button
                             key={sub.guid}
@@ -215,7 +219,7 @@ export function BtpAccountManager() {
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Connect New Account</h2></div>
           {error && <div className="mv-inline-error" role="alert" style={{ marginBottom: '1rem' }}>{error}</div>}
-          <form onSubmit={submit}>
+          <form ref={formRef} onSubmit={submit}>
             <div className="mv-notice" style={{ marginBottom: '1rem' }}>
               <strong>Service Instance 1 — COST_API</strong> (required, Usage Data Management Service, plan <code className="mv-code">reporting-ga-admin</code>). Path: BTP Cockpit → subaccount → Cloud Foundry → Spaces → Instances → COST_API → Service Keys → View.
             </div>

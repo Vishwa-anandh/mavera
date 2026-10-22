@@ -1,6 +1,7 @@
 import { SearchField } from '../../../shared/ui/SearchField';
 import { FilterBar } from '../../../shared/ui/FilterBar';
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auditRepository } from '../../../data-access';
 import { Can } from '../../access';
 import { PageHeader } from '../../../shared/ui/PageHeader';
@@ -47,6 +48,7 @@ const SYNC_DELAY_MS = 700;
  * The feed is held in memory in this prototype; "Manual re-sync" simulates pulling new events.
  */
 export function AuditTrailPage() {
+  const navigate = useNavigate();
   const feed = useAuditFeed();
   const [filters, setFilters] = useState<AuditFilters>(NO_FILTERS);
   const [syncing, setSyncing] = useState(false);
@@ -153,8 +155,8 @@ export function AuditTrailPage() {
             icon={<ClockIcon size={28} />}
             heading={feed.length === 0 ? 'No events recorded yet' : `No records for “${ACTOR_OPTIONS.find((o) => o.key === filters.actor)?.label ?? 'All'}”`}
             explanation={feed.length === 0 ? 'Events appear here as people sign in, change access and manage systems.' : 'Nothing matches these filters. Widen the date range, try another module or clear the search.'}
-            actionLabel={hasActiveFilters(filters) ? 'Clear filters' : undefined}
-            onAction={hasActiveFilters(filters) ? () => setFilters(NO_FILTERS) : undefined}
+            actionLabel={hasActiveFilters(filters) ? 'Clear filters' : feed.length === 0 ? 'Add a user' : undefined}
+            onAction={hasActiveFilters(filters) ? () => setFilters(NO_FILTERS) : feed.length === 0 ? () => navigate('/users?open=add-user') : undefined}
           />
         ) : (
           <div className="mv-audit-timeline">

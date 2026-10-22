@@ -69,3 +69,17 @@ export function demoDailySpend(monthly: Array<{ key: string; total: number }>, f
   }
   return rows;
 }
+
+/** The sample session's last day: September 2026 is month-to-date through the 28th. */
+export const DEMO_LAST_DAY = '2026-09-28';
+
+/** Two years of monthly spend: 18 generated earlier months, then the six months below. September is month-to-date. */
+export const DEMO_MONTHLY: DemoMonthlyRow[] = [
+  ...demoEarlierMonths(),
+  { key: '2026-04', total: 13100, azure: 6600, aws: 4900, btp: 1200, gcp: 400 },
+  { key: '2026-05', total: 14250, azure: 7100, aws: 5000, btp: 1650, gcp: 500 },
+  { key: '2026-06', total: 13800, azure: 6900, aws: 4950, btp: 1500, gcp: 450 },
+  { key: '2026-07', total: 15420, azure: 7800, aws: 5200, btp: 1720, gcp: 700 },
+  { key: '2026-08', total: 15840, azure: 7950, aws: 5350, btp: 1790, gcp: 750 },
+  { key: '2026-09', total: 16230, azure: 8420, aws: 5310, btp: 1860, gcp: 640 },
+];

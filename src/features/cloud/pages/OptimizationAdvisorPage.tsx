@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { CloudConnectionGate } from '../components/CloudConnectionGate';
 import { cloudInsightsRepository, type OptimizationOpportunity } from '../../../data-access';
 import { BarList } from '../../../shared/ui/BarList';
 import { DetailDrawer, DetailList } from '../../../shared/ui/DetailDrawer';
@@ -36,7 +37,7 @@ const DISMISS_REASONS = ['Not applicable', 'Already planned', 'Business requirem
  * another one (same spend) so savings aren't counted twice. Actions here only record ownership
  * and decisions; nothing is changed in the cloud from this page.
  */
-export function OptimizationAdvisorPage() {
+function OptimizationAdvisorPageContent() {
   const allOpportunities = useMemo(() => cloudInsightsRepository.listOptimizationOpportunities(), []);
   // One provider filter for the whole page (overview figures and this list); limited to providers the person may see.
   const scope = useSavingsScope();
@@ -183,5 +184,13 @@ export function OptimizationAdvisorPage() {
         </DetailDrawer>
       )}
     </div>
+  );
+}
+
+export function OptimizationAdvisorPage() {
+  return (
+    <CloudConnectionGate title="Savings & Optimization" subtitle="What you could save, what Maitsys rates already save you, and every opportunity to act on." willShow="savings opportunities and what Maitsys rates already save you">
+      <OptimizationAdvisorPageContent />
+    </CloudConnectionGate>
   );
 }

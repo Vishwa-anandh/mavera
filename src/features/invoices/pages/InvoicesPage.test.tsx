@@ -112,3 +112,10 @@ describe('InvoicesPage delete', () => {
     expect(screen.getByText('Select an invoice to analyse')).toBeInTheDocument();
   });
 });
+
+describe('InvoicesPage: opening the upload dialog on arrival (command palette)', () => {
+  it('?open=upload opens the Upload invoice dialog', () => {
+    render(<MemoryRouter initialEntries={['/invoices?open=upload']}><ThemeProvider><ConfirmProvider><InvoicesPage /></ConfirmProvider></ThemeProvider></MemoryRouter>);
+    expect(screen.getByRole('dialog', { name: 'Upload invoice' })).toBeInTheDocument();
+  });
+});

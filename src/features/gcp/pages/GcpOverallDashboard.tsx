@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CloudIcon, SettingsIcon } from '../../../shared/ui/icons';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
 import { DonutChart } from '../../../shared/ui/DonutChart';
 import { useGcpAccounts } from '../model/GcpAccountContext';
-import { gcpAccountSummaries, gcpTopServices } from '../../../demo/gcp/mockGcpData';
+import { cloudSamplesRepository } from '../../../data-access';
+import { SampleDataBadge } from '../../workspace';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 
@@ -23,8 +25,8 @@ export function GcpOverallDashboard() {
   const { accounts } = useGcpAccounts();
   const { mode } = useMaveraTheme();
   const colors = chartColors[mode];
-  const summaries = gcpAccountSummaries();
-  const topServices = gcpTopServices();
+  const summaries = useMemo(() => cloudSamplesRepository.gcp.summaries(accounts), [accounts]);
+  const topServices = useMemo(() => cloudSamplesRepository.gcp.topServices(accounts), [accounts]);
   const totalCost = summaries.reduce((sum, a) => sum + a.totalCost, 0);
   const topService = topServices[0];
 
@@ -54,7 +56,7 @@ export function GcpOverallDashboard() {
           <span className="mv-avatar" style={{ background: '#3b82f6', borderRadius: '0.625rem' }}><CloudIcon size={18} /></span>
           <div>
             <h1 className="mv-title" style={{ fontSize: '1.375rem' }}>GCP Overview</h1>
-            <p className="mv-subtitle">{accounts.length} project{accounts.length === 1 ? '' : 's'} connected.</p>
+            <p className="mv-subtitle">{accounts.length} project{accounts.length === 1 ? '' : 's'} connected. {accounts.some((a) => a.sample) && <SampleDataBadge />}</p>
           </div>
         </div>
         <button className="mv-secondary-button" onClick={() => navigate('/gcp/accounts')}>

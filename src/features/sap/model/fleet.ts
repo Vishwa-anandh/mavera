@@ -28,7 +28,7 @@ export function useSapFleetSnapshot(): SapFleetSnapshot {
       }),
       counts,
       systemCount: systems.length,
-      hanaMemoryPercent: sapRepository.getHana().system.memory.percent,
+      hanaMemoryPercent: sapRepository.isConnected() ? sapRepository.getHana().system.memory.percent : 0,
       unreadAlerts: alerts.filter((a) => !a.read).length,
     };
   }, []);

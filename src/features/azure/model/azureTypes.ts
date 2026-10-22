@@ -14,6 +14,8 @@ export interface AzureAccount {
   subscriptionId: string;
   tenantId: string;
   clientId: string;
+  /** True for an account connected in this session: its cost data is the provider's sample dataset ("Sample data"). */
+  sample?: boolean;
 }
 
 export interface AzureAccountSummary {

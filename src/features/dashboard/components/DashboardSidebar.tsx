@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
+import { CONNECT_TARGETS } from '../../workspace';
 import { CrownIcon, ServerIcon, CloudIcon, BellIcon, ReportIcon, SettingsIcon, HeadsetIcon } from '../../../shared/ui/icons';
 
 const QUICK_ACCESS = [
-  { key: 'sap', label: 'Add SAP System', path: '/sap/systems', icon: ServerIcon, module: 'sapMonitoring' as const },
-  { key: 'azure', label: 'Add Azure Subscription', path: '/cloud/overview', icon: CloudIcon, module: 'cloudCost' as const },
+  { key: 'sap', label: 'Add SAP System', path: CONNECT_TARGETS.sap.path, icon: ServerIcon, module: 'sapMonitoring' as const },
+  { key: 'azure', label: 'Add Azure Subscription', path: CONNECT_TARGETS.azure.path, icon: CloudIcon, module: 'cloudCost' as const },
   { key: 'alerts', label: 'Manage Alerts', path: '/alerts', icon: BellIcon },
   { key: 'reports', label: 'Generate Report', path: '/cloud/analytics', icon: ReportIcon },
   { key: 'settings', label: 'Settings', path: '/account', icon: SettingsIcon },

@@ -1,7 +1,4 @@
-import { MOCK_AZURE_CSP_RECOMMENDATIONS, MOCK_AZURE_FULL } from '../../../demo/azure/mockAzureData';
-import { MOCK_AWS_CSP_RECOMMENDATIONS, MOCK_AWS_FULL } from '../../../demo/aws/mockAwsData';
-import { MOCK_BTP_COSTS } from '../../../demo/btp/mockBtpData';
-import { MOCK_GCP_COSTS } from '../../../demo/gcp/mockGcpData';
+import { cloudSamplesRepository, type RecommendationInputs } from '../../../data-access';
 import type { CombinedRecommendation, DonutSlice, SavingsCategory, TopRecommendation } from './recommendationsTypes';
 
 /** Maitsys's own contracted MSP/CSP discount rate per provider — same
@@ -19,10 +16,10 @@ function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 }
 
-function combinedRecommendations(): CombinedRecommendation[] {
+function combinedRecommendations(inputs: RecommendationInputs): CombinedRecommendation[] {
   return [
-    ...MOCK_AZURE_CSP_RECOMMENDATIONS.map((r) => ({ id: r.id, provider: 'azure' as const, action: r.action, description: r.description, estimated_savings: r.estimated_savings })),
-    ...MOCK_AWS_CSP_RECOMMENDATIONS.map((r) => ({ id: r.id, provider: 'aws' as const, action: r.action, description: r.description, estimated_savings: r.estimated_savings })),
+    ...inputs.azureRecommendations.map((r) => ({ id: r.id, provider: 'azure' as const, action: r.action, description: r.description, estimated_savings: r.estimated_savings })),
+    ...inputs.awsRecommendations.map((r) => ({ id: r.id, provider: 'aws' as const, action: r.action, description: r.description, estimated_savings: r.estimated_savings })),
   ];
 }
 
@@ -65,10 +62,9 @@ export interface RecommendationsView {
  * rates applied to per-provider spend, BTP's own data-driven savings
  * model) regardless of which provider filter is active. */
 export function buildRecommendationsView(providerFilter: ProviderFilter): RecommendationsView {
-  const azureSpend = MOCK_AZURE_FULL.costs.totalCost;
-  const awsSpend = MOCK_AWS_FULL.costs.totalCost;
-  const btpSpend = MOCK_BTP_COSTS.totalCost;
-  const gcpSpend = MOCK_GCP_COSTS.totalCost;
+  const inputs = cloudSamplesRepository.recommendationInputs();
+  const { azure: azureSpend, aws: awsSpend, btp: btpSpend, gcp: gcpSpend } = inputs.spend;
+  const btpCosts = inputs.btpCosts;
 
   const effectiveSpend = {
     azure: providerFilter && providerFilter !== 'azure' ? 0 : azureSpend,
@@ -101,13 +97,13 @@ export function buildRecommendationsView(providerFilter: ProviderFilter): Recomm
   const cspGcp = effectiveSpend.gcp * MSP_RATES.gcp;
   const cspTotal = cspAzure + cspAws + cspBtp + cspGcp;
 
-  const recs = combinedRecommendations().filter((r) => !providerFilter || r.provider === providerFilter);
+  const recs = combinedRecommendations(inputs).filter((r) => !providerFilter || r.provider === providerFilter);
   const buckets = categorize(recs);
 
   // BTP-specific, data-driven savings model (CPEA / plan optimisation /
   // unused instances / subaccount consolidation) — ported verbatim.
   const btpCpeaSavings = isBtpOnly ? effectiveSpend.btp * 0.1 : 0;
-  const allBtpServices = MOCK_BTP_COSTS.servicesBySubaccount.flatMap((s) => s.services);
+  const allBtpServices = btpCosts.servicesBySubaccount.flatMap((s) => s.services);
   const PAID_PLAN_KEYWORDS = ['enterprise', 'standard', 'application', 'service', 'default'];
   const FREE_ELIGIBLE_SERVICES = ['alert notification', 'application autoscaler', 'feature flags', 'connectivity', 'destination', 'html5 application repository', 'document management', 'workflow management'];
   const downgradableCost = allBtpServices
@@ -122,7 +118,7 @@ export function buildRecommendationsView(providerFilter: ProviderFilter): Recomm
   const unusedBtpCost = allBtpServices.filter((svc) => svc.cost > 0 && svc.usage < 0.5).reduce((sum, svc) => sum + svc.cost, 0);
   const btpUnusedSavings = isBtpOnly ? (unusedBtpCost > 0 ? unusedBtpCost * 0.8 : effectiveSpend.btp * 0.03) : 0;
 
-  const fragSubs = MOCK_BTP_COSTS.subaccounts.filter((s) => s.cost > 0 && effectiveSpend.btp > 0 && s.cost / effectiveSpend.btp < 0.05);
+  const fragSubs = btpCosts.subaccounts.filter((s) => s.cost > 0 && effectiveSpend.btp > 0 && s.cost / effectiveSpend.btp < 0.05);
   const btpConsolidationSavings = isBtpOnly && fragSubs.length > 1 ? fragSubs.reduce((sum, s) => sum + s.cost, 0) * 0.15 : 0;
   const btpOptTotal = btpCpeaSavings + btpPlanSavings + btpUnusedSavings + btpConsolidationSavings;
 

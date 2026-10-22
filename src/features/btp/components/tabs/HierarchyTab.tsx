@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { BtpCostTabProps } from '../../model/BtpCostTabProps';
 import type { BtpSubaccount } from '../../model/btpTypes';
 import { btpRegionLabel, directoriesWithCosts, orphanSubaccounts, regionBreakdown, type DirectoryWithCost } from '../../model/btpDerivations';
-import { MOCK_BTP_SERVICE_INSTANCES, MOCK_BTP_SM_CONFIGS } from '../../../../demo/btp/mockBtpData';
+import { cloudSamplesRepository } from '../../../../data-access';
 import { DonutChart } from '../../../../shared/ui/DonutChart';
 import { BuildingIcon, HierarchyIcon } from '../../../../shared/ui/icons';
 
@@ -292,8 +292,8 @@ function SubaccountView({ sub, dir, currency, servicesBySubaccount, globalServic
   onSelectSibling: (guid: string) => void;
 }) {
   const ownServices = servicesBySubaccount.find((sa) => sa.subaccountGuid === sub.guid);
-  const smConfig = MOCK_BTP_SM_CONFIGS[sub.guid];
-  const instances = MOCK_BTP_SERVICE_INSTANCES[sub.guid] ?? [];
+  const smConfig = cloudSamplesRepository.btp.smConfig(sub.guid);
+  const instances = cloudSamplesRepository.btp.serviceInstances(sub.guid);
   const siblings = dir.subaccounts.filter((s) => s.guid !== sub.guid);
 
   return (

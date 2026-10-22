@@ -1,6 +1,6 @@
-import type { SyncLog } from '../../features/syncLogs';
+import type { SyncLogRecord } from '../../data-access';
 
-export const MOCK_SYNC_LOGS: SyncLog[] = [
+export const MOCK_SYNC_LOGS: SyncLogRecord[] = [
   { id: 'log-1', accountName: 'Production Azure', provider: 'azure', triggeredBy: 'system', startedAt: '2026-09-28T05:00:00Z', completedAt: '2026-09-28T05:00:42Z', status: 'success' },
   { id: 'log-2', accountName: 'AWS Primary', provider: 'aws', triggeredBy: 'system', startedAt: '2026-09-28T05:00:00Z', completedAt: '2026-09-28T05:01:18Z', status: 'success' },
   { id: 'log-3', accountName: 'SAP BTP Global Account', provider: 'btp', triggeredBy: 'system', startedAt: '2026-09-28T05:00:00Z', status: 'running' },

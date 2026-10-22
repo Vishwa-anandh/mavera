@@ -102,3 +102,15 @@ describe('SystemConfigurationPage', () => {
     expect(screen.getByText('No destinations yet.')).toBeInTheDocument();
   });
 });
+
+describe('SystemConfigurationPage: opening the form on arrival (command palette)', () => {
+  it('?open=connect opens the New Destination form', () => {
+    render(<ThemeProvider><MemoryRouter initialEntries={['/sap/configuration?open=connect']}><ConfirmProvider><SystemConfigurationPage /></ConfirmProvider></MemoryRouter></ThemeProvider>);
+    expect(screen.getByRole('dialog', { name: 'New Destination' })).toBeInTheDocument();
+  });
+
+  it('opens no form when reached normally', () => {
+    renderPage();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});

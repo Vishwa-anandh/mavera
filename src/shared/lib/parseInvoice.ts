@@ -1,5 +1,5 @@
 /**
- * The public invoice demo. Nothing here reads or uploads a file: the "parse" is a deterministic simulation that derives a
+ * The invoice parser shared by the public /invoice-demo page and the signed-in Invoices upload dialog. Nothing here reads or uploads a file: the "parse" is a deterministic simulation that derives a
  * plausible invoice from the provider, the file name and the file size, so the same file always shows the same result.
  */
 
@@ -56,6 +56,9 @@ export interface ParsedInvoice {
   fileName: string;
   invoiceNumber: string;
   billingPeriod: string;
+  /** The month and year the billing period falls in (month is 1 to 12), for saving the invoice under its period. */
+  periodMonth: number;
+  periodYear: number;
   currency: 'USD' | 'EUR';
   lineItems: DemoLineItem[];
   subtotal: number;
@@ -160,6 +163,12 @@ function invoiceNumberFor(provider: DemoProvider, random: () => number): string 
   }
 }
 
+/** The month and year behind `billingPeriodFor`. */
+function billingMonthFor(pick: number): { month: number; year: number } {
+  const index = Math.floor(pick * 12);
+  return { month: ((9 + index) % 12) + 1, year: 2025 + Math.floor((9 + index) / 12) };
+}
+
 const toCents = (value: number) => Math.round(value * 100);
 
 /**
@@ -171,7 +180,9 @@ export function simulateInvoiceParse(input: { provider: DemoProvider; fileName: 
   const random = seededRandom(hashText(`${provider}|${fileName.trim().toLowerCase()}|${sizeBytes}`));
 
   const invoiceNumber = invoiceNumberFor(provider, random);
-  const billingPeriod = billingPeriodFor(random());
+  const periodPick = random();
+  const billingPeriod = billingPeriodFor(periodPick);
+  const { month: periodMonth, year: periodYear } = billingMonthFor(periodPick);
 
   // A bill of between roughly 1,800 and 48,000 in its currency, spread over 5 to all of the provider's services.
   const target = 1800 + Math.pow(random(), 2) * 46000;
@@ -205,6 +216,8 @@ export function simulateInvoiceParse(input: { provider: DemoProvider; fileName: 
     fileName,
     invoiceNumber,
     billingPeriod,
+    periodMonth,
+    periodYear,
     currency: CURRENCY[provider],
     lineItems: [...lineItems].sort((a, b) => b.amount - a.amount || a.service.localeCompare(b.service)),
     subtotal: subtotalCents / 100,

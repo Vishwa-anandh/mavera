@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { invoicesRepository } from '../../../data-access';
 import type { CloudProvider } from '../../../shared/types/auth';
-import { cspBreakdownOf, detectInvoiceUpload, providerCountsOf } from './invoicesDerivations';
+import { simulateInvoiceParse } from '../../../shared/lib/parseInvoice';
+import { buildFakeParsedInvoice, cspBreakdownOf, detectInvoiceUpload, providerCountsOf } from './invoicesDerivations';
 
 const byId = (id: string) => invoicesRepository.list().find((i) => i.id === id)!;
 
@@ -91,5 +92,15 @@ describe('detectInvoiceUpload', () => {
 
   it('says so when no provider they can use takes this file type', () => {
     expect(detectInvoiceUpload('oct.xlsx', ['azure']).problem).toMatch(/SAP BTP|PDF/);
+  });
+});
+
+describe('buildFakeParsedInvoice from a parsed result', () => {
+  it('saves the figures, period and number the parse result showed', () => {
+    const parsed = simulateInvoiceParse({ provider: 'btp', fileName: 'btp-export.xlsx', sizeBytes: 9_000 });
+    const invoice = buildFakeParsedInvoice('btp', 'btp-export.xlsx', 'Prod', new Date(2026, 9, 22), parsed);
+    expect(invoice).toMatchObject({ provider: 'btp', month: parsed.periodMonth, year: parsed.periodYear, total_cost: parsed.total, currency: 'EUR', file_name: 'btp-export.xlsx' });
+    expect(invoice.raw_summary).toMatchObject({ invoiceNumber: parsed.invoiceNumber, billingProfile: 'Prod', charges: parsed.subtotal, taxAmount: parsed.tax });
+    expect(invoice.services.map((s) => s.name)).toEqual(parsed.spendByService.map((s) => s.service));
   });
 });

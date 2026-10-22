@@ -3877,6 +3877,28 @@ html:has(.mv-setup), body:has(.mv-setup) { overflow-x: clip; }
   .mv-content .mv-table.mv-table--stack td { height: auto; padding-inline: 0; }
 }
 
+/* ---- Invoices: Upload Invoice dialog hosts the shared invoice parser (InvoiceParserForm + ParsedInvoiceResult, as on /invoice-demo) ---- */
+.mv-dialog--parser { width: min(100%, 40rem); max-height: none; overflow: visible; }
+/* A long result scrolls the overlay (the page level), never the dialog box itself. */
+.mv-dialog-backdrop--tall { overflow-y: auto; align-items: safe center; }
+.mv-parser-lede { margin: -0.5rem 0 1rem; }
+.mv-parser-saved { margin: -0.5rem 0 1rem; color: var(--mv-success); }
+.mv-parser-billing { margin: 1rem 0 0; }
+.mv-parser-billing .mv-field-help { display: inline; margin: 0; }
+.mv-idemo-hint { margin: 0.5rem 0 0; }
+.mv-idemo-card--flush { width: 100%; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.mv-idemo-card--flush .mv-idemo-submit { justify-content: flex-end; }
+.mv-idemo-card--flush .mv-idemo-submit > p { order: -1; margin-right: auto; }
+.mv-idemo-card--flush .mv-idemo-note { margin-top: 1rem; }
+.mv-idemo-result--compact { gap: 1.25rem; }
+.mv-idemo-result--compact .mv-idemo-columns { grid-template-columns: minmax(0, 1fr); }
+/* The result's table styling used to hang off the public page's .mv-idemo wrapper; it now stands on its own. */
+.mv-idemo-result .mv-table tfoot th { color: var(--mv-text-secondary); font-size: 0.875rem; text-align: left; }
+.mv-idemo-result .mv-table tfoot .mv-idemo-total-row th { color: var(--mv-text); }
+@media (max-width: 40rem) {
+  .mv-idemo-result .mv-table th, .mv-idemo-result .mv-table td { padding-inline: 0.625rem; white-space: normal; }
+}
+
 /* ==========================================================================
    Dashboard at-a-glance strip: one flat card. The tile groups must not pick up the
    rounded, shadowed card look; titles, values and links share one left edge.

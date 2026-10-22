@@ -1,11 +1,8 @@
-import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ParsedInvoiceResult } from '../components/ParsedInvoiceResult';
-import {
-  ACCEPTED_EXTENSIONS, DEMO_PROVIDERS, MAX_INVOICE_BYTES, PARSE_DELAY_MS, formatFileSize, invoiceFileProblem, simulateInvoiceParse,
-  type DemoProvider, type ParsedInvoice,
-} from '../model/parseInvoice';
-import { FileTextIcon, UploadIcon } from '../../../shared/ui/icons';
+import { InvoiceParserForm } from '../../../shared/ui/InvoiceParserForm';
+import { ParsedInvoiceResult } from '../../../shared/ui/ParsedInvoiceResult';
+import { PARSE_DELAY_MS, invoiceFileProblem, simulateInvoiceParse, type DemoProvider, type ParsedInvoice } from '../../../shared/lib/parseInvoice';
 import maveraLogo from '../../../../assets/brand/mavera-logo.png';
 import maitsysLogo from '../../../../assets/brand/maitsys.png';
 
@@ -20,15 +17,10 @@ export function InvoiceDemoPage() {
   const [provider, setProvider] = useState<DemoProvider>('azure');
   const [file, setFile] = useState<File | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
   const [stage, setStage] = useState<Stage>('choose');
   const [result, setResult] = useState<ParsedInvoice | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const providerLegendRef = useRef<HTMLLegendElement>(null);
-  const providerName = useId();
-  const dropHelpId = useId();
-  const problemId = useId();
 
   useEffect(() => {
     if (stage !== 'parsing' || !file) return undefined;
@@ -43,20 +35,10 @@ export function InvoiceDemoPage() {
     if (stage === 'done') headingRef.current?.focus();
   }, [stage]);
 
-  const choose = (picked: File | undefined) => {
-    if (!picked) return;
+  const choose = (picked: File) => {
     const reason = invoiceFileProblem(picked);
     setProblem(reason);
     setFile(reason ? null : picked);
-  };
-  const onInput = (event: ChangeEvent<HTMLInputElement>) => {
-    choose(event.target.files?.[0]);
-    event.target.value = '';
-  };
-  const onDrop = (event: DragEvent<HTMLLabelElement>) => {
-    event.preventDefault();
-    setDragging(false);
-    choose(event.dataTransfer.files?.[0]);
   };
   const reset = () => {
     setStage('choose');
@@ -86,60 +68,23 @@ export function InvoiceDemoPage() {
         </div>
 
         {stage === 'done' && result ? (
-          <ParsedInvoiceResult ref={headingRef} invoice={result} onReset={reset} />
-        ) : (
-          <form
-            className="mv-idemo-card"
-            aria-busy={parsing}
-            onSubmit={(event) => { event.preventDefault(); if (file && !parsing) setStage('parsing'); }}
-          >
-            <fieldset className="mv-idemo-providers" disabled={parsing}>
-              <legend ref={providerLegendRef} tabIndex={-1}>Cloud provider</legend>
-              <div className="mv-idemo-provider-list">
-                {DEMO_PROVIDERS.map((option) => (
-                  <label key={option.id} className="mv-idemo-provider">
-                    <input type="radio" name={providerName} value={option.id} checked={provider === option.id} onChange={() => setProvider(option.id)} />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
+          <ParsedInvoiceResult ref={headingRef} invoice={result} onReset={reset}>
+            <aside className="mv-idemo-cta" aria-label="Next steps">
+              <div>
+                <h3 className="mv-panel-title">Track every invoice, not just this one</h3>
+                <p className="mv-muted">Register your company to keep parsed invoices next to your live cloud costs, budgets and alerts.</p>
               </div>
-              <p className="mv-field-help">{DEMO_PROVIDERS.find((p) => p.id === provider)?.hint}</p>
-            </fieldset>
-
-            <label
-              className={`mv-idemo-drop${dragging ? ' is-dragging' : ''}${file ? ' has-file' : ''}${problem ? ' has-problem' : ''}`}
-              onDragOver={(event) => { event.preventDefault(); if (!parsing) setDragging(true); }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={parsing ? (event) => event.preventDefault() : onDrop}
-            >
-              <input
-                ref={inputRef} type="file" className="mv-sr-only" accept={`${ACCEPTED_EXTENSIONS.join(',')},application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`}
-                aria-label="Invoice file (PDF or XLSX)" aria-describedby={`${dropHelpId}${problem ? ` ${problemId}` : ''}`} aria-invalid={problem ? true : undefined}
-                disabled={parsing} onChange={onInput}
-              />
-              {file ? (
-                <span className="mv-idemo-drop-file">
-                  <FileTextIcon size={22} aria-hidden="true" />
-                  <span><strong>{file.name}</strong><span className="mv-muted"> · {formatFileSize(file.size)}</span></span>
-                </span>
-              ) : (
-                <span className="mv-idemo-drop-prompt">
-                  <UploadIcon size={22} aria-hidden="true" />
-                  <span><strong>Drop your invoice here</strong> or <span className="mv-idemo-browse">browse</span></span>
-                </span>
-              )}
-              <span className="mv-field-help" id={dropHelpId}>
-                {file ? 'Choose a different file to replace it.' : `PDF or XLSX, up to ${MAX_INVOICE_BYTES / (1024 * 1024)} MB.`}
-              </span>
-            </label>
-            {problem && <p className="mv-field-error" id={problemId} role="alert">{problem}</p>}
-
-            <div className="mv-idemo-submit">
-              <button type="submit" className="mv-primary-button" disabled={!file || parsing}>{parsing ? 'Parsing…' : 'Parse invoice'}</button>
-              <p className="mv-muted" role="status" aria-live="polite">{parsing ? 'Reading the invoice…' : ''}</p>
-            </div>
-            <p className="mv-notice mv-idemo-note">Prototype: your file stays in your browser and is never read or uploaded. The breakdown shown is a generated sample based on the file name and size, not on what is inside the invoice.</p>
-          </form>
+              <div className="mv-idemo-cta-actions">
+                <Link className="mv-primary-button" to="/company-signup">Register your company</Link>
+                <Link className="mv-secondary-button" to="/login">Sign in</Link>
+              </div>
+            </aside>
+          </ParsedInvoiceResult>
+        ) : (
+          <InvoiceParserForm
+            provider={provider} onProviderChange={setProvider} file={file} problem={problem} onFile={choose}
+            parsing={parsing} onSubmit={() => setStage('parsing')} legendRef={providerLegendRef}
+          />
         )}
       </main>
 

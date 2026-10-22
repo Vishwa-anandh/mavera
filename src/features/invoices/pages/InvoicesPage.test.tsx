@@ -129,13 +129,73 @@ describe('InvoicesPage upload', () => {
   const chooser = () => screen.getByLabelText('Invoice file (PDF, or XLSX for SAP BTP)') as HTMLInputElement;
   const uploadUser = () => userEvent.setup({ applyAccept: false });
 
-  it('Upload Invoice goes straight to the file chooser, not a dialog', async () => {
+  it('Upload Invoice opens the invoice parser: provider chips with a hint, a drop zone and a Parse button', async () => {
     const user = setup();
     const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => undefined);
     await user.click(screen.getByRole('button', { name: 'Upload Invoice' }));
-    expect(click).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(click).not.toHaveBeenCalled();
     click.mockRestore();
+    const dialog = screen.getByRole('dialog', { name: 'Upload invoice' });
+    const chips = within(within(dialog).getByRole('group', { name: 'Cloud provider' })).getAllByRole('radio');
+    expect(chips.map((c) => c.closest('label')?.textContent)).toEqual(['Azure', 'AWS', 'SAP BTP', 'Google Cloud']);
+    expect(within(dialog).getByRole('radio', { name: 'Azure' })).toBeChecked();
+    expect(within(dialog).getByText('Billing, Invoices, Download PDF in the Azure portal.')).toBeInTheDocument();
+    expect(within(dialog).getByText('Drop your invoice here')).toBeInTheDocument();
+    expect(within(dialog).getByText('PDF or XLSX, up to 10 MB.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Parse invoice' })).toBeDisabled();
+    await user.click(within(dialog).getByRole('radio', { name: 'SAP BTP' }));
+    expect(within(dialog).getByText(/Cost Management export from the global account/)).toBeInTheDocument();
+  });
+
+  it('the empty state offers the same parser dialog', async () => {
+    for (const invoice of invoicesRepository.list()) invoicesRepository.remove(invoice.id);
+    const user = setup();
+    await user.click(within(screen.getByText('No invoices yet').parentElement as HTMLElement).getByRole('button', { name: 'Upload Invoice' }));
+    expect(screen.getByRole('dialog', { name: 'Upload invoice' })).toBeInTheDocument();
+  });
+
+  it('a file picked in the dialog whose name says the provider switches to it and parses at once, then shows the result', async () => {
+    const user = uploadUser();
+    setup();
+    await user.click(screen.getByRole('button', { name: 'Upload Invoice' }));
+    const dialog = screen.getByRole('dialog', { name: 'Upload invoice' });
+    await user.upload(within(dialog).getByLabelText('Invoice file (PDF or XLSX)'), pdf('aws-invoice-nov.pdf'));
+    expect(within(dialog).getByRole('radio', { name: 'AWS' })).toBeChecked();
+    expect(await within(dialog).findByText(/Parsing aws-invoice-nov\.pdf/)).toBeInTheDocument();
+    const result = await within(dialog).findByRole('region', { name: /AWS invoice/ }, { timeout: 5000 });
+    expect(within(result).getByRole('list', { name: 'Spend by service, largest first' })).toBeInTheDocument();
+    expect(within(result).getAllByText(/^Total$/).length).toBeGreaterThan(0);
+    expect(invoicesRepository.list()[0]).toMatchObject({ provider: 'aws', file_name: 'aws-invoice-nov.pdf' });
+    expect(screen.getByText('aws-invoice-nov.pdf uploaded and added to your invoices.')).toBeInTheDocument();
+    // The saved invoice carries the figures the result showed.
+    const saved = invoicesRepository.list()[0];
+    const shownTotal = within(result).getByLabelText('Invoice summary').textContent;
+    expect(shownTotal).toContain(saved.raw_summary.invoiceNumber);
+    await user.click(within(dialog).getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('region', { name: `Invoice ${saved.raw_summary.invoiceNumber}` })).toBeInTheDocument();
+  }, 10000);
+
+  it('keeps the BTP rule: a PDF cannot be uploaded under SAP BTP', async () => {
+    const user = uploadUser();
+    setup();
+    await user.click(screen.getByRole('button', { name: 'Upload Invoice' }));
+    const dialog = screen.getByRole('dialog', { name: 'Upload invoice' });
+    await user.upload(within(dialog).getByLabelText('Invoice file (PDF or XLSX)'), pdf('october.pdf'));
+    await user.click(within(dialog).getByRole('radio', { name: 'SAP BTP' }));
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('SAP BTP invoices must be a .xlsx file');
+    expect(within(dialog).getByRole('button', { name: 'Parse invoice' })).toBeDisabled();
+  });
+
+  it('refuses a file over 10 MB in the dialog', async () => {
+    const user = uploadUser();
+    setup();
+    await user.click(screen.getByRole('button', { name: 'Upload Invoice' }));
+    const dialog = screen.getByRole('dialog', { name: 'Upload invoice' });
+    const big = pdf('azure-big.pdf');
+    Object.defineProperty(big, 'size', { value: 11 * 1024 * 1024 });
+    await user.upload(within(dialog).getByLabelText('Invoice file (PDF or XLSX)'), big);
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('azure-big.pdf is larger than 10 MB.');
   });
 
   it('a file whose name says the provider uploads without another click', async () => {
@@ -161,11 +221,12 @@ describe('InvoicesPage upload', () => {
     setup();
     await user.upload(chooser(), pdf('october.pdf'));
     const dialog = await screen.findByRole('dialog', { name: 'Upload invoice' });
-    expect(within(dialog).getByText('Selected: october.pdf')).toBeInTheDocument();
+    expect(within(dialog).getByText('october.pdf')).toBeInTheDocument();
     expect(within(dialog).getByText(/could not tell the provider from the file name, so we chose Azure/)).toBeInTheDocument();
     expect(invoicesRepository.list()).toHaveLength(9);
-    await user.click(within(dialog).getByRole('button', { name: 'Upload Invoice' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Parse invoice' }));
     await waitFor(() => expect(invoicesRepository.list()).toHaveLength(10), { timeout: 5000 });
+    expect(await within(dialog).findByRole('region', { name: /Azure invoice/ })).toBeInTheDocument();
   }, 10000);
 
   it('says why a file of the wrong type cannot be used and opens nothing', async () => {

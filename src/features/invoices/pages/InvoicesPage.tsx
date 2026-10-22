@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
@@ -7,11 +7,8 @@ import { fireToast } from '../../../shared/lib/toastEvents';
 import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { invoicesRepository } from '../../../data-access';
 import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
-import { Select } from '../../../shared/ui/Select';
 import { Pagination } from '../../../shared/ui/Pagination';
-import { useModalOverlay } from '../../../shared/ui/useOverlay';
 import {
-  CheckIcon,
   CloseIcon,
   FileTextIcon,
   RefreshIcon,
@@ -20,9 +17,9 @@ import {
   PercentIcon,
 } from '../../../shared/ui/icons';
 import { CspSavingsBlock } from '../components/CspSavingsBlock';
+import { UploadInvoiceDialog, type UploadStart } from '../components/UploadInvoiceDialog';
 import {
   PROVIDER_LABELS,
-  buildFakeParsedInvoice,
   cspBreakdownOf,
   detectInvoiceUpload,
   filterByProvider,
@@ -35,6 +32,7 @@ import {
 } from '../model/invoicesDerivations';
 import type { Invoice, ProviderFilter } from '../model/invoicesTypes';
 import type { CloudProvider } from '../../../shared/types/auth';
+import { invoiceFileProblem } from '../../../shared/lib/parseInvoice';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 
 const PROVIDER_FILTERS: ProviderFilter[] = ['all', 'azure', 'aws', 'btp', 'gcp'];
@@ -163,120 +161,6 @@ function InvoiceDetail({ invoice, onDelete, onClose }: { invoice: Invoice; onDel
   );
 }
 
-/** What the page already knows when it opens the dialog: a file it was handed and the provider it guessed for it. */
-interface UploadStart {
-  fileName: string;
-  provider: CloudProvider;
-  /** The file name settled the provider, so parsing starts at once instead of waiting for a click. */
-  confident: boolean;
-}
-
-function UploadModal({ allowedProviders, start, onClose, onCreated }: { allowedProviders: CloudProvider[]; start: UploadStart | null; onClose: () => void; onCreated: (invoice: Invoice) => void }) {
-  const panelRef = useModalOverlay<HTMLElement>(onClose);
-  const [provider, setProvider] = useState<CloudProvider | ''>(start?.provider ?? allowedProviders[0] ?? '');
-  const [billingName, setBillingName] = useState('');
-  const [fileName, setFileName] = useState<string | null>(start?.fileName ?? null);
-  const [guess, setGuess] = useState<string | null>(start && !start.confident ? `We could not tell the provider from the file name, so we chose ${PROVIDER_LABELS[start.provider]}. Change it if that is wrong.` : null);
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<'idle' | 'parsing' | 'done'>('idle');
-  const timers = useRef<number[]>([]);
-  const onCreatedRef = useRef(onCreated);
-  useEffect(() => { onCreatedRef.current = onCreated; });
-
-  const expectedExt = provider === 'btp' ? '.xlsx' : '.pdf';
-
-  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const found = detectInvoiceUpload(file.name, allowedProviders);
-    if (found.problem || !found.provider) {
-      setError(found.problem);
-      setFileName(null);
-      return;
-    }
-    setError(null);
-    setFileName(file.name);
-    setProvider(found.provider);
-    setGuess(found.confident ? `Provider detected from the file name: ${PROVIDER_LABELS[found.provider]}.` : `We could not tell the provider from the file name, so we chose ${PROVIDER_LABELS[found.provider]}. Change it if that is wrong.`);
-  };
-
-  const submit = useCallback((chosen: CloudProvider | '', file: string | null, name: string) => {
-    if (!chosen || !file) return;
-    setStatus('parsing');
-    const parse = window.setTimeout(() => {
-      const invoice = buildFakeParsedInvoice(chosen, file, name || undefined, new Date());
-      setStatus('done');
-      timers.current.push(window.setTimeout(() => onCreatedRef.current(invoice), 900));
-    }, 1200);
-    timers.current.push(parse);
-  }, []);
-
-  // A file whose name settles the provider needs no further click: parsing starts as the dialog opens. Closing the
-  // dialog mid-parse (or React re-running this effect) cancels the pending parse, so an upload nobody is looking at
-  // never adds an invoice, and the re-run starts it again.
-  useEffect(() => {
-    if (start?.confident) submit(start.provider, start.fileName, '');
-    return () => { timers.current.forEach((id) => window.clearTimeout(id)); timers.current = []; };
-  }, [start, submit]);
-
-  if (allowedProviders.length === 0) {
-    return (
-      <div className="mv-dialog-backdrop" onClick={onClose}>
-        <section ref={panelRef} className="mv-dialog" role="dialog" aria-modal="true" aria-label="Upload invoice" onClick={(e) => e.stopPropagation()}>
-          <div className="mv-panel-header"><h2 className="mv-panel-title">Upload Invoice</h2><button className="mv-icon-button" aria-label="Close" onClick={onClose}><CloseIcon size={16} /></button></div>
-          <div className="mv-inline-error" role="alert">No cloud access — contact your administrator.</div>
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mv-dialog-backdrop" onClick={onClose}>
-      <section ref={panelRef} className="mv-dialog" role="dialog" aria-modal="true" aria-label="Upload invoice" onClick={(e) => e.stopPropagation()}>
-        <div className="mv-panel-header"><h2 className="mv-panel-title">Upload Invoice</h2><button className="mv-icon-button" aria-label="Close" onClick={onClose}><CloseIcon size={16} /></button></div>
-        <p className="mv-subtitle" style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>PDF or XLSX — Azure/AWS/BTP/GCP</p>
-
-        {status === 'done' ? (
-          <div className="mv-success">
-            <CheckIcon size={28} style={{ color: 'var(--mv-success)' }} />
-            <h3>{fileName} parsed and saved.</h3>
-          </div>
-        ) : status === 'parsing' ? (
-          <div className="mv-success" role="status">
-            <div className="mv-loading" />
-            <p style={{ marginTop: '0.75rem' }}>Parsing {fileName}… This may take a few seconds.</p>
-          </div>
-        ) : (
-          <form onSubmit={(e) => { e.preventDefault(); if (fileName && !error) submit(provider, fileName, billingName); }}>
-            <label className="mv-field">
-              Invoice File ({expectedExt})
-              <input type="file" accept=".pdf,.xlsx" onChange={handleFile} data-autofocus />
-            </label>
-            {error && <p className="mv-field-error" role="alert">{error}</p>}
-            {fileName && !error && <p className="mv-field-help" style={{ color: 'var(--mv-success)' }}>Selected: {fileName}</p>}
-            {guess && !error && <p className="mv-field-help">{guess}</p>}
-            <Select
-              label="Provider"
-              style={{ height: '2.75rem' }}
-              value={provider}
-              onChange={(p) => { setProvider(p); setError(null); setGuess(null); if (fileName && !fileName.toLowerCase().endsWith(p === 'btp' ? '.xlsx' : '.pdf')) { setFileName(null); } }}
-              options={allowedProviders.map((p) => ({ value: p, label: PROVIDER_LABELS[p] }))}
-            />
-            <label className="mv-field">
-              Billing Name <span className="mv-field-help" style={{ margin: 0 }}>(optional — used when not found in file)</span>
-              <input maxLength={120} value={billingName} onChange={(e) => setBillingName(e.target.value)} placeholder="e.g. Production Subscription" />
-            </label>
-            <div className="mv-dialog-actions">
-              <button type="button" className="mv-secondary-button" onClick={onClose}>Cancel</button>
-              <button type="submit" className="mv-primary-button" disabled={!fileName || !!error}><UploadIcon size={16} style={{ marginRight: '0.375rem' }} />Upload Invoice</button>
-            </div>
-          </form>
-        )}
-      </section>
-    </div>
-  );
-}
-
 /**
  * Ported from the reference CCM app's InvoicesPage.jsx — visible only to
  * invoice-only and hybrid orgs (see navConfig.ts's `visible` predicate on
@@ -333,22 +217,25 @@ export function InvoicesPage() {
 
   /** A file arrived from the chooser or a drop: start under the provider its name points to, or ask when the name does not say. */
   const receiveFile = (file: File) => {
-    if (uploadOpen) return; // the open dialog has its own file picker
+    if (uploadOpen) return; // the open dialog has its own drop zone
     const found = detectInvoiceUpload(file.name, allowedProviders);
     if (found.problem || !found.provider) {
       fireToast({ type: 'error', message: `${file.name}: ${found.problem ?? 'this file cannot be uploaded.'}` });
       return;
     }
-    setUploadStart({ fileName: file.name, provider: found.provider, confident: found.confident });
+    const unusable = invoiceFileProblem(file);
+    if (unusable) { fireToast({ type: 'error', message: unusable }); return; }
+    setUploadStart({ fileName: file.name, sizeBytes: file.size, provider: found.provider, confident: found.confident });
     setUploadOpen(true);
   };
 
+  /** The header and empty-state buttons open the parser dialog: provider chips, drop zone, Parse button. */
+  const openUploadDialog = () => { setUploadStart(null); setUploadOpen(true); };
+
   const chooseFile = () => {
-    if (allowedProviders.length === 0) { setUploadStart(null); setUploadOpen(true); return; }
+    if (allowedProviders.length === 0) { openUploadDialog(); return; }
     fileInputRef.current?.click();
   };
-
-  const openUploadDialog = () => { setUploadStart(null); setUploadOpen(true); };
 
   const onFileChosen = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -408,7 +295,7 @@ export function InvoicesPage() {
       <PageHeader title="Cloud Invoices" subtitle={<>Upload Azure, AWS, SAP BTP & GCP invoices · instant visual breakdown. Drop a PDF or XLSX anywhere on this page.</>}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="mv-secondary-button" disabled={refreshing} onClick={handleRefresh}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh'}</button>
-          <button className="mv-primary-button" onClick={chooseFile}><UploadIcon size={16} style={{ marginRight: '0.375rem' }} />Upload Invoice</button>
+          <button className="mv-primary-button" onClick={openUploadDialog}><UploadIcon size={16} style={{ marginRight: '0.375rem' }} />Upload Invoice</button>
         </div>
       </PageHeader>
 
@@ -443,7 +330,7 @@ export function InvoicesPage() {
                 <div className="mv-empty-icon" aria-hidden><FileTextIcon size={28} /></div>
                 <h2>No invoices yet</h2>
                 <p>Upload your first invoice to start tracking spend.</p>
-                <button className="mv-primary-button" onClick={chooseFile}>Upload Invoice</button>
+                <button className="mv-primary-button" onClick={openUploadDialog}>Upload Invoice</button>
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '0.5rem' }}>
@@ -498,7 +385,7 @@ export function InvoicesPage() {
       </div>
 
       {uploadOpen && (
-        <UploadModal
+        <UploadInvoiceDialog
           key={uploadStart?.fileName ?? 'manual'}
           allowedProviders={allowedProviders}
           start={uploadStart}
@@ -507,8 +394,6 @@ export function InvoicesPage() {
             invoicesRepository.add(invoice);
             setInvoices(invoicesRepository.list());
             fireToast({ type: 'success', message: `${invoice.file_name} uploaded and added to your invoices.` });
-            setUploadOpen(false);
-            setUploadStart(null);
             setSelectedId(invoice.id);
             setProviderFilter('all');
             setPage(1);

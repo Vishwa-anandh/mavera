@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { InvoiceDemoPage } from './InvoiceDemoPage';
-import { PARSE_DELAY_MS, simulateInvoiceParse } from '../model/parseInvoice';
+import { PARSE_DELAY_MS, simulateInvoiceParse } from '../../../shared/lib/parseInvoice';
 
 const renderPage = () => render(<MemoryRouter><InvoiceDemoPage /></MemoryRouter>);
 const pdf = (name = 'azure-sep.pdf', size = 3000) => new File(['x'.repeat(size)], name, { type: 'application/pdf' });

@@ -1,19 +1,27 @@
-import { forwardRef } from 'react';
-import { Link } from 'react-router-dom';
-import { formatInvoiceMoney, PROVIDER_LABEL, type ParsedInvoice } from '../model/parseInvoice';
+import { forwardRef, type ReactNode } from 'react';
+import { formatInvoiceMoney, PROVIDER_LABEL, type ParsedInvoice } from '../lib/parseInvoice';
 
 interface ParsedInvoiceResultProps {
   invoice: ParsedInvoice;
   onReset: () => void;
+  /** The reset button's label. */
+  resetLabel?: string;
+  /** Stack the line items above the spend bars regardless of the viewport, for a narrow host such as a dialog. */
+  compact?: boolean;
+  /** Anything to show under the breakdown, such as the public page's next-steps panel. */
+  children?: ReactNode;
 }
 
-/** The sample result of a parse: the headline figures, the line items, spend by service and what to do next. */
-export const ParsedInvoiceResult = forwardRef<HTMLHeadingElement, ParsedInvoiceResultProps>(function ParsedInvoiceResult({ invoice, onReset }, headingRef) {
+/**
+ * The sample result of a parse: the headline figures, the line items and spend by service. Shared by the public
+ * /invoice-demo page and the Invoices upload dialog so both look the same.
+ */
+export const ParsedInvoiceResult = forwardRef<HTMLHeadingElement, ParsedInvoiceResultProps>(function ParsedInvoiceResult({ invoice, onReset, resetLabel = 'Try another invoice', compact = false, children }, headingRef) {
   const money = (amount: number) => formatInvoiceMoney(amount, invoice.currency);
   const largest = Math.max(...invoice.spendByService.map((row) => row.amount), 0);
 
   return (
-    <section className="mv-idemo-result" aria-labelledby="idemo-result-title">
+    <section className={`mv-idemo-result${compact ? ' mv-idemo-result--compact' : ''}`} aria-labelledby="idemo-result-title">
       <div className="mv-idemo-result-head">
         <div>
           <h2 id="idemo-result-title" className="mv-idemo-result-title" tabIndex={-1} ref={headingRef}>{PROVIDER_LABEL[invoice.provider]} invoice {invoice.invoiceNumber}</h2>
@@ -21,7 +29,7 @@ export const ParsedInvoiceResult = forwardRef<HTMLHeadingElement, ParsedInvoiceR
         </div>
         <div className="mv-idemo-result-actions">
           <span className="mv-idemo-sample" title="The figures are generated from the file name and size. Your file is not read.">Sample parse, prototype</span>
-          <button type="button" className="mv-secondary-button" onClick={onReset}>Try another invoice</button>
+          <button type="button" className="mv-secondary-button" onClick={onReset}>{resetLabel}</button>
         </div>
       </div>
 
@@ -70,16 +78,7 @@ export const ParsedInvoiceResult = forwardRef<HTMLHeadingElement, ParsedInvoiceR
         </section>
       </div>
 
-      <aside className="mv-idemo-cta" aria-label="Next steps">
-        <div>
-          <h3 className="mv-panel-title">Track every invoice, not just this one</h3>
-          <p className="mv-muted">Register your company to keep parsed invoices next to your live cloud costs, budgets and alerts.</p>
-        </div>
-        <div className="mv-idemo-cta-actions">
-          <Link className="mv-primary-button" to="/company-signup">Register your company</Link>
-          <Link className="mv-secondary-button" to="/login">Sign in</Link>
-        </div>
-      </aside>
+      {children}
     </section>
   );
 });

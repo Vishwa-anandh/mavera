@@ -1,5 +1,6 @@
 import { CSP_DISCOUNT_RATES } from '../../../data-access';
 import type { CloudProvider } from '../../../shared/types/auth';
+import type { ParsedInvoice } from '../../../shared/lib/parseInvoice';
 import type { Invoice, InvoiceService, ProviderFilter } from './invoicesTypes';
 
 /** One canonical rate map (it lives in data-access): the reference app kept two independent copies
@@ -143,8 +144,12 @@ let fakeInvoiceCounter = 1000;
  * to actually extract line items from the uploaded file, so this produces a
  * plausible canned invoice instead — same UX shell (a short "parsing" delay,
  * then a materialized result), honest about what a no-backend build can do.
+ *
+ * When `parsed` (the sample breakdown the upload dialog showed the user) is given, the saved invoice carries those
+ * same figures, period and invoice number, so the list never disagrees with what was just displayed.
  */
-export function buildFakeParsedInvoice(provider: CloudProvider, fileName: string, billingName: string | undefined, now: Date): Invoice {
+export function buildFakeParsedInvoice(provider: CloudProvider, fileName: string, billingName: string | undefined, now: Date, parsed?: ParsedInvoice): Invoice {
+  if (parsed) return buildInvoiceFromParsed(provider, fileName, billingName, now, parsed);
   fakeInvoiceCounter += 1;
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
@@ -180,6 +185,39 @@ export function buildFakeParsedInvoice(provider: CloudProvider, fileName: string
       taxAmount,
       taxRate,
       sections: [{ name: 'Compute & Storage', total: charges, tax: taxAmount }],
+    },
+  };
+}
+
+function buildInvoiceFromParsed(provider: CloudProvider, fileName: string, billingName: string | undefined, now: Date, parsed: ParsedInvoice): Invoice {
+  fakeInvoiceCounter += 1;
+  const { periodMonth: month, periodYear: year } = parsed;
+  const rate = CSP_RATES[provider];
+  const services: InvoiceService[] = parsed.spendByService.map((row) => ({
+    name: row.service,
+    cost: row.amount,
+    ...(provider === 'azure' ? { savings: Math.round(row.amount * (rate + 0.02) * 100) / 100 } : {}),
+  }));
+  return {
+    id: `inv-fake-${fakeInvoiceCounter}`,
+    provider,
+    month,
+    year,
+    total_cost: parsed.total,
+    currency: parsed.currency,
+    file_name: fileName,
+    services,
+    raw_summary: {
+      invoiceNumber: parsed.invoiceNumber,
+      billingProfile: billingName || `${PROVIDER_LABELS[provider]} Production`,
+      billingPeriodStart: new Date(year, month - 1, 1).toISOString(),
+      billingPeriodEnd: new Date(year, month, 0).toISOString(),
+      invoiceDate: now.toISOString(),
+      dueDate: new Date(now.getTime() + 14 * 86_400_000).toISOString(),
+      charges: parsed.subtotal,
+      taxAmount: parsed.tax,
+      taxRate: parsed.taxRate,
+      sections: [{ name: 'Compute & Storage', total: parsed.subtotal, tax: parsed.tax }],
     },
   };
 }

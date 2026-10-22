@@ -3392,7 +3392,7 @@ ul.mv-chart-legend { margin: 0; padding: 0; list-style: none; }
 .mv-connect-strategy { margin: 0 0 1rem; }
 .mv-connect-strategy .mv-field-help { margin: 0.375rem 0 0; }
 .mv-connect-label { margin: 0 0 0.4375rem; color: var(--mv-text-secondary); font-size: 0.8125rem; font-weight: 500; }
-.mv-connect-optional { margin: 0 0 1rem -0.5625rem; }
+.mv-connect-optional { max-width: 100%; margin: 0 0 1rem -0.5625rem; white-space: normal; text-align: left; height: auto; }
 .mv-connect-footer { position: sticky; bottom: -1.25rem; z-index: 1; margin: 0 -1.25rem -1.25rem; padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--mv-divider); background: var(--mv-elevated); }
 .mv-connect-footer .mv-dialog-actions { margin-top: 0.875rem; }
 .mv-connect-progress { margin: 0.625rem 0 0; color: var(--mv-text-secondary); font-size: 0.8125rem; text-align: right; }

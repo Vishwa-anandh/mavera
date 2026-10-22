@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { closeConnectDialog, useConnectDialogRequest } from '../model/connectDialogStore';
 import { ConnectAccountDialog } from './ConnectAccountDialog';
 
@@ -9,6 +10,14 @@ import { ConnectAccountDialog } from './ConnectAccountDialog';
  */
 export function ConnectDialogHost() {
   const request = useConnectDialogRequest();
+  const { pathname } = useLocation();
+  // The page the dialog was opened on: going somewhere else (menu, back button, a link) closes it instead of
+  // leaving it floating over an unrelated page. A request made on arrival is recorded against the new page.
+  const openedOn = useRef(pathname);
+  if (!request) openedOn.current = pathname;
+  useEffect(() => {
+    if (request && pathname !== openedOn.current) closeConnectDialog();
+  }, [request, pathname]);
   // Leaving the signed-in app (sign-out) must not leave a request behind to reopen on the next sign-in.
   useEffect(() => closeConnectDialog, []);
   if (!request) return null;

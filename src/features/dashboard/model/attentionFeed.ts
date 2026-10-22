@@ -3,8 +3,26 @@ import type { SmartAlertItem } from './useDashboardData';
 
 export type AttentionModule = 'sap' | 'cloud';
 
+/** The stored alert behind a row, so Resolve and Ignore can act on it in place. */
+export interface AttentionAlertRef {
+  kind: 'cloud' | 'sap';
+  id: string;
+}
+
 export interface AttentionItem extends InsightItem {
   module: AttentionModule;
+  /** Present on rows that are one alert in a store; absent on budget, savings, reservation and system rows. */
+  alert?: AttentionAlertRef;
+}
+
+/** An SAP alert as the feed needs it (see sapAdminRepository.alerts). */
+export interface AttentionSapAlert {
+  id: string;
+  type: string;
+  severity: 'Critical' | 'High' | 'Medium' | 'Low';
+  system: string;
+  message: string;
+  read: boolean;
 }
 
 export interface ExpiringReservation {
@@ -18,6 +36,13 @@ export interface AttentionInput {
   sapInsights: InsightItem[];
   /** Open (not resolved) cost anomalies. */
   smartAlerts: SmartAlertItem[];
+  /**
+   * Active SAP alerts. When given, each unread Critical or High one is its own row (so it can be resolved in place)
+   * and replaces the SAP feature's single "N unread critical or high alerts" finding.
+   */
+  sapAlerts?: AttentionSapAlert[];
+  /** Ids of the cost alerts the alert store can act on; only those rows get Resolve and Ignore. Default: none. */
+  actionableCloudAlertIds?: ReadonlySet<string>;
   budgetUtilPct: number | null;
   totalBudget: number;
   forecastEom: number | null;
@@ -27,6 +52,17 @@ export interface AttentionInput {
 }
 
 const TONE_ORDER: Record<InsightTone, number> = { danger: 0, warning: 1, info: 2, success: 3 };
+
+/** Cuts at a word boundary and adds an ellipsis, so a long message never ends mid-word. */
+function shorten(text: string, max: number): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  if (flat.length <= max) return flat;
+  const cut = flat.slice(0, max);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(' '), 1))}…`;
+}
+
+/** A system id can be a long GUID; show a short form that is still recognisable. */
+const systemLabel = (system: string) => (system.length > 14 ? `${system.slice(0, 8)}…` : system);
 
 /** Whole days from `now` until `end` (a "YYYY-MM-DD" date); negative once it has passed. */
 export function daysUntil(end: string, now: Date): number {
@@ -44,17 +80,35 @@ export function buildAttentionFeed(input: AttentionInput): AttentionItem[] {
   const items: AttentionItem[] = [];
 
   if (input.modules.sapMonitoring) {
-    for (const insight of input.sapInsights) items.push({ ...insight, module: 'sap' });
+    const perAlert = input.sapAlerts !== undefined;
+    for (const insight of input.sapInsights) {
+      if (perAlert && insight.id === 'alerts') continue;
+      items.push({ ...insight, module: 'sap' });
+    }
+    for (const alert of input.sapAlerts ?? []) {
+      if (alert.read || (alert.severity !== 'Critical' && alert.severity !== 'High')) continue;
+      items.push({
+        id: `sap-alert-${alert.id}`,
+        module: 'sap',
+        tone: alert.severity === 'Critical' ? 'danger' : 'warning',
+        title: `${alert.type} anomaly on ${systemLabel(alert.system)}`,
+        detail: shorten(alert.message, 110),
+        to: '/sap/alerts',
+        alert: { kind: 'sap', id: alert.id },
+      });
+    }
   }
 
   if (input.modules.cloudCost) {
+    const actionable = input.actionableCloudAlertIds;
+    const refOf = (alert: SmartAlertItem): AttentionAlertRef | undefined => (alert.id !== undefined && actionable?.has(String(alert.id)) ? { kind: 'cloud', id: String(alert.id) } : undefined);
     const critical = input.smartAlerts.filter((a) => a.severity === 'critical');
     const high = input.smartAlerts.filter((a) => a.severity === 'high');
     for (const alert of critical) {
-      items.push({ id: `cost-alert-${alert.id}`, module: 'cloud', tone: 'danger', title: alert.title ?? 'Critical cost alert', detail: 'Cost anomaly · critical', to: '/smart-alerts' });
+      items.push({ id: `cost-alert-${alert.id}`, module: 'cloud', tone: 'danger', title: alert.title ?? 'Critical cost alert', detail: 'Cost anomaly · critical', to: '/smart-alerts?status=critical', alert: refOf(alert) });
     }
     for (const alert of high) {
-      items.push({ id: `cost-alert-${alert.id}`, module: 'cloud', tone: 'warning', title: alert.title ?? 'High-severity cost alert', detail: 'Cost anomaly · high', to: '/smart-alerts' });
+      items.push({ id: `cost-alert-${alert.id}`, module: 'cloud', tone: 'warning', title: alert.title ?? 'High-severity cost alert', detail: 'Cost anomaly · high', to: '/smart-alerts', alert: refOf(alert) });
     }
 
     if (input.totalBudget > 0 && input.forecastEom !== null && input.forecastEom > input.totalBudget) {

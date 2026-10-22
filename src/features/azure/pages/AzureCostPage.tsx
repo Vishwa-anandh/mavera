@@ -16,6 +16,8 @@ import type { AzureCostTabProps } from '../model/AzureCostTabProps';
 import { ExecutiveTab } from '../components/tabs/ExecutiveTab';
 import { OperationsTab } from '../components/tabs/OperationsTab';
 import { TechnicalTab } from '../components/tabs/TechnicalTab';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
+import { useRememberLastViewedAccount } from '../../../shared/lib/lastViewedAccount';
 
 const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -67,6 +69,7 @@ export function AzureCostPage() {
   const cspRecommendations = useMemo(() => cloudSamplesRepository.azure.cspRecommendations(account), [account]);
 
   const [activeTab, setActiveTab] = useCostView('azure', accountId, COST_VIEWS);
+  useRememberLastViewedAccount('azure', account);
   const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
@@ -186,6 +189,7 @@ export function AzureCostPage() {
             )}
           </div>
           <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} className="mv-cost-menu-icon" />{syncing ? 'Syncing…' : 'Sync'}</button>
+          <PageTourButton />
         </div>
       </div>
 

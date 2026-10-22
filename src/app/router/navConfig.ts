@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import type { PermissionSet } from '../../shared/lib/permissions';
 import type { AuthContextValue } from '../../features/auth';
 import type { ModuleId } from '../../features/access';
-import { ServerIcon, CloudIcon, HomeIcon, SparkleIcon } from '../../shared/ui/icons';
+import { ServerIcon, CloudIcon, HomeIcon } from '../../shared/ui/icons';
 
 export type NavFeatures = AuthContextValue['features'];
 
@@ -207,8 +207,6 @@ const NAV_TREE: NavNodeDef[] = [
       { key: 'sync-logs', label: 'Sync Logs', path: '/sync-logs', visible: adminPage, locked: (_p, c) => !c.features.syncLogs, keywords: 'data import history' },
     ],
   },
-  // Across every module, so it sits at the top level rather than inside one module's menu: one click from anywhere.
-  { type: 'leaf', key: 'ai-assistant', label: 'AI Assistant', path: '/ai-assistant', icon: SparkleIcon, keywords: 'ask chat help copilot questions' },
 ];
 
 export interface ResolvedNavLeaf {

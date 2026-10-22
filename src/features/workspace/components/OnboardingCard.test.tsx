@@ -34,7 +34,7 @@ describe('OnboardingCard', () => {
   it('lists the six steps with a reason each, and shows progress as "n of 6 done"', () => {
     renderCard();
     expect(screen.getByRole('heading', { name: 'Get started with Mavera' })).toBeInTheDocument();
-    expect(screen.getByText('0 of 6 done')).toBeInTheDocument();
+    expect(screen.getByText(/^0 of 6 done/)).toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: '0 of 6 steps done' })).toHaveAttribute('aria-valuenow', '0');
     const items = screen.getAllByRole('listitem');
     expect(items).toHaveLength(6);
@@ -46,7 +46,7 @@ describe('OnboardingCard', () => {
 
   it('lists only the steps of the modules the organisation subscribes to', () => {
     renderCard({ cloudCost: true, sapMonitoring: false });
-    expect(screen.getByText('0 of 5 done')).toBeInTheDocument();
+    expect(screen.getByText(/^0 of 5 done/)).toBeInTheDocument();
     expect(screen.queryByText('Connect an SAP system')).not.toBeInTheDocument();
   });
 
@@ -94,7 +94,7 @@ describe('OnboardingCard', () => {
   it('checks off finished steps, takes their buttons away and moves the progress on', () => {
     renderCard();
     act(() => { workspaceRepository.addConnectedAccount('azure', account); });
-    expect(screen.getByText('1 of 6 done')).toBeInTheDocument();
+    expect(screen.getByText(/^1 of 6 done/)).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
     const done = step('Connect a cloud account');
     expect(done).toHaveClass('is-done');
@@ -110,7 +110,7 @@ describe('OnboardingCard', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     await user.click(toggle);
     expect(screen.queryByRole('list')).not.toBeInTheDocument();
-    expect(screen.getByText('0 of 6 done')).toBeInTheDocument();
+    expect(screen.getByText(/^0 of 6 done/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Expand the checklist' })).toHaveAttribute('aria-expanded', 'false');
     await user.click(screen.getByRole('button', { name: 'Expand the checklist' }));
     expect(screen.getAllByRole('listitem')).toHaveLength(6);
@@ -125,6 +125,11 @@ describe('OnboardingCard', () => {
 
     act(() => { workspaceRepository.dismissOnboarding(false); }); // "Show my checklist" and the profile menu do this
     expect(screen.getByRole('heading', { name: 'Get started with Mavera' })).toBeInTheDocument();
+  });
+
+  it('links to the full setup wizard', () => {
+    renderCard();
+    expect(screen.getByRole('link', { name: 'Open full setup' })).toHaveAttribute('href', '/setup');
   });
 
   it('stays away from a populated organisation whose only open step is the tour, and from a finished checklist', () => {

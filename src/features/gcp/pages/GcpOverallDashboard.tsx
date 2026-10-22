@@ -8,6 +8,7 @@ import { cloudSamplesRepository } from '../../../data-access';
 import { SampleDataBadge } from '../../workspace';
 import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -59,9 +60,12 @@ export function GcpOverallDashboard() {
             <p className="mv-subtitle">{accounts.length} project{accounts.length === 1 ? '' : 's'} connected. {accounts.some((a) => a.sample) && <SampleDataBadge />}</p>
           </div>
         </div>
-        <button className="mv-secondary-button" onClick={() => navigate('/gcp/accounts')}>
-          <SettingsIcon size={16} style={{ marginRight: '0.375rem' }} />Manage
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <button className="mv-secondary-button" onClick={() => navigate('/gcp/accounts')}>
+            <SettingsIcon size={16} style={{ marginRight: '0.375rem' }} />Manage
+          </button>
+          <PageTourButton />
+        </div>
       </div>
 
       <div className="mv-kpi-row-4">

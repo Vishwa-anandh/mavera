@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useSuperAdminAuth } from '../model/SuperAdminAuthContext';
 import { HomeIcon, BuildingIcon, CreditCardIcon, MenuIcon, CloseIcon } from '../../../shared/ui/icons';
 import maveraLogo from '../../../../assets/brand/mavera-logo.png';
+import { TooltipProvider } from '../../../shared/ui/TooltipProvider';
 
 const LINKS = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: HomeIcon, end: true },
@@ -94,6 +95,7 @@ export function SuperAdminShell() {
           </div>
         </div>
       )}
+      <TooltipProvider />
     </div>
   );
 }

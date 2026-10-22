@@ -2,13 +2,13 @@ import {
   CSP_DISCOUNT_RATES,
   budgetsRepository,
   cloudInsightsRepository,
-  smartAlertsRepository,
   workspaceRepository,
   type WorkspaceProvider,
 } from '../../../data-access';
 import type {
-  DashboardData, DashboardMonthlyRow, DashboardSource, DashboardSummary, InvoiceItem, MspSavings, ProviderKey, RecommendationsResponse, SmartAlertItem,
+  DashboardData, DashboardMonthlyRow, DashboardSource, DashboardSummary, InvoiceItem, MspSavings, ProviderKey, RecommendationsResponse,
 } from './useDashboardData';
+import { repositoryAlertItems } from './repositoryAlerts';
 import { DEMO_LAST_DAY, DEMO_MONTHLY, demoDailySpend } from './demoSpendHistory';
 
 /*
@@ -62,9 +62,7 @@ export function newOrganisationData(invoices: InvoiceItem[]): DashboardData {
     summary: { totalRecommendations: opportunities.length, totalEstimatedSavings: round(counted.reduce((sum, o) => sum + o.monthlySaving, 0)) },
   };
 
-  const alerts: SmartAlertItem[] = smartAlertsRepository.list()
-    .sort((a, b) => b.detected_at.localeCompare(a.detected_at))
-    .map((a) => ({ id: a.id, severity: a.severity, status: a.ignored || a.status === 'resolved' ? 'resolved' : 'open', title: a.message, alert_type: a.alert_type, detected_at: a.detected_at }));
+  const alerts = repositoryAlertItems();
 
   const breakdown = spend.map((row) => {
     const rate = CSP_DISCOUNT_RATES[row.provider];

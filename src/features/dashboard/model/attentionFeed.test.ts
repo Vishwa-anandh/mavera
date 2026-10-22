@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildAttentionFeed, daysUntil, type AttentionInput } from './attentionFeed';
+import { buildAttentionFeed, daysUntil, type AttentionInput, type AttentionSapAlert } from './attentionFeed';
 
 const quiet: AttentionInput = {
   modules: { cloudCost: true, sapMonitoring: true },
@@ -63,5 +63,44 @@ describe('buildAttentionFeed', () => {
     expect(buildAttentionFeed({ ...input, modules: { cloudCost: true, sapMonitoring: false } }).map((i) => i.module)).toEqual(['cloud']);
     expect(buildAttentionFeed({ ...input, modules: { cloudCost: false, sapMonitoring: true } }).map((i) => i.module)).toEqual(['sap']);
     expect(buildAttentionFeed({ ...input, modules: { cloudCost: false, sapMonitoring: false } })).toEqual([]);
+  });
+
+  describe('alert rows that can be acted on in place', () => {
+    const sapAlert = (over: Partial<AttentionSapAlert> = {}): AttentionSapAlert => ({
+      id: 'alert-1', type: 'Dumps', severity: 'High', system: 'MSQ', message: 'ABAP Dumps anomaly detected on MSQ.', read: false, ...over,
+    });
+
+    it('makes each unread critical or high SAP alert its own row, replacing the aggregate SAP finding', () => {
+      const feed = buildAttentionFeed({
+        ...quiet,
+        sapInsights: [{ id: 'alerts', tone: 'danger', title: '2 unread critical or high alerts' }, { id: 'sys-x', tone: 'danger', title: 'HANA-PRD is critical' }],
+        sapAlerts: [sapAlert(), sapAlert({ id: 'alert-2', severity: 'Critical', system: 'c15ac0e5-bc54-41ab-83d8-e2c1bd4a24bb' }), sapAlert({ id: 'alert-3', severity: 'Medium' }), sapAlert({ id: 'alert-4', read: true })],
+      });
+      expect(feed.map((i) => i.id)).toEqual(['sys-x', 'sap-alert-alert-2', 'sap-alert-alert-1']);
+      expect(feed.find((i) => i.id === 'sap-alert-alert-2')).toMatchObject({ tone: 'danger', title: 'Dumps anomaly on c15ac0e5…', alert: { kind: 'sap', id: 'alert-2' }, to: '/sap/alerts' });
+      expect(feed.find((i) => i.id === 'sap-alert-alert-1')).toMatchObject({ tone: 'warning', alert: { kind: 'sap', id: 'alert-1' } });
+      expect(feed.find((i) => i.id === 'sys-x')?.alert).toBeUndefined();
+    });
+
+    it('keeps the aggregate SAP finding when no alert list is given', () => {
+      const feed = buildAttentionFeed({ ...quiet, sapInsights: [{ id: 'alerts', tone: 'danger', title: '2 unread critical or high alerts' }] });
+      expect(feed.map((i) => i.id)).toEqual(['alerts']);
+    });
+
+    it('marks a cost alert actionable only when the alert store holds it', () => {
+      const feed = buildAttentionFeed({
+        ...quiet,
+        smartAlerts: [{ id: 'alert-1', severity: 'critical', title: 'Spend spiked' }, { id: 'api-7', severity: 'high', title: 'From the API' }],
+        actionableCloudAlertIds: new Set(['alert-1']),
+      });
+      expect(feed[0]).toMatchObject({ id: 'cost-alert-alert-1', alert: { kind: 'cloud', id: 'alert-1' }, to: '/smart-alerts?status=critical' });
+      expect(feed[1].alert).toBeUndefined();
+    });
+
+    it('leaves budget, savings and reservation rows without an alert', () => {
+      const feed = buildAttentionFeed({ ...quiet, forecastEom: 12000, highImpactSavings: 1, expiringReservations: [{ name: 'RI', daysLeft: 2 }] });
+      expect(feed.length).toBe(3);
+      expect(feed.every((i) => i.alert === undefined)).toBe(true);
+    });
   });
 });

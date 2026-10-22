@@ -322,6 +322,10 @@ const alertRepo = {
   reopen(id: string): SapSmartAlert | null {
     return updateAlert(id, (a) => ({ ...a, state: 'active', stateChangedAt: null }));
   },
+  /** Puts an alert back exactly as `previous` was (an Undo after Resolve or Ignore), including whether it was unread. */
+  restore(previous: SapSmartAlert): SapSmartAlert | null {
+    return updateAlert(previous.id, () => structuredClone(previous));
+  },
   getSettings(): AlertSettings {
     return { ...alertSettings };
   },

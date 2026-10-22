@@ -6,6 +6,7 @@ import { CreditCardIcon, PencilIcon, EyeIcon, TrashIcon, CheckIcon, CloseIcon, L
 import { workspaceRepository } from '../../../data-access';
 import { SampleDataBadge, openConnectDialog, useWorkspaceAccounts } from '../../workspace';
 import type { AzureAccount } from '../model/azureTypes';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
 
 function maskId(id: string): string {
   return id.length <= 12 ? id : `${id.slice(0, 8)}…${id.slice(-4)}`;
@@ -82,6 +83,7 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
           <span className={`mv-status ${atLimit ? 'mv-status--danger' : 'mv-status--neutral'}`}>
             {accounts.length}/{maxAccounts > 0 ? maxAccounts : '∞'} accounts
           </span>
+          <PageTourButton />
         </div>
       </div>
 

@@ -1,5 +1,4 @@
 import type { BtpSecurityAssessment, GlobalAlertRow, GlobalAlertSeverity, SyncLogRecord } from '../contracts/alerts';
-import { MOCK_ALERTS } from '../../demo/alerts/mockAlerts';
 import { MOCK_SYNC_LOGS } from '../../demo/syncLogs/mockSyncLogsData';
 import { MOCK_BTP_ROLES, MOCK_BTP_ROLE_COLLECTIONS, MOCK_BTP_USERS } from '../../demo/sap/mockBtpSecurity';
 import { isEmptyWorkspace } from './workspaceProfile';
@@ -9,8 +8,10 @@ import { sapAdminRepository } from './sapAdminRepository';
 
 /**
  * What the organisation's monitoring has been doing: the cross-module alert worklist, the sync audit log and the
- * BTP security assessment. PROTOTYPE: a populated organisation sees seeded samples; a new one sees only what its
- * own connected accounts and SAP systems have produced, so these stay empty until it connects something.
+ * BTP security assessment. PROTOTYPE: the alert worklist is always derived from the cloud and SAP alert stores (the
+ * same ones the Alerts pages and the dashboard read, and a new organisation's bell), so resolving one anywhere shows everywhere. A
+ * populated organisation starts with seeded samples; a new one has only what its own connected accounts and SAP
+ * systems have produced, so these stay empty until it connects something.
  */
 const PROVIDER_LABEL = { azure: 'Azure', aws: 'AWS', btp: 'SAP BTP', gcp: 'GCP', all: 'Cloud' } as const;
 /** The sample world's "now": its sync and alert timestamps are all on 28 September 2026. */
@@ -72,7 +73,7 @@ function derivedSyncLogs(): SyncLogRecord[] {
 
 export const activityRepository = {
   listAlerts(): GlobalAlertRow[] {
-    return isEmptyWorkspace() ? derivedAlerts() : structuredClone(MOCK_ALERTS);
+    return derivedAlerts();
   },
   listSyncLogs(): SyncLogRecord[] {
     return isEmptyWorkspace() ? derivedSyncLogs() : structuredClone(MOCK_SYNC_LOGS);

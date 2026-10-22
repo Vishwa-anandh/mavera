@@ -7,6 +7,7 @@ import { SampleDataBadge, openConnectDialog, useConnectOnArrival } from '../../w
 import { CreditCardIcon, PencilIcon, EyeIcon, TrashIcon, CheckIcon, CloseIcon, LockIcon, ChevronLeftIcon, PlusIcon } from '../../../shared/ui/icons';
 import { useAwsAccounts } from '../model/AwsAccountContext';
 import type { AwsAccount } from '../model/awsTypes';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
 
 function maskAccessKey(accessKey: string): string {
   return accessKey.length <= 8 ? accessKey : `${accessKey.slice(0, 4)}••••••••••••${accessKey.slice(-4)}`;
@@ -84,6 +85,7 @@ export function AwsAccountManager() {
           <span className={`mv-status ${atLimit ? 'mv-status--danger' : 'mv-status--neutral'}`}>
             {accounts.length}/{maxAccounts > 0 ? maxAccounts : '∞'} accounts
           </span>
+          <PageTourButton />
         </div>
       </div>
 

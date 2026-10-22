@@ -10,6 +10,7 @@ import { ServiceCategoryTable } from '../components/ServiceCategoryTable';
 import { cloudSamplesRepository } from '../../../data-access';
 import { NothingConnected, SampleDataBadge } from '../../workspace';
 import { serviceCategoryOf } from '../model/btpDerivations';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
 
 function formatCurrency(value: number, currency = 'EUR'): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value);
@@ -52,12 +53,13 @@ export function BtpOverallDashboard() {
             <p className="mv-subtitle">{accounts.length} account{accounts.length === 1 ? '' : 's'} monitored. {accounts.some((a) => a.sample) && <SampleDataBadge />}</p>
           </div>
         </div>
-        {accounts.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.625rem' }}>
+        <div style={{ display: 'flex', gap: '0.625rem' }}>
+          {accounts.length > 0 && (<>
             <button className="mv-secondary-button" onClick={refresh} disabled={refreshing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}</button>
             <button className="mv-primary-button" onClick={() => navigate('/btp/accounts')}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Account</button>
-          </div>
-        )}
+          </>)}
+          <PageTourButton />
+        </div>
       </div>
 
       {accounts.length === 0 ? (

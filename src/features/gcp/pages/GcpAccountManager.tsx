@@ -4,6 +4,7 @@ import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { CloudIcon, ChevronRightIcon, TrashIcon, PlusIcon, LockIcon } from '../../../shared/ui/icons';
 import { useGcpAccounts } from '../model/GcpAccountContext';
 import { SampleDataBadge, openConnectDialog, useConnectOnArrival } from '../../workspace';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
 
 /**
  * AccountManager, ported from the reference CCM app's
@@ -43,6 +44,7 @@ export function GcpAccountManager() {
             <p className="mv-subtitle">Connect your Google Cloud projects for cost monitoring.</p>
           </div>
         </div>
+        <PageTourButton />
       </div>
 
       {accounts.length > 0 && (

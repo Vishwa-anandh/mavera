@@ -121,7 +121,7 @@ describe('page search', () => {
     const user = userEvent.setup();
     renderShell();
 
-    await user.click(screen.getByRole('button', { name: 'Search or run a command (Ctrl+K)' }));
+    await user.keyboard('{Control>}k{/Control}');
     await user.type(screen.getByRole('combobox'), 'zzzz');
     expect(screen.getByText('Nothing matches “zzzz”.')).toBeInTheDocument();
   });

@@ -77,7 +77,7 @@ tools/            check-architecture.mjs, architecture-baseline.json
 | Theme | `shared/theme` `ThemeProvider` | `localStorage` `mavera.theme` |
 | Dashboard and overview data | `features/dashboard` `useDashboardData` (API in a live session, sample data in local development only) | none |
 | IDoc Monitoring, Cost Analytics, Resource Inventory, Reserved Instances, Optimization Advisor | `idocRepository` / `cloudInsightsRepository` in data-access (demo-backed) | none; actions are session-local stores in the feature model |
-| Other provider pages, SAP, budgets, … | demo fixtures read by the page (baselined) | none; edits are session-local |
+| Connected accounts, SAP destinations, budgets, alerts, invoices, members, audit | repositories in data-access seeded per workspace profile (`workspaceRepository`; the new-organisation demo starts empty) | none; edits are session-local |
 | Navigation | React Router | URL |
 
 ## Access model
@@ -106,7 +106,7 @@ and removal of the dark theme, reduced-motion or focus styles.
 
 | Gap | Where | Plan |
 |---|---|---|
-| 42 files import demo fixtures directly | `tools/architecture-baseline.json` | Repository per area, ADR-0002 |
+| 3 files (billing) import demo fixtures directly | `tools/architecture-baseline.json` | Repository per area, ADR-0002 |
 | No server-state engine; hooks fetch with axios | `features/dashboard`, `features/auth` | Choose one by ADR before adding repository hooks |
 | Routes are not lazy-loaded; one ~1.3 MB bundle | `app/router/AppRoutes.tsx` | Lazy feature entrypoints with route-level loading and error boundaries |
 | No generated or contract-tested API client | `data-access` | OpenAPI-generated types once the API publishes a contract |

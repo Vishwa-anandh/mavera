@@ -14,6 +14,8 @@ import type { GcpCostTabProps } from '../model/GcpCostTabProps';
 import { ExecutiveTab } from '../components/tabs/ExecutiveTab';
 import { OperationsTab } from '../components/tabs/OperationsTab';
 import { TechnicalTab } from '../components/tabs/TechnicalTab';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
+import { useRememberLastViewedAccount } from '../../../shared/lib/lastViewedAccount';
 
 /** GCP's own documented default CSP discount rate (see the reference's
  * useMspRates DEFAULTS: gcp: 0.02) — lower than Azure's 7% and AWS's 3.5%. */
@@ -55,6 +57,7 @@ export function GcpCostPage() {
   const data = useMemo(() => cloudSamplesRepository.gcp.costs(account), [account]);
 
   const [activeTab, setActiveTab] = useCostView('gcp', accountId, COST_VIEWS);
+  useRememberLastViewedAccount('gcp', account);
   const [syncing, setSyncing] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const aiRef = useOutsideClose(aiOpen, () => setAiOpen(false));
@@ -119,6 +122,7 @@ export function GcpCostPage() {
             )}
           </div>
           <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{syncing ? 'Syncing…' : 'Sync'}</button>
+          <PageTourButton />
         </div>
       </div>
 

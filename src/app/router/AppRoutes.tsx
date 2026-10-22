@@ -5,6 +5,7 @@ import { CompanySignupPage, ForgotPasswordPage, LoginPage, RegisterPage, ResetPa
 import { NotFoundPage } from '../../features/system';
 import { PublicInvoicePage } from '../../features/billing';
 import { InvoiceDemoPage } from '../../features/invoiceDemo';
+import { SetupPage, SetupRedirect } from '../../features/setup';
 import { SuperAdminGuard, SuperAdminShell } from '../../features/superAdmin';
 import { PageSkeleton, type PageSkeletonVariant } from '../../shared/ui/PageSkeleton';
 import { appPaths } from './route-manifest';
@@ -74,6 +75,8 @@ export function AppRoutes() {
       <Route path={appPaths.forgotPassword} element={<ForgotPasswordPage />} />
       <Route path={appPaths.resetPassword} element={<ResetPasswordPage />} />
       <Route path={appPaths.subscriptionExpired} element={<SubscriptionExpiredPage />} />
+      {/* The guided first-time setup: its own full page, outside the app menus. */}
+      <Route path={appPaths.setup} element={<SetupPage />} />
 
       {/* Fully public — reached only via the token embedded in a "sent" invoice email link,
           no login, no app shell. */}
@@ -101,7 +104,7 @@ export function AppRoutes() {
       </Route>
 
       <Route element={<AppShell />}>
-        <Route path={appPaths.root} element={<Page variant="dashboard"><HomePage /></Page>} />
+        <Route path={appPaths.root} element={<SetupRedirect><Page variant="dashboard"><HomePage /></Page></SetupRedirect>} />
         <Route path={appPaths.costOverview} element={<Page><CostOverviewPage /></Page>} />
         <Route path={appPaths.azure} element={<Page><AzureRoot /></Page>} />
         <Route path={appPaths.azureAccount} element={<Page><AzureCostPage /></Page>} />

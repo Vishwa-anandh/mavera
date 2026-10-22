@@ -7,12 +7,15 @@ import { SearchDialog } from './SearchDialog';
 import { NotificationsDrawer } from './NotificationsDrawer';
 import { ProfileMenu } from './ProfileMenu';
 import { formatBadgeCount, useNotifications } from './notifications';
-import { AssistantWidget } from '../../features/assistant';
+import { AssistantWidget, hasPageTour } from '../../features/assistant';
+import { PageTourProvider } from '../../shared/lib/pageTourContext';
+import { Tooltip } from '../../shared/ui/Tooltip';
+import { TooltipProvider } from '../../shared/ui/TooltipProvider';
 import { ConnectDialogHost } from '../../features/workspace';
 import { RouteAccessGuard } from '../../features/access';
 import { productModuleFor, routeModuleFor } from '../router/route-manifest';
 import { ModuleNotSubscribed } from './ModuleNotSubscribed';
-import { SearchIcon, BellIcon, HelpIcon, MenuIcon } from '../../shared/ui/icons';
+import { BellIcon, HelpIcon, MenuIcon } from '../../shared/ui/icons';
 import maveraLogo from '../../../assets/brand/mavera-logo.png';
 
 type Overlay = 'search' | 'notifications' | 'mobile-nav' | null;
@@ -71,23 +74,23 @@ export function AppShell() {
           </Link>
           <ModuleNavigation />
           <div className="mv-utility">
-            <button type="button" className="mv-icon-button" aria-label="Search or run a command (Ctrl+K)" title="Search or run a command (Ctrl+K)" onClick={() => setOverlay('search')}>
-              <SearchIcon size={20} />
-            </button>
-            <button
-              type="button"
-              className="mv-icon-button"
-              aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
-              title={unread > 0 ? `${unread} unread notifications` : 'Notifications'}
-              aria-expanded={overlay === 'notifications'}
-              onClick={() => setOverlay('notifications')}
-            >
-              <BellIcon size={20} />
-              {unread > 0 && <span className="mv-badge-count" aria-hidden="true">{formatBadgeCount(unread)}</span>}
-            </button>
-            <a className="mv-icon-button" aria-label="Help and support (opens maitsys.com)" title="Help and support" href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">
-              <HelpIcon size={20} />
-            </a>
+            <Tooltip content={unread > 0 ? `${unread} unread notifications` : 'Notifications'} placement="bottom">
+              <button
+                type="button"
+                className="mv-icon-button"
+                aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+                aria-expanded={overlay === 'notifications'}
+                onClick={() => setOverlay('notifications')}
+              >
+                <BellIcon size={20} />
+                {unread > 0 && <span className="mv-badge-count" aria-hidden="true">{formatBadgeCount(unread)}</span>}
+              </button>
+            </Tooltip>
+            <Tooltip content="Help and support" placement="bottom">
+              <a className="mv-icon-button" aria-label="Help and support (opens maitsys.com)" href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">
+                <HelpIcon size={20} />
+              </a>
+            </Tooltip>
             <ProfileMenu />
           </div>
         </header>
@@ -95,7 +98,9 @@ export function AppShell() {
           {missingModule ? (
             <ModuleNotSubscribed module={missingModule} />
           ) : (
-            <RouteAccessGuard module={routeModuleFor(pathname)}><Outlet /></RouteAccessGuard>
+            <PageTourProvider value={hasPageTour(pathname)}>
+              <RouteAccessGuard module={routeModuleFor(pathname)}><Outlet /></RouteAccessGuard>
+            </PageTourProvider>
           )}
         </main>
       </div>
@@ -104,6 +109,7 @@ export function AppShell() {
       {overlay === 'notifications' && <NotificationsDrawer onClose={close} notifications={notifications} />}
       <ConnectDialogHost />
       <AssistantWidget />
+      <TooltipProvider />
     </div>
   );
 }

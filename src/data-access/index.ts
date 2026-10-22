@@ -51,3 +51,5 @@ export type {
 } from './contracts/workspace';
 export { activityRepository } from './repositories/activityRepository';
 export type { BtpSecurityAssessment, BtpSecurityUser, GlobalAlertModule, GlobalAlertRow, GlobalAlertSeverity, SyncLogRecord } from './contracts/alerts';
+export { organisationProfileRepository } from './repositories/organisationProfileRepository';
+export type { OrganisationProfile, OrganisationProfileInput } from './contracts/organisationProfile';

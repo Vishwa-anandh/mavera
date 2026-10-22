@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { relativeTime } from '../lib/relativeTime';
+import { usePageHasTour } from '../lib/pageTourContext';
+import { PageTourButton } from './PageTourButton';
 import {
   BellIcon, BuildingIcon, CloudIcon, ClockIcon, ServerIcon, SettingsIcon, ShieldIcon, SparkleIcon,
 } from './icons';
@@ -38,6 +40,7 @@ interface PageHeaderProps {
 export function PageHeader({ title, subtitle, updatedAt, children }: PageHeaderProps) {
   const { pathname } = useLocation();
   const Icon = moduleIcon(pathname);
+  const hasTour = usePageHasTour();
   return (
     <div className="mv-page-heading mv-page-header">
       <div className="mv-page-header-main">
@@ -52,7 +55,7 @@ export function PageHeader({ title, subtitle, updatedAt, children }: PageHeaderP
           )}
         </div>
       </div>
-      {children && <div className="mv-heading-actions">{children}</div>}
+      {(children || hasTour) && <div className="mv-heading-actions">{children}<PageTourButton /></div>}
     </div>
   );
 }

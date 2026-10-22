@@ -17,6 +17,8 @@ import type { AwsCostTabProps } from '../model/AwsCostTabProps';
 import { ExecutiveTab } from '../components/tabs/ExecutiveTab';
 import { OperationsTab } from '../components/tabs/OperationsTab';
 import { TechnicalTab } from '../components/tabs/TechnicalTab';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
+import { useRememberLastViewedAccount } from '../../../shared/lib/lastViewedAccount';
 
 const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -66,6 +68,7 @@ export function AwsCostPage() {
   const yearly = useMemo(() => cloudSamplesRepository.aws.yearly(), []);
 
   const [activeTab, setActiveTab] = useCostView('aws', accountId, COST_VIEWS);
+  useRememberLastViewedAccount('aws', account);
   const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
@@ -184,6 +187,7 @@ export function AwsCostPage() {
             )}
           </div>
           <button className="mv-primary-button" onClick={sync} disabled={syncing}><RefreshIcon size={16} className="mv-cost-menu-icon" />{syncing ? 'Syncing…' : 'Sync'}</button>
+          <PageTourButton />
         </div>
       </div>
 

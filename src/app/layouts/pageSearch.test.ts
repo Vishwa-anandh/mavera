@@ -20,6 +20,14 @@ describe('page search', () => {
     expect(labels('invoice')).toEqual(expect.arrayContaining(['Billing']));
   });
 
+  it('offers the Setup guide to people who can manage users, by name and by "getting started"', () => {
+    expect(labels('setup guide')).toContain('Setup guide');
+    expect(searchPages(index, 'getting started').find((p) => p.path === '/setup')).toMatchObject({ label: 'Setup guide', where: 'Your organisation' });
+    const member: User = { id: '2', email: 'm@b.com', role: 'member' };
+    const noUsers = buildPageIndex(resolveNav(derivePermissions(member, [], false)), (module) => module !== 'users');
+    expect(searchPages(noUsers, 'setup guide')).toEqual([]);
+  });
+
   it('finds merged pages by the names of the pages they replaced', () => {
     expect(labels('system health')).toEqual(['SAP Overview']);
     expect(labels('recommendations')).toEqual(['Savings & Optimization']);

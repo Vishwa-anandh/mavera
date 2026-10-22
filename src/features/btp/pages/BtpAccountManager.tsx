@@ -8,6 +8,7 @@ import { cloudSamplesRepository } from '../../../data-access';
 import { SampleDataBadge, openConnectDialog, useConnectOnArrival } from '../../workspace';
 import { btpRegionLabel } from '../model/btpDerivations';
 import type { BtpAccount } from '../model/btpTypes';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
 
 /**
  * AccountManager, ported from the reference CCM app's
@@ -57,7 +58,10 @@ export function BtpAccountManager() {
             <p className="mv-subtitle">Connect your SAP BTP global accounts for cost monitoring.</p>
           </div>
         </div>
-        <span className={`mv-status ${atLimit ? 'mv-status--danger' : 'mv-status--neutral'}`}>{accounts.length}/{maxAccounts > 0 ? maxAccounts : '∞'} accounts</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <span className={`mv-status ${atLimit ? 'mv-status--danger' : 'mv-status--neutral'}`}>{accounts.length}/{maxAccounts > 0 ? maxAccounts : '∞'} accounts</span>
+          <PageTourButton />
+        </div>
       </div>
 
       {accounts.length > 0 && (

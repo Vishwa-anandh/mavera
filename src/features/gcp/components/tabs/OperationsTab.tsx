@@ -53,7 +53,7 @@ export function OperationsTab(props: GcpCostTabProps) {
                     <td className="mv-num">{formatCurrency(svc.cost)}</td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ flex: 1, height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', minWidth: '3.75rem' }}>
+                        <div style={{ flex: 1, height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', minWidth: '2.5rem' }}>
                           <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${Math.min(svc.percent, 100)}%`, background: 'var(--mv-primary)' }} />
                         </div>
                         <span className="mv-muted" style={{ flex: 'none' }}>{svc.percent.toFixed(1)}%</span>

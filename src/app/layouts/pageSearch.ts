@@ -19,6 +19,7 @@ const EXTRA_PAGES: Array<PageResult & { module?: ModuleId }> = [
   { key: 'alerts', label: 'All alerts', path: '/alerts', where: 'Across modules', locked: false, keywords: 'alarms incidents critical warnings' },
   { key: 'ai-assistant', label: 'AI Assistant', path: '/ai-assistant', where: 'Across modules', locked: false, keywords: 'ask chat help copilot', module: 'assistant' },
   { key: 'account', label: 'Account', path: '/account', where: 'Your profile', locked: false, keywords: 'profile password email settings preferences' },
+  { key: 'setup', label: 'Setup guide', path: '/setup', where: 'Your organisation', locked: false, keywords: 'onboarding wizard getting started company profile invite users connect checklist', module: 'users' },
   { key: 'subscription', label: 'Subscription', path: '/subscription', where: 'Your profile', locked: false, keywords: 'plan upgrade modules seats licence license expiry renewal', module: 'subscription' },
 ];
 

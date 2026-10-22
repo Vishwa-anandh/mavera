@@ -45,11 +45,11 @@ describe('HomePage for a brand-new organisation', () => {
   });
   afterEach(() => { closeConnectDialog(); workspaceRepository.setProfile('populated'); });
 
-  it('shows zeros, an empty state for each module and ONE primary action to connect the first account', async () => {
+  it('shows zeros and the getting-started card as the ONE empty state, with no second "connect your first account" block', async () => {
     const user = userEvent.setup();
     const { container } = renderDashboard();
 
-    // The pulse deck: one empty readout per module, each pointing at its connect flow.
+    // The pulse deck: one empty readout per module, each pointing at its own connect flow.
     expect(screen.getByText('No cloud account connected yet')).toBeInTheDocument();
     expect(screen.getByText('No SAP system connected yet')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Connect your first account' }).some((link) => link.getAttribute('href') === '/azure?open=connect')).toBe(true);
@@ -61,13 +61,30 @@ describe('HomePage for a brand-new organisation', () => {
     expect(within(strip).getByText('0/0')).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/NaN|undefined/);
 
-    // Exactly one primary call to action (a button), and it opens the shared connect dialog in place.
-    expect(screen.getByRole('heading', { name: 'Connect your first account' })).toBeInTheDocument();
-    const primary = screen.getAllByRole('button', { name: 'Connect your first account' });
-    expect(primary).toHaveLength(1);
-    await user.click(primary[0]);
+    // The old empty-state block is gone: the Getting started card is the empty state, and nothing below repeats it.
+    expect(screen.queryByRole('heading', { name: 'Connect your first account' })).toBeNull();
+    expect(container.querySelector('.mv-empty')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Needs attention' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'System & Service Health Overview' })).toBeNull();
+    const card = screen.getByRole('region', { name: 'Get started with Mavera' });
+    expect(within(screen.getByLabelText('At a glance').parentElement as HTMLElement).queryByRole('button', { name: /connect/i })).toBeNull();
+
+    // Step 1 of the card is the one primary action, and it opens the shared connect dialog in place.
+    await user.click(within(card).getAllByRole('button', { name: 'Connect' })[0]);
     expect(screen.getByRole('dialog', { name: 'Connect Azure account' })).toBeInTheDocument();
     expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/);
+  });
+
+  it('falls back to the normal panels, each with its own single connect link, once the checklist is hidden', async () => {
+    workspaceRepository.dismissOnboarding();
+    const user = userEvent.setup();
+    renderDashboard();
+    expect(screen.queryByRole('region', { name: 'Get started with Mavera' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Needs attention' })).toBeInTheDocument();
+    expect(screen.getByText('Nothing needs attention right now.')).toBeInTheDocument();
+    const cloudPanel = screen.getByRole('heading', { name: 'Cloud Cost by Provider' }).closest('section') as HTMLElement;
+    await user.click(within(cloudPanel).getByRole('link', { name: 'Connect your first account' }));
+    expect(screen.getByRole('dialog', { name: 'Connect Azure account' })).toBeInTheDocument();
   });
 
   it('the pulse deck and the empty panels open the same dialog in place on a plain click', async () => {
@@ -84,6 +101,7 @@ describe('HomePage for a brand-new organisation', () => {
     expect(screen.queryByText('No cloud account connected yet')).toBeNull();
     expect(screen.getByText('No SAP system connected yet')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Connect your first account' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Needs attention' })).toBeInTheDocument();
     const strip = screen.getByLabelText('At a glance');
     expect(within(strip).queryByText('$0.00')).toBeNull();
     expect(container.textContent).not.toMatch(/NaN|undefined/);

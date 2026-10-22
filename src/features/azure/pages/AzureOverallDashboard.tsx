@@ -5,6 +5,7 @@ import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
 import { cloudSamplesRepository } from '../../../data-access';
 import { NothingConnected, SampleDataBadge, useWorkspaceAccounts } from '../../workspace';
 import type { AzureAccountSummary } from '../model/azureTypes';
+import { PageTourButton } from '../../../shared/ui/PageTourButton';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -71,16 +72,17 @@ export function AzureOverallDashboard({ onSelectAccount, onManageAccounts }: Azu
             <p className="mv-subtitle">{accounts.length === 0 ? 'Connect an Azure subscription to see its cost here.' : <>Aggregated insights across {accounts.length} Azure subscription{accounts.length === 1 ? '' : 's'}. {hasSample && <SampleDataBadge />}</>}</p>
           </div>
         </div>
-        {accounts.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.625rem' }}>
+        <div style={{ display: 'flex', gap: '0.625rem' }}>
+          {accounts.length > 0 && (<>
             <button className="mv-secondary-button" onClick={refresh} disabled={refreshing}>
               <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh Data'}
             </button>
             <button className="mv-primary-button" onClick={onManageAccounts}>
               <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Manage Accounts
             </button>
-          </div>
-        )}
+          </>)}
+          <PageTourButton />
+        </div>
       </div>
 
       {accounts.length === 0 ? (

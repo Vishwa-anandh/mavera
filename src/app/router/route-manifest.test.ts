@@ -49,6 +49,12 @@ describe('route manifest', () => {
     }
   });
 
+  it('serves the setup wizard as a full-screen page for signed-in members, outside the menus', () => {
+    expect(routeById('setup')).toMatchObject({ path: '/setup', access: { kind: 'authenticated' }, layout: 'full-screen' });
+    expect(navigationPaths()).not.toContain('/setup');
+    expect(routeModuleFor('/setup')).toBeUndefined();
+  });
+
   it('puts super-admin routes in the admin layout and only those', () => {
     for (const route of routeManifest) {
       expect(route.access.kind === 'super-admin', `${route.id}`).toBe(route.layout === 'admin');

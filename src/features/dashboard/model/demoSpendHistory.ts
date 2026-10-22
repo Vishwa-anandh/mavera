@@ -73,6 +73,12 @@ export function demoDailySpend(monthly: Array<{ key: string; total: number }>, f
 /** The sample session's last day: September 2026 is month-to-date through the 28th. */
 export const DEMO_LAST_DAY = '2026-09-28';
 
+/**
+ * "Now" for the sample session: the sample alerts and spend are dated around 28 Sep 2026, so the dashboard's time
+ * range counts back from this moment rather than from the real clock (which would leave every range empty).
+ */
+export const DEMO_NOW = '2026-09-28T06:00:00Z';
+
 /** Two years of monthly spend: 18 generated earlier months, then the six months below. September is month-to-date. */
 export const DEMO_MONTHLY: DemoMonthlyRow[] = [
   ...demoEarlierMonths(),

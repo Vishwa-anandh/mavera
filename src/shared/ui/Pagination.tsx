@@ -1,6 +1,7 @@
 import { ChevronLeftIcon, ChevronRightIcon } from './icons';
 import { Select } from './Select';
 import { DEFAULT_PAGE_SIZES, pageWindow } from './usePagination';
+import { Tooltip } from './Tooltip';
 import { useDensity } from './useDensity';
 
 export interface PaginationProps {
@@ -36,8 +37,12 @@ export function Pagination({
       </p>
       <div className="mv-pagination-controls">
         <div className="mv-density-toggle" role="group" aria-label="Row density">
-          <button type="button" aria-pressed={density === 'comfortable'} onClick={() => setDensity('comfortable')}>Comfortable</button>
-          <button type="button" aria-pressed={density === 'compact'} onClick={() => setDensity('compact')}>Compact</button>
+          <Tooltip content="Roomier rows, easier to read">
+            <button type="button" aria-pressed={density === 'comfortable'} onClick={() => setDensity('comfortable')}>Comfortable</button>
+          </Tooltip>
+          <Tooltip content="Tighter rows, more of the table on screen">
+            <button type="button" aria-pressed={density === 'compact'} onClick={() => setDensity('compact')}>Compact</button>
+          </Tooltip>
         </div>
         {onPageSizeChange && (
           <Select

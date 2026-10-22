@@ -22,15 +22,17 @@ const QUICK_ACCESS: QuickAccessItem[] = [
  * entitlements (set by the super admin), so an org on fewer than both
  * modules doesn't see shortcuts into ones it can't open.
  */
-export function DashboardSidebar() {
+export function DashboardSidebar({ scope }: { scope?: { cloudCost: boolean; sapMonitoring: boolean } }) {
   const { modules } = useAuth();
   const activeCount = Number(modules.cloudCost) + Number(modules.sapMonitoring);
-  const quickAccess = QUICK_ACCESS.filter((item) => !item.module || modules[item.module]);
+  // `scope` is the half of the dashboard the System filter leaves showing; the shortcuts follow it, the subscription count does not.
+  const shown = scope ?? modules;
+  const quickAccess = QUICK_ACCESS.filter((item) => !item.module || (modules[item.module] && shown[item.module]));
 
   return (
     <div className="mv-dashboard-sidebar">
       <section className="mv-side-card mv-side-subscription">
-        <div className="mv-side-card-header"><CrownIcon size={18} /><span>Your Subscription</span></div>
+        <div className="mv-side-card-header"><CrownIcon size={20} /><span>Your Subscription</span></div>
         <div className="mv-side-plan-row">
           <strong>Enterprise Plan</strong>
           <span className="mv-status mv-status--success">Active</span>

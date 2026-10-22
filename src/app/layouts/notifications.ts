@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { activityRepository, isEmptyWorkspace } from '../../data-access';
+import { useAlertsVersion } from '../../shared/lib/alertsChanged';
 import type { NavModules } from '../router/navConfig';
 
 export interface NotificationItem {
@@ -57,7 +58,10 @@ export function useNotifications(modules: NavModules): NotificationsState {
   // Which items were read; the feed itself is re-read when the page changes, so new alerts show up.
   const [readIds, setReadIds] = useState<ReadonlySet<string>>(() => new Set(SEED.filter((item) => item.read).map((item) => item.id)));
   const { pathname } = useLocation();
-  const all = useMemo(baseItems, [pathname]);
+  // Re-read when the page changes or an alert is resolved or ignored elsewhere (the dashboard), so the badge never lags.
+  const alertsVersion = useAlertsVersion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the version and path only invalidate; baseItems reads the stores.
+  const all = useMemo(baseItems, [pathname, alertsVersion]);
   const items = useMemo(
     () => all.map((item) => (readIds.has(item.id) ? { ...item, read: true } : item)).filter((item) => modules[MODULE_FLAG[item.module]]),
     [all, readIds, modules],

@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { isNavPathActive, navColumnLayout, navMenuColumns, navSections, type ResolvedNavEntry } from '../router/navConfig';
 import { useResolvedNav } from '../router/useResolvedNav';
@@ -6,9 +6,13 @@ import { ChevronDownIcon, LockIcon } from '../../shared/ui/icons';
 import { handleMenuKeys, useDismiss } from '../../shared/ui/useOverlay';
 
 /**
- * MAVERA_DESIGN_SYSTEM.md §6.1: click/Enter/Space opens a module's dropdown
- * (hover never changes the route or opens a menu); Escape closes it and
- * restores focus to the trigger. A locked destination still opens its
+ * MAVERA_DESIGN_SYSTEM.md §6.1: click/Enter/Space opens a module's dropdown;
+ * Escape closes it and restores focus to the trigger. Deliberate deviation
+ * (product owner's request): a mouse pointer resting on a module also opens
+ * its dropdown, and leaving it closes the menu after a short grace period so
+ * the pointer can cross the gap. Hover never changes the route, and touch
+ * and keyboard behave as before. Clicking while a hover-opened menu is open
+ * keeps it open (pins it) instead of closing it under the pointer. A locked destination still opens its
  * dropdown to reveal feature names rather than acting as an inert disabled
  * element.
  *
@@ -19,6 +23,8 @@ import { handleMenuKeys, useDismiss } from '../../shared/ui/useOverlay';
  * list on narrow viewports.
  */
 /** A valid, space-free id for a section heading (aria-labelledby splits on spaces). */
+const HOVER_OPEN_DELAY_MS = 90;
+const HOVER_CLOSE_DELAY_MS = 180;
 const sectionId = (menu: string, section: string) => `nav-${menu}-${section.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 
 function ModuleDropdown({ entry, active }: { entry: Extract<ResolvedNavEntry, { type: 'group' }>; active: boolean }) {
@@ -31,8 +37,14 @@ function ModuleDropdown({ entry, active }: { entry: Extract<ResolvedNavEntry, { 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [shift, setShift] = useState(0);
+  const hoverTimer = useRef<number | undefined>(undefined);
+  const hoverOpened = useRef(false);
+  const clearHoverTimer = () => window.clearTimeout(hoverTimer.current);
+  useEffect(() => clearHoverTimer, []);
 
   const close = useCallback((restoreFocus: boolean) => {
+    window.clearTimeout(hoverTimer.current);
+    hoverOpened.current = false;
     setOpenOn(null);
     if (restoreFocus) triggerRef.current?.focus();
   }, []);
@@ -49,17 +61,40 @@ function ModuleDropdown({ entry, active }: { entry: Extract<ResolvedNavEntry, { 
     setShift(overflow > 0 ? -Math.min(overflow, Math.max(0, left - 12)) : 0);
   }, [open]);
 
+  const hoverIn = (event: PointerEvent) => {
+    if (event.pointerType !== 'mouse') return;
+    clearHoverTimer();
+    if (open) return;
+    hoverTimer.current = window.setTimeout(() => {
+      hoverOpened.current = true;
+      setOpenOn(location.pathname);
+    }, HOVER_OPEN_DELAY_MS);
+  };
+  const hoverOut = (event: PointerEvent) => {
+    if (event.pointerType !== 'mouse') return;
+    clearHoverTimer();
+    if (!open || !hoverOpened.current) return;
+    hoverTimer.current = window.setTimeout(() => close(false), HOVER_CLOSE_DELAY_MS);
+  };
+
   const columns = navColumnLayout(navSections(entry.children), navMenuColumns(entry.children));
 
   return (
-    <div className="mv-nav-item" ref={rootRef}>
+    <div className="mv-nav-item" ref={rootRef} onPointerEnter={hoverIn} onPointerLeave={hoverOut}>
       <button
         ref={triggerRef}
         type="button"
         className={`mv-nav-trigger${active ? ' is-active' : ''}`}
         aria-haspopup="menu"
         aria-expanded={open}
-        onClick={() => setOpenOn(open ? null : location.pathname)}
+        onClick={() => {
+          clearHoverTimer();
+          if (open && hoverOpened.current) {
+            hoverOpened.current = false; // pin a menu the hover opened
+            return;
+          }
+          setOpenOn(open ? null : location.pathname);
+        }}
         onKeyDown={(event) => {
           if (event.key === 'ArrowDown' && !open) {
             event.preventDefault();

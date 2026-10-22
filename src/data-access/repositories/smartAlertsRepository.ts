@@ -105,6 +105,23 @@ export const smartAlertsRepository = {
       return { ...rest, ignored: false, status: a.status === 'resolved' ? 'read' : a.status };
     });
   },
+  /**
+   * Puts an alert back exactly as `previous` was (an Undo after Resolve or Ignore): its status, ignored flag and,
+   * when an ignore is taken back, the account's widened threshold and the adjustment it logged.
+   */
+  restore(previous: SmartAlert): SmartAlert | null {
+    const current = alerts.find((a) => a.id === previous.id);
+    if (!current) return null;
+    if (current.ignored && !previous.ignored) {
+      const count = Math.max(0, (feedback[current.account_id] ?? 0) - 1);
+      const { [current.account_id]: _removed, ...rest } = feedback;
+      feedback = count > 0 ? { ...rest, [current.account_id]: count } : rest;
+      adjustments = adjustments.slice(0, -1);
+    }
+    const restored = structuredClone(previous);
+    alerts = alerts.map((a) => (a.id === previous.id ? restored : a));
+    return structuredClone(restored);
+  },
 
   getSettings(): SmartAlertsSettings {
     return { ...settings };

@@ -178,20 +178,6 @@ describe('resolveNav', () => {
     expect(governance?.children.map((c) => c.key)).toEqual(['budgets', 'smart-alerts', 'alerts']);
   });
 
-  it('puts the AI Assistant in the header as a top-level destination, not inside one module, for every org', () => {
-    const member: User = { id: '1', email: 'a@b.com', role: 'member' };
-    const entries = resolveNav(derivePermissions(member, [], false), ctx({}, false, { cloudCost: false, sapMonitoring: false }));
-    const assistant = entries.find((e) => e.key === 'ai-assistant');
-    expect(assistant).toMatchObject({ type: 'leaf', label: 'AI Assistant', path: '/ai-assistant' });
-    expect(entries[entries.length - 1].key).toBe('ai-assistant');
-  });
-
-  it('hides the AI Assistant from a role that may not view it', () => {
-    const member: User = { id: '1', email: 'a@b.com', role: 'member' };
-    const entries = resolveNav(derivePermissions(member, [], false), { ...ctx(), canView: (module) => module !== 'assistant' });
-    expect(leaf(entries, 'ai-assistant')).toBeUndefined();
-  });
-
   it('hides true cloud-resource destinations for a pure invoice-only org, but keeps them for a hybrid org', () => {
     const admin: User = { id: '1', email: 'a@b.com', role: 'admin' };
 

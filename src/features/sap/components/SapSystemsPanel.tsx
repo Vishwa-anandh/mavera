@@ -49,12 +49,14 @@ interface SapSystemsPanelProps {
    * row per system instead. The standalone /sap/systems page uses the full
    * table (default). */
   compact?: boolean;
+  /** Keeps only the systems this accepts (the dashboard's Environment filter); counts and rows follow. */
+  filter?: (system: SapSystem) => boolean;
 }
 
 type ConditionFilter = 'all' | SapCondition;
 
-export function SapSystemsPanel({ limit, showCounts = true, compact = false }: SapSystemsPanelProps) {
-  const systems = sapRepository.listSystems();
+export function SapSystemsPanel({ limit, showCounts = true, compact = false, filter: keep }: SapSystemsPanelProps) {
+  const systems = keep ? sapRepository.listSystems().filter(keep) : sapRepository.listSystems();
   const [filter, setFilter] = useState<ConditionFilter>('all');
   const [openId, setOpenId] = useState<string | null>(null);
   const counts = sapConditionCounts(systems);

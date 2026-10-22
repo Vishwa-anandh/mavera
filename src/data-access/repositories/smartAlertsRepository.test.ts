@@ -44,6 +44,23 @@ describe('alerts', () => {
     expect(find('alert-2').status).toBe('read');
   });
 
+  it('restore undoes a resolve, and an ignore together with its widening and logged adjustment', () => {
+    const before = find('alert-1');
+    repo.resolve('alert-1');
+    repo.restore(before);
+    expect(find('alert-1')).toEqual(before);
+
+    const feedback = repo.getAccountFeedback()['az-acc-1'] ?? 0;
+    const adjustments = repo.listAdjustments().length;
+    repo.ignore('alert-1');
+    expect(repo.getAccountFeedback()['az-acc-1']).toBe(feedback + 1);
+    repo.restore(before);
+    expect(find('alert-1')).toEqual(before);
+    expect(repo.getAccountFeedback()['az-acc-1'] ?? 0).toBe(feedback);
+    expect(repo.listAdjustments()).toHaveLength(adjustments);
+    expect(repo.restore({ ...before, id: 'nope' })).toBeNull();
+  });
+
   it('returns null for an unknown id and hands out copies', () => {
     expect(repo.markRead('nope')).toBeNull();
     repo.list()[0].message = 'changed';

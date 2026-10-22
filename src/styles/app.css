@@ -518,22 +518,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--mv-border) transparent; scr
 .mv-select-status { padding: 0.625rem 0.75rem; color: var(--mv-text-muted); font-size: 0.8125rem; }
 .mv-select-status--error { color: var(--mv-danger); }
 
-/* Custom Tooltip (src/shared/ui/Tooltip.tsx) — MAVERA_DESIGN_SYSTEM.md
-   §10.1: neutral elevated surface, no arrow, 160ms fade + <=0.25rem slide timed
-   with the motion-base token, respecting prefers-reduced-motion. */
-.mv-tooltip {
-  position: fixed; z-index: 1300; max-width: 17.5rem; padding: 0.5rem 0.75rem;
-  border: 1px solid var(--mv-border); border-radius: 0.375rem;
-  background: var(--mv-elevated); color: var(--mv-text);
-  font: 0.75rem/1.125rem var(--mv-font-body);
-  box-shadow: var(--mv-shadow-light, 0 0.5rem 1.5rem rgba(16,24,40,.12));
-  opacity: 0; transform: translateY(0.25rem); pointer-events: none;
-  transition: opacity 160ms cubic-bezier(0.2, 0, 0, 1), transform 160ms cubic-bezier(0.2, 0, 0, 1);
-}
-.mv-tooltip[data-placement='bottom'] { transform: translateY(-0.25rem); }
-.mv-tooltip.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
-@media (prefers-reduced-motion: reduce) { .mv-tooltip { transition: none; } }
-
 /* iOS-style toggle switch — first used by the Super Admin portal's
    per-org AI-access and module switches. */
 .mv-toggle { position: relative; display: inline-flex; flex: none; width: 2.5rem; height: 1.375rem; padding: 0; border: 1px solid var(--mv-border); border-radius: 62.4375rem; background: var(--mv-surface-subtle); transition: background 140ms ease, border-color 140ms ease; }
@@ -1319,7 +1303,7 @@ html:has(.mv-login-page) { background: var(--mv-login-gradient) fixed; }
 
 /* Tables that turn into one card per row on phones: each cell shows its column name
    from data-label, so nothing scrolls sideways. */
-@media (max-width: 680px) {
+@media (max-width: 768px) {
   .mv-table-wrap:has(.mv-table--stack) { border: 0; background: none; overflow: visible; }
   .mv-table--stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .mv-table--stack, .mv-table--stack tbody, .mv-table--stack tr, .mv-table--stack td { display: block; width: 100%; }
@@ -1687,7 +1671,7 @@ button.mv-bar-list-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2
 
 .mv-kpi-link { display: block; width: fit-content; }
 .mv-stack-16 { display: grid; gap: 1rem; }
-@media (max-width: 680px) {
+@media (max-width: 768px) {
   .mv-table--stack th.mv-hide-phone, .mv-table.mv-table--stack td.mv-hide-phone { display: none; }
   .mv-table.mv-table--stack td.mv-col-check { justify-content: flex-start; gap: 0.625rem; }
   .mv-table.mv-table--stack td.mv-col-check::before { order: 2; }
@@ -2662,7 +2646,7 @@ strong, b, th { font-weight: 500; }
 /* Super Admin: license token on the organization page (assignment E). */
 .mv-sa-token-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-bottom: 0.75rem; }
 .mv-sa-token { flex: 1 1 18rem; min-width: 0; padding: 0.5rem 0.75rem; border: 1px solid var(--mv-divider); border-radius: 0.5rem; color: var(--mv-text); background: var(--mv-surface-subtle); font: 0.75rem/1.125rem ui-monospace, 'SFMono-Regular', Consolas, monospace; overflow-wrap: anywhere; }
-@media (max-width: 680px) {
+@media (max-width: 768px) {
   .mv-alert-message, .mv-alert-system, .mv-note-title { max-width: none; min-width: 0; text-align: right; overflow-wrap: anywhere; }
   .mv-table.mv-table--stack td.mv-alert-message { display: grid; gap: 0.25rem; text-align: left; }
   .mv-table.mv-table--stack td.mv-alert-message::before { text-align: left; }
@@ -3552,3 +3536,321 @@ body:has(.mv-drawer-backdrop, .mv-dialog-backdrop) .mv-ai-assistant { z-index: 1
   .mv-members-table.mv-table--stack td.mv-member-role .mv-field, .mv-members-table.mv-table--stack td.mv-member-role .mv-select-wrap { max-width: 12rem; }
   .mv-table--stack td > .mv-row-actions { opacity: 1; }
 }
+
+/* ==========================================================================
+   Click-reduction wave 4 (dashboard): page-header Tour button, in-place Needs-attention actions, last viewed account
+   ========================================================================== */
+
+/* Tour: a quiet button in a page header that starts the guided tour of the page. */
+.mv-tour-button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: var(--mv-control-h, 2.5rem); height: var(--mv-control-h, 2.5rem); padding: 0; border: 1px solid var(--mv-divider); border-radius: 50%; background: transparent; color: var(--mv-text-secondary); font: inherit; font-size: 1rem; font-weight: 500; line-height: 1; cursor: pointer; transition: background 120ms ease, color 120ms ease, border-color 120ms ease; }
+.mv-tour-button:hover { background: var(--mv-selected); border-color: var(--mv-primary); color: var(--mv-primary); }
+.mv-tour-button:focus-visible { outline: 0.1875rem solid color-mix(in srgb, var(--mv-focus) 40%, transparent); outline-offset: 0.125rem; }
+.mv-pulse .mv-tour-button { width: 2.375rem; height: 2.375rem; border-color: var(--mv-ink-line); color: var(--mv-ink-text); background: rgba(255, 255, 255, .06); }
+.mv-pulse .mv-tour-button:hover { background: rgba(255, 255, 255, .14); border-color: var(--mv-ink-accent); color: #fff; }
+.mv-cost-header-controls .mv-tour-button { width: 2.5rem; height: 2.5rem; }
+
+/* Needs attention: each alert row has Resolve and Ignore beside the link that opens it. */
+/* Needs attention rows share one grid (dot, text, actions, chevron), so the actions and the chevron line up down the list;
+   the whole row opens the alert through the title link's stretched hit area, and the buttons sit above it. */
+.mv-attention-header-actions { display: flex; flex: none; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.25rem 0.5rem; }
+.mv-attention-header { align-items: flex-start; }
+.mv-attention-list { --mv-attention-actions: 0rem; display: grid; margin: 0; padding: 0; list-style: none; }
+.mv-attention-list.has-actions { --mv-attention-actions: 9.5rem; }
+.mv-attention-list:focus { outline: none; }
+.mv-attention-item { position: relative; display: grid; grid-template-columns: 0.5rem minmax(0, 1fr) var(--mv-attention-actions) 1rem; align-items: start; column-gap: 0.75rem; padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--mv-divider); border-radius: var(--mv-r-sm, 0.375rem); }
+.mv-attention-item:last-child { border-bottom: 0; }
+.mv-attention-item:hover { background: var(--mv-surface-hover); }
+.mv-attention-item:focus-within { background: var(--mv-surface-hover); }
+.mv-attention-item > .mv-insight-dot { margin-top: 0.4375rem; }
+.mv-attention-text { display: grid; gap: 2px; min-width: 0; }
+.mv-attention-link { color: var(--mv-text); font-size: 0.8438rem; font-weight: 500; line-height: 1.25rem; text-decoration: none; overflow-wrap: anywhere; }
+.mv-attention-link::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.mv-attention-link:hover { text-decoration: none; }
+.mv-attention-link:focus-visible { outline: none; }
+.mv-attention-link:focus-visible::after { outline: 2px solid var(--mv-focus); outline-offset: -2px; }
+.mv-attention-text .mv-muted { font-size: 0.7812rem; line-height: 1.125rem; overflow-wrap: anywhere; }
+.mv-attention-actions { position: relative; z-index: 1; display: flex; align-items: center; justify-content: flex-end; gap: 0.25rem; min-width: 0; }
+.mv-attention-actions:empty { display: block; }
+.mv-attention-actions .mv-quiet-button { min-height: 2rem; padding-inline: 0.625rem; border: 1px solid var(--mv-divider); font-size: 0.8125rem; }
+.mv-attention-actions .mv-quiet-button:hover { border-color: var(--mv-primary); }
+.mv-attention-actions .mv-attention-ignore { color: var(--mv-text-secondary); }
+.mv-attention-chevron { margin-top: 0.25rem; color: var(--mv-text-muted); justify-self: end; }
+.mv-attention-more { margin-top: 0.5rem; }
+@media (max-width: 680px) {
+  .mv-attention-list.has-actions { --mv-attention-actions: 0rem; }
+  .mv-attention-item { grid-template-columns: 0.5rem minmax(0, 1fr) 1rem; }
+  .mv-attention-item > .mv-attention-actions { grid-column: 2 / 3; justify-content: flex-start; margin-top: 0.5rem; }
+  .mv-attention-item > .mv-attention-actions:empty { display: none; }
+  .mv-attention-item > .mv-attention-chevron { grid-column: 3; grid-row: 1; }
+  .mv-attention-header { flex-wrap: wrap; }
+  .mv-attention-header-actions { flex: 1 1 100%; justify-content: flex-start; }
+}
+
+/* Last viewed account: a slim link above the at-a-glance strip. */
+.mv-last-viewed { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 0.625rem 0.875rem; border: 1px solid var(--mv-divider); border-radius: 0.625rem; background: var(--mv-surface); color: var(--mv-text); text-decoration: none; }
+.mv-last-viewed:hover { border-color: var(--mv-primary); background: var(--mv-surface-hover); text-decoration: none; }
+.mv-last-viewed:focus-visible { outline: 0.1875rem solid color-mix(in srgb, var(--mv-focus) 40%, transparent); outline-offset: 0.125rem; }
+.mv-last-viewed-icon { display: grid; flex: none; place-items: center; width: 2rem; height: 2rem; border-radius: 0.5rem; background: var(--mv-selected); color: var(--mv-primary); }
+.mv-last-viewed-text { display: grid; flex: 1 1 auto; min-width: 0; gap: 0.0625rem; }
+.mv-last-viewed-text .mv-muted { font-size: 0.75rem; }
+.mv-last-viewed-text strong { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+
+/* At a glance: one strip, its figures grouped and labelled by module (Cloud Cost, SAP Monitoring, then the alerts of all modules). */
+.mv-content .mv-glance-strip { display: flex; flex-wrap: wrap; border: 1px solid transparent; border-radius: var(--mv-r-lg, 0.75rem); background: var(--mv-card-white); box-shadow: var(--mv-lift); }
+:root[data-theme='dark'] .mv-content .mv-glance-strip { border-color: var(--mv-divider); }
+.mv-glance-group { display: grid; align-content: start; flex: 1 1 12rem; min-width: 0; padding: 0.75rem 0 0.25rem; }
+.mv-glance-group:nth-child(1):has(+ .mv-glance-group + .mv-glance-group) { flex-grow: 3; flex-basis: 28rem; }
+.mv-glance-group:nth-child(2):has(+ .mv-glance-group) { flex-grow: 2; flex-basis: 19rem; }
+.mv-glance-group + .mv-glance-group { border-left: 1px solid var(--mv-divider); }
+.mv-glance-group-title { margin: 0 0 0.125rem; padding: 0 1rem; color: var(--mv-text-secondary); font: 500 0.75rem/1rem var(--mv-font-body); letter-spacing: 0; text-transform: none; }
+.mv-glance-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); min-width: 0; }
+.mv-content .mv-glance-strip .mv-kpi { min-width: 0; padding: 0.5rem 1rem 0.75rem; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.mv-content .mv-glance-strip .mv-glance-tiles > .mv-kpi + .mv-kpi { border-left: 1px solid var(--mv-divider); }
+.mv-content .mv-glance-strip .mv-kpi-value { font-size: 1.375rem; line-height: 1.75rem; white-space: nowrap; overflow-wrap: normal; }
+.mv-content .mv-glance-strip .mv-kpi-label { color: var(--mv-text-secondary); font-size: 0.7812rem; }
+.mv-content .mv-glance-strip .mv-muted { font-size: 0.75rem; }
+@media (max-width: 1100px) {
+  .mv-glance-group { flex-basis: 100% !important; }
+  .mv-glance-group + .mv-glance-group { border-left: 0; border-top: 1px solid var(--mv-divider); }
+}
+@media (max-width: 680px) {
+  .mv-glance-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mv-content .mv-glance-strip .mv-glance-tiles > .mv-kpi + .mv-kpi { border-left: 0; }
+  .mv-content .mv-glance-strip .mv-glance-tiles > .mv-kpi:nth-child(even) { border-left: 1px solid var(--mv-divider); }
+}
+
+/* ---- Dashboard filters: Time range / Environment / System selects in the pulse band, the "filters on" line with its Reset link ---- */
+.mv-dashboard-filter-selects { display: flex; flex-wrap: wrap; gap: var(--mv-gap-xs, 0.5rem); align-items: center; min-width: 0; }
+.mv-dashboard-filter-selects .mv-field { margin-bottom: 0; }
+.mv-pulse .mv-dashboard-toolbar { flex-wrap: wrap; }
+.mv-pulse .mv-dashboard-toolbar .mv-search-launcher { flex: 1 1 14rem; min-width: 0; }
+.mv-pulse .mv-dashboard-filters { flex: 0 1 auto; flex-wrap: wrap; min-width: 0; }
+.mv-pulse .mv-dashboard-filter-selects .is-filtered .mv-select { border-color: var(--mv-ink-accent); background: rgba(132, 173, 255, .16); }
+.mv-dashboard-filter-state { display: flex; flex: 1 1 100%; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.75rem; margin: 0; font-size: 0.8125rem; line-height: 1.25rem; color: var(--mv-ink-muted); }
+.mv-dashboard-filter-badge { padding: 0.0625rem 0.5rem; border-radius: 62.4375rem; background: rgba(132, 173, 255, .2); color: var(--mv-ink-text); font-weight: 500; }
+.mv-dashboard-filter-summary { color: var(--mv-ink-text); overflow-wrap: anywhere; }
+.mv-dashboard-filter-hint { color: var(--mv-ink-muted); }
+.mv-dashboard-filter-reset { padding: 0; border: 0; background: none; color: var(--mv-ink-accent); font: inherit; font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 0.1875rem; }
+.mv-dashboard-filter-reset:hover { color: var(--mv-ink-text); }
+.mv-dashboard-filter-reset:focus-visible { outline: 0.125rem solid var(--mv-ink-accent); outline-offset: 0.125rem; border-radius: 0.1875rem; }
+.mv-filter-note { margin: 0.5rem 0 0; font-size: 0.75rem; }
+@media (max-width: 680px) {
+  .mv-pulse .mv-dashboard-filters, .mv-dashboard-filter-selects { flex: 1 1 100%; }
+  .mv-dashboard-filter-selects .mv-field { flex: 1 1 8rem; }
+  .mv-dashboard-filter-selects .mv-select { width: 100%; }
+}
+
+/* ---- Custom tooltip (src/shared/ui/Tooltip.tsx, TooltipSurface.tsx, TooltipProvider.tsx) ----
+   Neutral elevated surface that follows the light/dark tokens. Fixed to the viewport and portalled, so it is never clipped
+   and never adds scroll. Deliberate deviation from design system 10.1: a small arrow (owner request). Weight 400, no uppercase. */
+.mv-tooltip {
+  --mv-tip-arrow: 50%;
+  position: fixed; z-index: var(--mv-z-tooltip, 1300); box-sizing: border-box; width: max-content; max-width: min(17.5rem, calc(100vw - 1rem));
+  padding: 0.5rem 0.75rem; border: 1px solid var(--mv-border); border-radius: 0.375rem;
+  background: var(--mv-elevated); color: var(--mv-text);
+  font: 400 0.75rem/1.125rem var(--mv-font-body); text-transform: none; letter-spacing: normal; text-align: left;
+  white-space: pre-line; overflow-wrap: anywhere;
+  box-shadow: var(--mv-shadow-light, 0 0.5rem 1.5rem rgba(16, 24, 40, 0.12));
+  opacity: 0; pointer-events: none;
+  transition: opacity 160ms cubic-bezier(0.2, 0, 0, 1), transform 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+.mv-tooltip[data-placement='top'] { transform: translateY(0.25rem); }
+.mv-tooltip[data-placement='bottom'] { transform: translateY(-0.25rem); }
+.mv-tooltip[data-placement='left'] { transform: translateX(0.25rem); }
+.mv-tooltip[data-placement='right'] { transform: translateX(-0.25rem); }
+.mv-tooltip.is-visible { opacity: 1; transform: none; pointer-events: auto; }
+.mv-tooltip::before {
+  content: ''; position: absolute; box-sizing: border-box; width: 0.5rem; height: 0.5rem;
+  background: var(--mv-elevated); border: 0 solid var(--mv-border); transform: rotate(45deg);
+}
+.mv-tooltip[data-placement='top']::before { bottom: -0.28125rem; left: var(--mv-tip-arrow); margin-left: -0.25rem; border-width: 0 1px 1px 0; }
+.mv-tooltip[data-placement='bottom']::before { top: -0.28125rem; left: var(--mv-tip-arrow); margin-left: -0.25rem; border-width: 1px 0 0 1px; }
+.mv-tooltip[data-placement='left']::before { right: -0.28125rem; top: var(--mv-tip-arrow); margin-top: -0.25rem; border-width: 1px 1px 0 0; }
+.mv-tooltip[data-placement='right']::before { left: -0.28125rem; top: var(--mv-tip-arrow); margin-top: -0.25rem; border-width: 0 0 1px 1px; }
+@media (prefers-reduced-motion: reduce) { .mv-tooltip { transition: none; transform: none !important; } }
+
+/* ---- Alignment and spacing QA pass ---------------------------------------------------------------------------------
+   Found by comparing centre-Y and height of sibling controls with getBoundingClientRect (a difference above 1px is a bug).
+   Controls that share a row use the shared heights: --mv-control-h (buttons, selects, search, round "?" button) and
+   --mv-control-h-sm (quiet and in-table buttons, density toggle, page-size select, row icon buttons). */
+
+/* A select with a hidden label is a toolbar control, not a form row: drop the form-row margin that pushed it 7px off the
+   centre line of the buttons beside it (page headers, filter bars, SAP destination pickers). */
+.mv-field:has(> .mv-sr-only + .mv-select) { margin-bottom: 0; }
+
+/* Header and filter-row buttons never wrap to a second line, so they keep the shared control height ("Manage Accounts",
+   "Connect cloud account" were 41.6px and 61.4px tall against 36px neighbours on a phone). The row wraps instead. */
+.mv-content :is(.mv-page-heading, .mv-cost-header, .mv-heading-actions, .mv-actions-wrap, .mv-filter-bar) :is(.mv-primary-button, .mv-secondary-button) { white-space: nowrap; }
+
+/* The dashboard's round "?" button was 2.375rem next to 2.5rem controls. */
+.mv-pulse .mv-tour-button { width: var(--mv-control-h); height: var(--mv-control-h); }
+
+/* "Add" / "Set route" sit level with the field's input, not with its label: same height, offset by the label line. */
+.mv-recipient-form .mv-primary-button, .mv-route-form .mv-secondary-button { min-height: 2.75rem; margin-top: 1.75rem; }
+
+/* Permissions role picker: the "Duplicate as a custom role" button lines up with the select, not 0.25rem above it. */
+.mv-permissions-bar .mv-quiet-button { min-height: var(--mv-control-h); margin-bottom: 0; }
+
+/* Pagination row: density toggle, page-size select and page buttons share one height and centre line. */
+.mv-density-toggle button { height: calc(var(--mv-control-h-sm) - 6px); }
+.mv-pagination-controls > * { align-self: center; }
+
+/* Icon buttons beside text buttons in a row use that row's height. */
+.mv-row-actions .mv-icon-button { width: var(--mv-control-h-sm); height: var(--mv-control-h-sm); }
+.mv-destination-actions .mv-icon-button { width: var(--mv-control-h); height: var(--mv-control-h); }
+
+/* ---- Guided setup wizard (/setup; src/features/setup) ----
+   Full page outside the app menus: a header with the progress, a rail of grouped steps with the company card pinned at the
+   foot, and a card-based form with a sticky Continue bar. At 1024px and below the rail becomes a horizontal stepper plus a
+   drawer. Weights 500 at most, normal-case headings; only the rail may scroll, and only on a short viewport. */
+.mv-setup { --mv-setup-top: 4.25rem; display: flex; flex-direction: column; min-height: 100vh; background: var(--mv-canvas); }
+.mv-setup-top { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 1.5rem; min-height: var(--mv-setup-top); padding: 0.5rem 1.5rem; border-bottom: 1px solid var(--mv-divider); background: color-mix(in srgb, var(--mv-surface) 94%, transparent); backdrop-filter: blur(0.875rem); }
+.mv-setup-top-brand { flex: none; }
+.mv-setup-progress { display: grid; flex: 1 1 18rem; gap: 0.375rem; max-width: 34rem; min-width: 0; }
+.mv-setup-progress-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem 0.75rem; font-size: 0.875rem; }
+.mv-setup-progress-head strong { font-weight: 500; }
+.mv-setup-bar { height: 0.375rem; overflow: hidden; border-radius: 62.4375rem; background: var(--mv-surface-subtle); box-shadow: inset 0 0 0 1px var(--mv-divider); }
+.mv-setup-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--mv-primary); transition: width 240ms ease; }
+.mv-setup-top-tools { display: flex; flex: none; align-items: center; gap: 0.5rem; margin-left: auto; }
+.mv-setup-user { display: inline-flex; align-items: center; gap: 0.5rem; max-width: 14rem; font-size: 0.875rem; color: var(--mv-text-secondary); }
+.mv-setup-user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mv-setup-body { display: grid; flex: 1 1 auto; grid-template-columns: 21rem minmax(0, 1fr); align-items: start; }
+.mv-setup-rail { position: sticky; top: var(--mv-setup-top); display: flex; flex-direction: column; height: calc(100vh - var(--mv-setup-top)); border-right: 1px solid var(--mv-divider); background: var(--mv-surface); }
+.mv-setup-rail-inner { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.mv-setup-nav { flex: 1 1 auto; min-height: 0; padding: 1.25rem 1rem 0.75rem; overflow-y: auto; }
+.mv-setup-group + .mv-setup-group { margin-top: 1.25rem; }
+.mv-setup-group-title { margin: 0 0 0.5rem 0.5rem; color: var(--mv-text-muted); font: 500 0.8125rem/1.25rem var(--mv-font-body); text-transform: none; letter-spacing: normal; }
+.mv-setup-steps { display: grid; margin: 0; padding: 0; list-style: none; }
+.mv-setup-step { position: relative; }
+.mv-setup-step:not(:last-child)::before { content: ''; position: absolute; left: 1.4375rem; top: 2.5rem; bottom: -0.25rem; width: 2px; border-radius: 1px; background: var(--mv-divider); }
+.mv-setup-step.is-complete:not(:last-child)::before { background: var(--mv-success); }
+.mv-setup-step-button { display: flex; align-items: flex-start; gap: 0.75rem; width: 100%; padding: 0.5rem; border: 0; border-radius: 0.5rem; background: transparent; color: var(--mv-text); text-align: left; }
+.mv-setup-step-button:hover { background: var(--mv-surface-hover); }
+.mv-setup-step.is-active .mv-setup-step-button { background: var(--mv-selected); }
+.mv-setup-step-button:focus-visible, .mv-setup-stepper-button:focus-visible, .mv-setup-provider:focus-visible { outline: 0.1875rem solid color-mix(in srgb, var(--mv-focus) 40%, transparent); outline-offset: 0.125rem; }
+.mv-setup-step-text { display: grid; gap: 0.0625rem; min-width: 0; padding-top: 0.0625rem; padding-bottom: 0.5rem; }
+.mv-setup-step-title { font-size: 0.9375rem; font-weight: 500; line-height: 1.375rem; }
+.mv-setup-step-summary { color: var(--mv-text-muted); font-size: 0.8125rem; line-height: 1.125rem; }
+.mv-setup-mark { position: relative; z-index: 1; display: inline-grid; flex: none; place-items: center; width: 1.875rem; height: 1.875rem; border: 1px solid var(--mv-border); border-radius: 50%; background: var(--mv-surface); color: var(--mv-text-secondary); font-size: 0.8125rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+.mv-setup-mark.is-complete { border-color: var(--mv-success); background: var(--mv-success); color: var(--mv-canvas); }
+.mv-setup-logo-mark { display: none; }
+.mv-setup-mark.is-active { border-color: var(--mv-primary); box-shadow: 0 0 0 0.1875rem color-mix(in srgb, var(--mv-primary) 22%, transparent); }
+.mv-setup-mark.is-active:not(.is-complete) { color: var(--mv-primary); }
+
+.mv-setup-company { display: flex; flex: none; align-items: center; gap: 0.75rem; margin: 0.75rem 1rem 1rem; padding: 0.875rem; border: 1px solid var(--mv-divider); border-radius: 0.75rem; background: var(--mv-surface-subtle); }
+.mv-setup-company-logo { display: grid; flex: none; place-items: center; width: 2.75rem; height: 2.75rem; overflow: hidden; border-radius: 0.625rem; background: var(--mv-selected); color: var(--mv-primary); font-weight: 500; }
+.mv-setup-company-logo img { width: 100%; height: 100%; object-fit: contain; }
+.mv-setup-company-text { display: grid; gap: 0.0625rem; min-width: 0; }
+.mv-setup-company-text strong { overflow: hidden; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.mv-setup-company-text .mv-muted { overflow: hidden; font-size: 0.75rem; text-overflow: ellipsis; white-space: nowrap; }
+
+.mv-setup-main { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; min-height: calc(100vh - var(--mv-setup-top)); padding: 1.75rem clamp(1rem, 3vw, 2.5rem) 0; outline: none; }
+.mv-setup-main-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.mv-setup-main-title { flex: 1 1 22rem; min-width: 0; }
+.mv-setup-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.mv-setup-title { margin: 0; font: 600 1.625rem/2.125rem var(--mv-font-heading); letter-spacing: -.02em; outline: none; }
+.mv-setup-title:focus-visible { outline: 0.1875rem solid color-mix(in srgb, var(--mv-focus) 40%, transparent); outline-offset: 0.25rem; border-radius: 0.25rem; }
+.mv-setup-info { width: 1.75rem; height: 1.75rem; }
+.mv-setup-nav-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.mv-setup-content { display: grid; gap: 1rem; max-width: 60rem; min-width: 0; }
+.mv-setup-stack { display: grid; gap: 1rem; min-width: 0; }
+.mv-setup-card { border: 1px solid var(--mv-divider); border-radius: 0.75rem; background: var(--mv-surface); }
+.mv-setup-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.125rem 1.25rem; border-bottom: 1px solid var(--mv-divider); }
+.mv-setup-card-title { margin: 0; font: 600 1rem/1.5rem var(--mv-font-heading); }
+.mv-setup-card-head .mv-muted { margin: 0.125rem 0 0; }
+.mv-setup-card-body { display: grid; gap: 0.5rem; padding: 1.25rem; }
+.mv-setup-card-body .mv-field { margin-bottom: 0.5rem; }
+.mv-setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0 1rem; }
+.mv-setup-field textarea { padding: 0.625rem 0.75rem; font-family: var(--mv-font-body); font-size: 0.875rem; }
+.mv-setup-field label { color: var(--mv-text-secondary); line-height: 1.25rem; }
+.mv-setup-field label .mv-muted { font-size: inherit; font-weight: 400; }
+.mv-setup-field-foot { display: flex; justify-content: space-between; gap: 0.75rem; min-height: 1rem; }
+.mv-setup-field-foot .mv-field-error, .mv-setup-field-foot .mv-field-help { margin: 0; }
+.mv-setup-counter { margin-left: auto; color: var(--mv-text-muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mv-setup-counter.is-over { color: var(--mv-danger); }
+.mv-setup-logo { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; padding-bottom: 0.75rem; }
+.mv-setup-logo-preview { display: grid; flex: none; place-items: center; width: 4.5rem; height: 4.5rem; overflow: hidden; border: 1px dashed var(--mv-border); border-radius: 0.75rem; background: var(--mv-surface-subtle); color: var(--mv-text-muted); font-size: 1.25rem; font-weight: 500; }
+.mv-setup-logo-preview img { width: 100%; height: 100%; object-fit: contain; }
+.mv-setup-logo-text { display: grid; flex: 1 1 14rem; gap: 0.25rem; min-width: 0; }
+.mv-setup-logo-text strong { font-weight: 500; }
+.mv-setup-logo-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; }
+.mv-setup-invite { display: grid; gap: 0.75rem; }
+.mv-setup-list { display: grid; margin: 0; padding: 0; list-style: none; }
+.mv-setup-list-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0; border-top: 1px solid var(--mv-divider); }
+.mv-setup-list-row:first-child { border-top: 0; }
+.mv-setup-list-text { display: grid; flex: 1 1 auto; gap: 0.0625rem; min-width: 0; }
+.mv-setup-list-text strong { font-weight: 500; }
+.mv-setup-list-text .mv-muted { overflow-wrap: anywhere; }
+.mv-setup-providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
+.mv-setup-provider { display: flex; align-items: center; gap: 0.75rem; width: 100%; height: 100%; padding: 0.875rem; border: 1px solid var(--mv-border); border-radius: 0.625rem; background: var(--mv-surface); color: var(--mv-text); text-align: left; }
+.mv-setup-provider:hover { border-color: var(--mv-primary); background: var(--mv-surface-hover); }
+.mv-setup-provider.is-connected { border-color: color-mix(in srgb, var(--mv-success) 45%, var(--mv-border)); }
+.mv-setup-provider-icon { display: grid; flex: none; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; background: var(--mv-selected); color: var(--mv-primary); }
+.mv-setup-provider-text { display: grid; flex: 1 1 auto; gap: 0.0625rem; min-width: 0; }
+.mv-setup-provider-text strong { font-weight: 500; }
+.mv-setup-provider-text .mv-muted { font-size: 0.75rem; overflow-wrap: anywhere; }
+.mv-setup-provider .mv-status { flex: none; }
+
+.mv-setup-actions { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: auto calc(-1 * clamp(1rem, 3vw, 2.5rem)) 0; padding: 0.875rem clamp(1rem, 3vw, 2.5rem); border-top: 1px solid var(--mv-divider); background: color-mix(in srgb, var(--mv-surface) 96%, transparent); backdrop-filter: blur(0.5rem); }
+.mv-setup-continue { min-width: 9rem; }
+.mv-setup-denied { display: grid; place-items: center; padding: 1.5rem; }
+.mv-setup-denied .mv-primary-button { text-decoration: none; }
+
+.mv-setup-stepper { position: sticky; top: var(--mv-setup-top); z-index: 90; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-bottom: 1px solid var(--mv-divider); background: var(--mv-surface); }
+.mv-setup-stepper-dots { display: flex; flex: 1 1 auto; align-items: center; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.mv-setup-stepper-dot { display: flex; flex: 1 1 0; align-items: center; min-width: 0; }
+.mv-setup-stepper-dot:last-child { flex: 0 0 auto; }
+.mv-setup-stepper-dot:not(:last-child)::after { content: ''; flex: 1 1 auto; height: 2px; margin: 0 0.25rem; background: var(--mv-divider); }
+.mv-setup-stepper-button { display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; }
+.mv-setup-stepper-button .mv-setup-mark { width: 1.75rem; height: 1.75rem; }
+
+.mv-setup-drawer-backdrop { position: fixed; inset: 0; z-index: 1100; background: var(--mv-scrim); animation: mv-fade-in 160ms ease; }
+.mv-setup-drawer { display: flex; flex-direction: column; width: min(21rem, 92vw); height: 100%; border-right: 1px solid var(--mv-divider); background: var(--mv-surface); box-shadow: 0 1.25rem 3.75rem rgba(0, 0, 0, .22); }
+.mv-setup-drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-bottom: 1px solid var(--mv-divider); }
+.mv-setup-drawer .mv-setup-rail-inner { overflow-y: auto; }
+
+@media (max-width: 1024px) {
+  .mv-setup-body { grid-template-columns: minmax(0, 1fr); }
+  .mv-setup-top { flex-wrap: wrap; gap: 0.5rem 1rem; padding: 0.5rem 1rem; }
+  .mv-setup-progress { flex: 1 1 14rem; max-width: none; order: 3; }
+  .mv-setup-top-tools { margin-left: auto; }
+}
+@media (max-width: 720px) {
+  .mv-setup { --mv-setup-top: 6.25rem; }
+  .mv-setup-progress { flex: 1 1 100%; }
+  .mv-setup-title { font-size: 1.375rem; line-height: 1.875rem; }
+  .mv-setup-nav-buttons { width: 100%; }
+  .mv-setup-nav-buttons > * { flex: 1 1 auto; }
+  .mv-setup-card-head, .mv-setup-card-body { padding: 1rem; }
+}
+@media (max-width: 440px) {
+  .mv-setup-logo-full { display: none; }
+  .mv-setup-logo-mark { display: block; height: 2rem; }
+  .mv-setup-top { padding-inline: 0.75rem; }
+  .mv-setup-top-brand { order: 0; }
+  .mv-setup-user { flex: 1 1 auto; min-width: 0; max-width: 8rem; }
+  .mv-setup-top-tools { flex: 1 1 auto; gap: 0.25rem; }
+  .mv-setup-top-tools .mv-secondary-button { margin-left: auto; }
+  .mv-setup-actions > .mv-muted { display: none; }
+  .mv-setup-continue { width: 100%; }
+}
+/* The phone rule above (html, body overflow-x: hidden) turns body into a scroll container and breaks position: sticky; clip keeps the sticky header and bar working. */
+html:has(.mv-setup), body:has(.mv-setup) { overflow-x: clip; }
+@media (prefers-reduced-motion: reduce) { .mv-setup-bar > span { transition: none; } }
+
+/* Tables with four columns or fewer have no reason to scroll sideways on a phone: let them fit instead of the 37.5rem minimum
+   (GCP "All Services" and "Projects" scrolled inside their panel at 390px). */
+@media (max-width: 680px) {
+  .mv-table-wrap > .mv-table:not(.mv-table--stack):not(:has(th:nth-child(5))) { min-width: 0; }
+  .mv-table-wrap > .mv-table:not(.mv-table--stack):not(:has(th:nth-child(5))) th { white-space: normal; }
+}
+
+/* The members table has two columns per provider plus role and status: tighten the cell padding between 769 and 1280px so it fits
+   its panel at 1024px without a sideways scrollbar. */
+@media (min-width: 769px) and (max-width: 1280px) {
+  .mv-content .mv-members-table :is(th, td) { padding-inline: 0.375rem; }
+}
+
+/* Metric values and the dashboard side-card titles were weight 600 (body-text rule: 500 at most). */
+.mv-server-metrics dd, .mv-idemo-fact-total dd, .mv-side-card-header { font-weight: 500; }

@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { api, invoicesRepository, isEmptyWorkspace, TOKEN_KEY } from '../../../data-access';
 import { buildMode } from '../../../app/config/environment';
 import type { SpendTrendPoint } from '../../../shared/ui/SpendTrendChart';
-import { DEMO_LAST_DAY, DEMO_MONTHLY, demoDailySpend } from './demoSpendHistory';
+import { DEMO_LAST_DAY, DEMO_MONTHLY, DEMO_NOW, demoDailySpend } from './demoSpendHistory';
 import { newOrganisationData } from './newOrganisationData';
+import { repositoryAlertItems } from './repositoryAlerts';
 
 /*
  * Response shapes below are taken from the reference app's HomePage.jsx data
@@ -154,6 +155,11 @@ function isDevPreview(): boolean {
   return buildMode !== 'test' && !localStorage.getItem(TOKEN_KEY);
 }
 
+/** The moment the dashboard's time range counts back from: the sample data's own "now" in a demo session, the real clock otherwise. */
+export function dashboardNow(): Date {
+  return isDevPreview() ? new Date(DEMO_NOW) : new Date();
+}
+
 /** The invoices the Cloud Invoices page lists (and deletes from), in the dashboard's shape. */
 function invoiceItems(): InvoiceItem[] {
   return invoicesRepository.list().map((inv) => ({
@@ -186,15 +192,8 @@ function devMockData(): DashboardData {
       ],
       summary: { totalRecommendations: 12, totalEstimatedSavings: 2140 },
     }),
-    smartAlerts: loadedSource<SmartAlertsResponse>({
-      alerts: [
-        { id: 'a1', severity: 'critical', status: 'open', title: 'Azure spend spiked 34% in the last 24 hours', alert_type: 'spike', detected_at: '2026-09-28T04:10:00Z' },
-        { id: 'a2', severity: 'high', status: 'open', title: 'AWS budget threshold crossed 85%', alert_type: 'budget_breach', detected_at: '2026-09-27T21:40:00Z' },
-        { id: 'a3', severity: 'medium', status: 'open', title: 'New GCP BigQuery instance created outside business hours', alert_type: 'resource_creation', detected_at: '2026-09-27T14:05:00Z' },
-        { id: 'a4', severity: 'low', status: 'resolved', title: 'SAP BTP usage anomaly auto-resolved', alert_type: 'unusual_spend', detected_at: '2026-09-26T09:15:00Z' },
-      ],
-      summary: { bySeverity: { critical: 1, high: 1, medium: 1, low: 1 } },
-    }),
+    // The same alerts the Smart Alerts page lists, so resolving one anywhere changes every count.
+    smartAlerts: loadedSource<SmartAlertsResponse>({ alerts: repositoryAlertItems(), summary: { bySeverity: {} } }),
     budgets: loadedSource<BudgetItem[]>([
       { id: 'b1', target_amount: 15000 },
       { id: 'b2', target_amount: 8000 },

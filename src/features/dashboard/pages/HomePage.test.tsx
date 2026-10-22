@@ -108,9 +108,9 @@ describe('HomePage (unified dashboard)', () => {
     useDashboardDataMock.mockReturnValue(dashboardData());
     renderDashboard();
 
-    expect(screen.getByText('SAP Monitoring')).toBeInTheDocument();
-    expect(screen.getByText('Cloud Cost Monitoring')).toBeInTheDocument();
     const pulse = screen.getByRole('region', { name: 'Operations pulse' });
+    expect(within(pulse).getByText('SAP Monitoring')).toBeInTheDocument();
+    expect(within(pulse).getByText('Cloud Cost Monitoring')).toBeInTheDocument();
     expect(within(pulse).getByText('$12,000.00')).toBeInTheDocument();
   });
 
@@ -127,6 +127,31 @@ describe('HomePage (unified dashboard)', () => {
     expect(within(strip).getByText('3/5')).toBeInTheDocument();
     expect(within(strip).getByText('HANA memory')).toBeInTheDocument();
     expect(within(strip).getByText('Open alerts')).toBeInTheDocument();
+  });
+
+  it('groups the glance strip by module, with the alerts of every module in a group of their own', () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData());
+    renderDashboard();
+
+    const strip = screen.getByLabelText('At a glance');
+    const cloud = within(strip).getByRole('group', { name: 'Cloud Cost' });
+    expect(within(cloud).getAllByText(/^(Cloud spend \(MTD\)|Forecast vs budget|Savings potential)$/)).toHaveLength(3);
+    expect(within(cloud).queryByText('SAP systems healthy')).toBeNull();
+    const sap = within(strip).getByRole('group', { name: 'SAP Monitoring' });
+    expect(within(sap).getAllByText(/^(SAP systems healthy|HANA memory)$/)).toHaveLength(2);
+    const all = within(strip).getByRole('group', { name: 'All modules' });
+    expect(within(all).getByText('Open alerts')).toBeInTheDocument();
+  });
+
+  it('labels the alerts group with the one module an organisation has', () => {
+    useAuthMock.mockReturnValue(auth({ modules: { cloudCost: false, sapMonitoring: true } }));
+    useDashboardDataMock.mockReturnValue(dashboardData());
+    renderDashboard();
+    const strip = screen.getByLabelText('At a glance');
+    expect(within(strip).queryByRole('group', { name: 'Cloud Cost' })).toBeNull();
+    expect(within(strip).getAllByRole('group').map((g) => g.getAttribute('aria-labelledby'))).toEqual(['glance-sap-title', 'glance-alerts-title']);
+    expect(within(within(strip).getAllByRole('group')[1]).getByRole('heading', { name: 'SAP Monitoring' })).toBeInTheDocument();
   });
 
   it('shows the SAP system health overview table', () => {

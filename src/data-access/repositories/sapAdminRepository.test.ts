@@ -109,6 +109,16 @@ describe('alerts', () => {
     expect(outstanding()).toBe(before);
   });
 
+  it('restore puts a resolved or ignored alert back exactly as it was, unread included', () => {
+    const before = repo.alerts.list().find((a) => a.id === 'alert-1')!;
+    expect(before).toMatchObject({ read: false, state: 'active' });
+    repo.alerts.ignore('alert-1');
+    expect(repo.alerts.list().find((a) => a.id === 'alert-1')).toMatchObject({ read: true, state: 'ignored' });
+    repo.alerts.restore(before);
+    expect(repo.alerts.list().find((a) => a.id === 'alert-1')).toEqual(before);
+    expect(repo.alerts.restore({ ...before, id: 'no-such-alert' })).toBeNull();
+  });
+
   it('saves settings, counts the adjustment and resets to defaults', () => {
     const defaults = repo.alerts.getDefaultSettings();
     repo.alerts.saveSettings({ ...defaults, sensitivity: 2 });

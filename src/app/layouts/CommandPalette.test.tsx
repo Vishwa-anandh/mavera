@@ -81,9 +81,9 @@ beforeEach(() => {
 });
 
 describe('command palette', () => {
-  it('labels the header button for both jobs', () => {
+  it('has no search button in the top bar (the palette opens with Ctrl+K)', () => {
     renderShell();
-    expect(screen.getByRole('button', { name: 'Search or run a command (Ctrl+K)' })).toHaveAttribute('title', 'Search or run a command (Ctrl+K)');
+    expect(screen.queryByRole('button', { name: /Search or run a command/ })).not.toBeInTheDocument();
   });
 
   it('opens with Ctrl+K, focuses the box, and lists suggested commands above suggested pages', async () => {
@@ -166,10 +166,10 @@ describe('command palette', () => {
     expect(screen.getByTestId('where')).toHaveTextContent(expected);
   });
 
-  it('moves with the arrow keys, wrapping around, and Esc closes and returns focus to the header button', async () => {
+  it('moves with the arrow keys, wrapping around, and Esc closes and returns focus to where it was', async () => {
     const user = userEvent.setup();
     renderShell();
-    const opener = screen.getByRole('button', { name: 'Search or run a command (Ctrl+K)' });
+    const opener = screen.getByRole('button', { name: /^Notifications/ });
     opener.focus();
     const box = await open(user);
     const options = () => within(palette()).getAllByRole('option');

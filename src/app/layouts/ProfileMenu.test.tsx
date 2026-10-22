@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ProfileMenu } from './ProfileMenu';
 import type { AuthContextValue } from '../../features/auth';
 import { workspaceRepository } from '../../data-access';
+import { START_PAGE_TOUR_EVENT } from '../../shared/lib/assistantEvents';
 
 const useAuthMock = vi.fn<() => AuthContextValue>();
 const useMaveraThemeMock = vi.fn();
@@ -96,6 +97,14 @@ describe('ProfileMenu', () => {
     expect(screen.getByText('person@maitsys.com')).toBeInTheDocument();
     await user.click(screen.getByRole('menuitemcheckbox', { name: 'Dark appearance' }));
     expect(toggleMode).toHaveBeenCalledTimes(1);
+  });
+
+  it('links to the Setup guide for an owner or administrator', async () => {
+    useAuthMock.mockReturnValue(auth());
+    const user = userEvent.setup();
+    render(<MemoryRouter><ProfileMenu /></MemoryRouter>);
+    await user.click(screen.getByLabelText('Profile menu'));
+    expect(screen.getByRole('menuitem', { name: /Setup guide/ })).toHaveAttribute('href', '/setup');
   });
 
   it('shows the organization name beside the user in the header and in the menu', async () => {
@@ -210,5 +219,26 @@ describe('ProfileMenu', () => {
     );
     await user.click(screen.getByLabelText('Profile menu'));
     expect(screen.queryByRole('menuitem', { name: /Getting started/ })).toBeNull();
+  });
+
+  it('offers a tour of the page being viewed when that page has one, and starts it', async () => {
+    useAuthMock.mockReturnValue(auth());
+    const started = vi.fn();
+    window.addEventListener(START_PAGE_TOUR_EVENT, started);
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/budgets']}><ProfileMenu /></MemoryRouter>);
+    await user.click(screen.getByLabelText('Profile menu'));
+    await user.click(screen.getByRole('menuitem', { name: /Tour of this page/ }));
+    expect(started).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+    window.removeEventListener(START_PAGE_TOUR_EVENT, started);
+  });
+
+  it('leaves the tour item out on a page without a tour', async () => {
+    useAuthMock.mockReturnValue(auth());
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/no-such-page']}><ProfileMenu /></MemoryRouter>);
+    await user.click(screen.getByLabelText('Profile menu'));
+    expect(screen.queryByRole('menuitem', { name: /Tour of this page/ })).toBeNull();
   });
 });

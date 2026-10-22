@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ModuleNavigation } from './ModuleNavigation';
@@ -68,8 +68,8 @@ describe('ModuleNavigation', () => {
     // Reports and Billing live inside the Cloud Cost dropdown, not at the top level.
     expect(screen.queryByText('Reports')).not.toBeInTheDocument();
     expect(screen.queryByText('Billing')).not.toBeInTheDocument();
-    // The AI Assistant is one click away in the header (it was only a floating widget before).
-    expect(screen.getByRole('link', { name: 'AI Assistant' })).toHaveAttribute('href', '/ai-assistant');
+    // The AI Assistant is not in the header: it lives in the floating widget (and Ctrl+K).
+    expect(screen.queryByRole('link', { name: 'AI Assistant' })).not.toBeInTheDocument();
     expect(screen.queryByText('Administration')).not.toBeInTheDocument();
   });
 
@@ -121,5 +121,67 @@ describe('ModuleNavigation', () => {
     const azureItem = screen.getByRole('menuitem', { name: /Azure Subscriptions/ });
     expect(azureItem).toHaveTextContent('Upgrade');
     expect(azureItem.tagName).toBe('A');
+  });
+
+  describe('hover', () => {
+    const member: User = { id: '1', email: 'a@b.com', role: 'member' };
+    const wait = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
+    // React derives onPointerEnter/Leave from pointerover/pointerout; jsdom has no PointerEvent, so carry pointerType by hand.
+    const pointer = (el: Element, type: 'pointerover' | 'pointerout', pointerType = 'mouse') => {
+      const event = new Event(type, { bubbles: true });
+      Object.defineProperty(event, 'pointerType', { value: pointerType });
+      fireEvent(el, event);
+    };
+
+    it('opens a module dropdown when a mouse rests on it and closes it shortly after the pointer leaves', () => {
+      vi.useFakeTimers();
+      useAuthMock.mockReturnValue(mockAuth(member));
+      renderNav();
+      const trigger = screen.getByRole('button', { name: /^Cloud Cost/ });
+
+      pointer(trigger, 'pointerover');
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      wait(120);
+      expect(screen.getByRole('menu', { name: /Cloud Cost/ })).toBeInTheDocument();
+
+      pointer(trigger, 'pointerout');
+      wait(60);
+      expect(screen.getByRole('menu')).toBeInTheDocument(); // grace period: the pointer can cross the gap
+      wait(200);
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      vi.useRealTimers();
+    });
+
+    it('stays open when the pointer comes back during the grace period, and when a click pins it', () => {
+      vi.useFakeTimers();
+      useAuthMock.mockReturnValue(mockAuth(member));
+      renderNav();
+      const trigger = screen.getByRole('button', { name: /^Cloud Cost/ });
+
+      pointer(trigger, 'pointerover');
+      wait(120);
+      pointer(trigger, 'pointerout');
+      wait(60);
+      pointer(trigger, 'pointerover');
+      wait(400);
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+
+      fireEvent.click(trigger); // pinned, not toggled shut under the pointer
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+      pointer(trigger, 'pointerout');
+      wait(400);
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+      vi.useRealTimers();
+    });
+
+    it('ignores touch pointers (they open on tap only)', () => {
+      vi.useFakeTimers();
+      useAuthMock.mockReturnValue(mockAuth(member));
+      renderNav();
+      pointer(screen.getByRole('button', { name: /^Cloud Cost/ }), 'pointerover', 'touch');
+      wait(400);
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      vi.useRealTimers();
+    });
   });
 });

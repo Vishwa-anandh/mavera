@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { hasPageTour, requestPageTour } from '../../features/assistant';
+import { useAccess } from '../../features/access';
 import { useAuth } from '../../features/auth';
 import { useOnboardingProgress, useShowChecklist } from '../../features/workspace';
 import { openOnArrivalTarget } from '../../shared/lib/useOpenOnArrival';
@@ -12,6 +14,7 @@ import maitsysLogo from '../../../assets/brand/maitsys.png';
 export function ProfileMenu() {
   const { user, logout, modules } = useAuth();
   const checklist = useOnboardingProgress(modules);
+  const { ownRoleId } = useAccess();
   const showChecklist = useShowChecklist();
   const { mode, toggleMode } = useMaveraTheme();
   const confirm = useConfirm();
@@ -75,6 +78,18 @@ export function ProfileMenu() {
             <button type="button" role="menuitem" className="mv-menu-item" onClick={() => { close(false); showChecklist(); }}>
               Getting started
               <span className="mv-menu-item-hint">{checklist.doneCount} of {checklist.total} done</span>
+            </button>
+          )}
+          {(ownRoleId === 'owner' || ownRoleId === 'admin') && (
+            <Link role="menuitem" className="mv-menu-item" to="/setup">
+              Setup guide
+              <span className="mv-menu-item-hint">Step by step</span>
+            </Link>
+          )}
+          {hasPageTour(location.pathname) && (
+            <button type="button" role="menuitem" className="mv-menu-item" onClick={() => { close(false); requestPageTour(); }}>
+              Tour of this page
+              <span className="mv-menu-item-hint">Two minutes</span>
             </button>
           )}
           <Link role="menuitem" className="mv-menu-item" to="/account">Account</Link>

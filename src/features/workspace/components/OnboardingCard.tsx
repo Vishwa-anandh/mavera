@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { workspaceRepository, type OnboardingStepId } from '../../../data-access';
 import { CHECKLIST_COACH_FLOWS, requestCoachFlow, requestPageTour } from '../../../shared/lib/assistantEvents';
 import { useRememberedState } from '../../../shared/lib/useRememberedState';
@@ -7,6 +7,7 @@ import { CheckIcon, ChevronDownIcon, CloseIcon, SparkleIcon } from '../../../sha
 import { openConnectTarget } from '../model/connectTargets';
 import type { OnboardingModules } from '../model/onboardingProgress';
 import { useOnboardingProgress } from '../model/useOnboardingProgress';
+import { useAccess } from '../../access';
 
 interface StepCopy {
   /** What the one primary button says. */
@@ -39,6 +40,8 @@ interface OnboardingCardProps {
 export function OnboardingCard({ modules }: OnboardingCardProps) {
   const progress = useOnboardingProgress(modules);
   const navigate = useNavigate();
+  const { ownRoleId } = useAccess();
+  const canOpenSetup = ownRoleId === 'owner' || ownRoleId === 'admin';
   const [collapsed, setCollapsed] = useRememberedState('onboarding', 'collapsed', false);
   const titleId = useId();
   const listId = useId();
@@ -60,7 +63,7 @@ export function OnboardingCard({ modules }: OnboardingCardProps) {
       <div className="mv-onboarding-head">
         <div className="mv-onboarding-heading">
           <h2 id={titleId} className="mv-panel-title">Get started with Mavera</h2>
-          <p className="mv-muted" aria-live="polite">{progress.doneCount} of {progress.total} done</p>
+          <p className="mv-muted" aria-live="polite">{progress.doneCount} of {progress.total} done{canOpenSetup && <> · <Link to="/setup">Open full setup</Link></>}</p>
         </div>
         <div className="mv-onboarding-tools">
           <button

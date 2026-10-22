@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { ChartDataDialog } from './ChartDataDialog';
 
 export interface DonutSlice {
   label: string;
@@ -61,26 +62,18 @@ export function DonutChart({ title, data, totalLabel, format = (value) => value.
         View data
       </button>
       {tableOpen && (
-        <div className="mv-dialog-backdrop" onClick={() => setTableOpen(false)}>
-          <section className="mv-dialog" role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()}>
-            <div className="mv-panel-header">
-              <h2 className="mv-panel-title">{title}</h2>
-              <button className="mv-icon-button" aria-label="Close data table" onClick={() => setTableOpen(false)}>×</button>
-            </div>
-            <div className="mv-table-wrap">
-              <table className="mv-table">
-                <thead>
-                  <tr><th>Category</th><th className="mv-num">Value</th></tr>
-                </thead>
-                <tbody>
-                  {data.map((slice) => (
-                    <tr key={slice.label}><td>{slice.label}</td><td className="mv-num">{format(slice.value)}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+        <ChartDataDialog label={title} onClose={() => setTableOpen(false)}>
+          <table className="mv-table">
+            <thead>
+              <tr><th>Category</th><th className="mv-num">Value</th></tr>
+            </thead>
+            <tbody>
+              {data.map((slice) => (
+                <tr key={slice.label}><td>{slice.label}</td><td className="mv-num">{format(slice.value)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </ChartDataDialog>
       )}
     </div>
   );

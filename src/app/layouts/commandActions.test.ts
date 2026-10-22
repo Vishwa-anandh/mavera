@@ -121,11 +121,6 @@ describe('command registry', () => {
       return run?.kind === 'navigate' ? run.to : undefined;
     };
     it.each([
-      ['connect-azure', '/azure', '?open=connect', ''],
-      ['connect-aws', '/aws/accounts', '?open=connect', ''],
-      ['connect-gcp', '/gcp/accounts', '?open=connect', ''],
-      ['connect-btp', '/btp/accounts', '?open=connect', ''],
-      ['connect-sap', '/sap/configuration', '?open=connect', ''],
       ['add-budget', '/budgets', '?open=new', ''],
       ['add-channel', '/budgets', '?open=add-channel', '#integrations'],
       ['upload-invoice', '/invoices', '?open=upload', ''],
@@ -135,6 +130,17 @@ describe('command registry', () => {
       ['export-cost-report', '/cloud/analytics', '?open=export', ''],
     ])('%s goes to %s%s%s', (id, pathname, search, hash) => {
       expect(target(id)).toEqual({ pathname, search, hash });
+    });
+
+    it.each([
+      ['connect-azure', 'azure'],
+      ['connect-aws', 'aws'],
+      ['connect-gcp', 'gcp'],
+      ['connect-btp', 'btp'],
+      ['connect-sap', 'sap'],
+    ])('%s opens the shared connect dialog for %s, in place', (id, provider) => {
+      const run = buildCommandIndex(context({ invoiceOnly: true })).find((a) => a.id === id)?.run;
+      expect(run).toEqual({ kind: 'connect', provider });
     });
   });
 });

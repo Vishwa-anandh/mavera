@@ -10,6 +10,11 @@ const authState = vi.hoisted(() => ({ role: 'admin' as 'admin' | 'member' }));
 vi.mock('../../auth', () => ({
   useAuth: () => ({ user: { id: '1', email: 'a@b.com', role: authState.role }, cloudAccess: ['azure', 'aws'], invoiceOnly: false }),
 }));
+// The suggested limit comes from the spend data the Cost Overview uses; give it a fixed forecast instead of the demo feed.
+vi.mock('../../dashboard', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../dashboard')>();
+  return { ...actual, useDashboardData: () => ({ summary: { data: { totals: { forecast: 17400 } }, loading: false, error: null } }) };
+});
 
 function renderPage(tab?: 'budgets' | 'integrations') {
   return render(<MemoryRouter initialEntries={[tab ? `/budgets#${tab}` : '/budgets']}><ConfirmProvider><BudgetsPage /></ConfirmProvider></MemoryRouter>);
@@ -54,6 +59,7 @@ describe('BudgetsPage', () => {
   it('keeps a half-filled budget form when you switch tabs and back', async () => {
     const user = userEvent.setup();
     renderPage();
+    await user.clear(screen.getByLabelText('Budget Name'));
     await user.type(screen.getByLabelText('Budget Name'), 'Q4 Data');
     await user.click(screen.getByRole('tab', { name: /Alert integrations/ }));
     await user.click(screen.getByRole('tab', { name: /^Budgets/ }));
@@ -89,6 +95,7 @@ describe('BudgetsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add channel' }));
     const dialog = screen.getByRole('dialog', { name: 'Add notification channel' });
 
+    expect(within(dialog).getByRole('button', { name: 'Remove a@b.com' })).toBeInTheDocument();
     const input = within(dialog).getByLabelText('Recipients');
     await user.type(input, 'dev@maitsys.com{Enter}');
     await user.type(input, 'not-an-email{Enter}');
@@ -101,8 +108,8 @@ describe('BudgetsPage', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Add channel' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     const added = budgetsRepository.listChannels().find((c) => c.email_addresses.includes('dev@maitsys.com'));
-    expect(added).toMatchObject({ provider: 'email', alert_scope: 'global', enabled: true, email_addresses: ['dev@maitsys.com', 'qa@maitsys.com'] });
-    expect(screen.getAllByRole('listitem').some((li) => li.textContent?.includes('dev@maitsys.com, qa@maitsys.com'))).toBe(true);
+    expect(added).toMatchObject({ provider: 'email', alert_scope: 'global', enabled: true, email_addresses: ['a@b.com', 'dev@maitsys.com', 'qa@maitsys.com'] });
+    expect(screen.getAllByRole('listitem').some((li) => li.textContent?.includes('a@b.com, dev@maitsys.com, qa@maitsys.com'))).toBe(true);
     expect(toasts.messages).toContain('Email channel added.');
     toasts.stop();
   });
@@ -113,6 +120,7 @@ describe('BudgetsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Add channel' }));
     const dialog = screen.getByRole('dialog', { name: 'Add notification channel' });
 
+    await user.click(within(dialog).getByRole('button', { name: 'Remove a@b.com' }));
     await user.click(within(dialog).getByRole('button', { name: 'Add channel' }));
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Add at least one email address');
 
@@ -199,6 +207,7 @@ describe('BudgetsPage', () => {
     await user.click(within(form).getByRole('checkbox', { name: /Also notify Microsoft Teams/ }));
     expect(within(form).getByText('This budget will notify 2 channels.')).toBeInTheDocument();
 
+    await user.clear(within(form).getByLabelText('Budget Name'));
     await user.type(within(form).getByLabelText('Budget Name'), 'Q4 Data');
     await user.type(within(form).getByLabelText('Target Amount ($)'), '9000');
     await user.click(within(form).getByRole('button', { name: 'Add Budget' }));
@@ -233,6 +242,72 @@ describe('BudgetsPage', () => {
     renderPage();
     expect(screen.getByText('Read-only mode')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Add Budget' })).not.toBeInTheDocument();
+  });
+});
+
+describe('BudgetsPage: fewer steps to a budget and a channel', () => {
+  beforeEach(() => {
+    budgetsRepository.reset();
+    authState.role = 'admin';
+  });
+
+  it('starts the form with a free name and suggests a limit from the forecast, so only the amount is left to enter', async () => {
+    renderPage();
+    const form = screen.getByRole('region', { name: 'Create New Budget' });
+    expect(within(form).getByLabelText('Budget Name')).toHaveValue('Monthly cloud budget');
+    expect(within(form).getByLabelText('Target Amount ($)')).toHaveAttribute('placeholder', '19500');
+    expect(within(form).getByText('End-of-month forecast of $17,400 plus 10% headroom')).toBeInTheDocument();
+    expect(within(form).getByRole('button', { name: 'Use $19,500' })).toBeInTheDocument();
+  });
+
+  it('creates the budget when Enter is pressed in the amount field, then offers the next free name', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const form = screen.getByRole('region', { name: 'Create New Budget' });
+    await user.type(within(form).getByLabelText('Target Amount ($)'), '12000{Enter}');
+    const created = budgetsRepository.listBudgets().find((b) => b.name === 'Monthly cloud budget');
+    expect(created).toMatchObject({ target_amount: 12000, scope_type: 'organization', alert_threshold: 80 });
+    expect(within(form).getByLabelText('Budget Name')).toHaveValue('Monthly cloud budget 2');
+    expect(within(form).getByLabelText('Target Amount ($)')).toHaveValue(null);
+  });
+
+  it('fills the suggested limit with one click on Use', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const form = screen.getByRole('region', { name: 'Create New Budget' });
+    await user.click(within(form).getByRole('button', { name: 'Use $19,500' }));
+    expect(within(form).getByLabelText('Target Amount ($)')).toHaveValue(19500);
+  });
+
+  it('leaves a name the person typed alone', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const name = screen.getByLabelText('Budget Name');
+    await user.clear(name);
+    await user.type(name, 'Platform team');
+    await user.click(screen.getByRole('tab', { name: /Alert integrations/ }));
+    await user.click(screen.getByRole('tab', { name: /^Budgets/ }));
+    expect(screen.getByLabelText('Budget Name')).toHaveValue('Platform team');
+  });
+
+  it('puts Add channel in the page header on both tabs, and the dialog starts with your own email', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    expect(screen.getAllByRole('button', { name: 'Add channel' })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Add channel' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add notification channel' });
+    expect(within(dialog).getByRole('button', { name: 'Remove a@b.com' })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Add channel' }));
+    expect(budgetsRepository.listChannels().at(-1)).toMatchObject({ provider: 'email', alert_scope: 'global', email_addresses: ['a@b.com'] });
+
+    await user.click(screen.getByRole('tab', { name: /Alert integrations/ }));
+    expect(screen.getAllByRole('button', { name: 'Add channel' })).toHaveLength(1);
+  });
+
+  it('shows no Add channel button to a member who cannot manage integrations', () => {
+    authState.role = 'member';
+    renderPage();
+    expect(screen.queryByRole('button', { name: 'Add channel' })).toBeNull();
   });
 });
 

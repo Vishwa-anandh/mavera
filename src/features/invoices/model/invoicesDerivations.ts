@@ -183,3 +183,44 @@ export function buildFakeParsedInvoice(provider: CloudProvider, fileName: string
     },
   };
 }
+
+/** The file name hints that say which cloud an invoice belongs to. SAP BTP invoices arrive as spreadsheets, the rest as PDFs. */
+const PROVIDER_NAME_HINTS: Array<[CloudProvider, RegExp]> = [
+  ['azure', /azure|microsoft|msft/],
+  ['aws', /(^|[^a-z])aws([^a-z]|$)|amazon/],
+  ['btp', /(^|[^a-z])btp([^a-z]|$)|(^|[^a-z])sap([^a-z]|$)/],
+  ['gcp', /(^|[^a-z])gcp([^a-z]|$)|google/],
+];
+
+export interface InvoiceUploadGuess {
+  /** The provider to upload under; null when the file cannot be used. */
+  provider: CloudProvider | null;
+  /** True when the file name (or the only provider that fits) settles it, so the upload can start without asking. */
+  confident: boolean;
+  /** Why the file cannot be used, when it cannot. */
+  problem: string | null;
+}
+
+/**
+ * Works out which provider an invoice file belongs to from its name and type, among the providers this member may
+ * upload for. A name that mentions a provider ("azure-invoice-oct.pdf") settles it; a lone spreadsheet is SAP BTP; a
+ * PDF with no hint is the member's only PDF provider when there is just one, and otherwise a guess (the first) the
+ * caller should ask about rather than act on.
+ */
+export function detectInvoiceUpload(fileName: string, allowed: CloudProvider[]): InvoiceUploadGuess {
+  const name = fileName.toLowerCase();
+  const isSheet = name.endsWith('.xlsx');
+  const isPdf = name.endsWith('.pdf');
+  if (allowed.length === 0) return { provider: null, confident: false, problem: 'No cloud access: contact your administrator.' };
+  if (!isSheet && !isPdf) return { provider: null, confident: false, problem: 'Invoices must be a PDF (Azure, AWS, Google Cloud) or an XLSX (SAP BTP) file.' };
+
+  const fits = (provider: CloudProvider) => (provider === 'btp') === isSheet;
+  const hinted = PROVIDER_NAME_HINTS.find(([, pattern]) => pattern.test(name))?.[0];
+  if (hinted && allowed.includes(hinted)) {
+    if (!fits(hinted)) return { provider: null, confident: false, problem: `${PROVIDER_LABELS[hinted]} invoices must be a ${hinted === 'btp' ? '.xlsx' : '.pdf'} file.` };
+    return { provider: hinted, confident: true, problem: null };
+  }
+  const candidates = allowed.filter(fits);
+  if (candidates.length === 0) return { provider: null, confident: false, problem: `You can upload ${isSheet ? 'PDF' : 'SAP BTP spreadsheet'} invoices only for the providers you have access to.` };
+  return { provider: candidates[0], confident: candidates.length === 1, problem: null };
+}

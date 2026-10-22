@@ -2,7 +2,7 @@ import { useId, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Select } from '../../../shared/ui/Select';
 import { CloseIcon } from '../../../shared/ui/icons';
 import { useModalOverlay } from '../../../shared/ui/useOverlay';
-import { addRecipients, teamsWebhookError } from '../model/budgetChannels';
+import { addRecipients, isValidEmail, teamsWebhookError } from '../model/budgetChannels';
 import type { Budget, ChannelProvider, ChannelScope } from '../model/budgetsTypes';
 
 export interface NewChannelValues {
@@ -15,6 +15,8 @@ export interface NewChannelValues {
 
 interface AddChannelDialogProps {
   budgets: Budget[];
+  /** The signed-in person's email: it starts as the only recipient, so adding a channel for yourself needs no typing. */
+  defaultEmail?: string;
   onAdd: (values: NewChannelValues) => void;
   onClose: () => void;
 }
@@ -23,13 +25,13 @@ interface AddChannelDialogProps {
  * Add a notification channel: Email (recipients entered as chips with Enter) or Microsoft Teams
  * (a validated webhook URL), for every budget or for chosen budgets only.
  */
-export function AddChannelDialog({ budgets, onAdd, onClose }: AddChannelDialogProps) {
+export function AddChannelDialog({ budgets, defaultEmail, onAdd, onClose }: AddChannelDialogProps) {
   const ref = useModalOverlay<HTMLElement>(onClose);
   const titleId = useId();
   const [provider, setProvider] = useState<ChannelProvider>('email');
   const [scope, setScope] = useState<ChannelScope>('global');
   const [budgetIds, setBudgetIds] = useState<string[]>([]);
-  const [emails, setEmails] = useState<string[]>([]);
+  const [emails, setEmails] = useState<string[]>(() => (defaultEmail && isValidEmail(defaultEmail) ? [defaultEmail.trim()] : []));
   const [draft, setDraft] = useState('');
   const [webhook, setWebhook] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -146,6 +148,7 @@ export function AddChannelDialog({ budgets, onAdd, onClose }: AddChannelDialogPr
                 ))}
                 <input
                   id={`${titleId}-emails`}
+                  data-tour="channel-recipients"
                   value={draft}
                   onChange={(event) => { setDraft(event.target.value); setEmailError(null); }}
                   onKeyDown={onDraftKeyDown}
@@ -155,7 +158,7 @@ export function AddChannelDialog({ budgets, onAdd, onClose }: AddChannelDialogPr
                   autoComplete="off"
                 />
               </div>
-              {emailError ? <p id={`${titleId}-emails-help`} className="mv-field-error" role="alert">{emailError}</p> : <p id={`${titleId}-emails-help`} className="mv-field-help">Press Enter after each address. You can paste several at once.</p>}
+              {emailError ? <p id={`${titleId}-emails-help`} className="mv-field-error" role="alert">{emailError}</p> : <p id={`${titleId}-emails-help`} className="mv-field-help">{defaultEmail && emails.includes(defaultEmail.trim()) ? 'Your own address is already here. ' : ''}Press Enter after each address. You can paste several at once.</p>}
             </div>
           ) : (
             <div className="mv-field">
@@ -176,7 +179,7 @@ export function AddChannelDialog({ budgets, onAdd, onClose }: AddChannelDialogPr
 
           <div className="mv-dialog-actions">
             <button type="button" className="mv-secondary-button" onClick={onClose}>Cancel</button>
-            <button type="submit" className="mv-primary-button">Add channel</button>
+            <button type="submit" className="mv-primary-button" data-tour="channel-submit">Add channel</button>
           </div>
         </form>
       </section>

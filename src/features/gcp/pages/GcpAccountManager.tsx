@@ -1,80 +1,27 @@
-import { useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { CloudIcon, ChevronRightIcon, TrashIcon, PlusIcon, LockIcon } from '../../../shared/ui/icons';
 import { useGcpAccounts } from '../model/GcpAccountContext';
-import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
-import { SampleDataBadge } from '../../workspace';
-
-interface FormState {
-  name: string;
-  projectId: string;
-  serviceAccountJson: string;
-}
-
-const emptyForm: FormState = { name: '', projectId: '', serviceAccountJson: '' };
-
-function validate(form: FormState): Partial<Record<keyof FormState, string>> {
-  const errors: Partial<Record<keyof FormState, string>> = {};
-  if (!form.name.trim()) errors.name = 'Account name is required';
-  if (!form.projectId.trim()) errors.projectId = 'Project ID is required';
-  if (!form.serviceAccountJson.trim()) {
-    errors.serviceAccountJson = 'Service Account JSON is required';
-  } else {
-    try {
-      const parsed = JSON.parse(form.serviceAccountJson) as { client_email?: string; private_key?: string };
-      if (!parsed.client_email || !parsed.private_key) {
-        errors.serviceAccountJson = 'JSON must contain client_email and private_key';
-      }
-    } catch {
-      errors.serviceAccountJson = 'Must be valid JSON';
-    }
-  }
-  return errors;
-}
+import { SampleDataBadge, openConnectDialog, useConnectOnArrival } from '../../workspace';
 
 /**
  * AccountManager, ported from the reference CCM app's
  * gcp/pages/GcpAccountManager.jsx: GCP connects via a service-account JSON
- * key (Billing Account Viewer role), a fundamentally different credential
- * shape from Azure's tenant/client/secret or AWS's access-key pair — so
- * this uses its own single-step form rather than the shared
- * `ConnectCloudAccountWizard` (built for Azure/AWS's step-based
- * details→validate→save flow). GCP uses real nested routes, same as AWS
- * (see GcpAccountContext.tsx).
+ * key (Billing Account Viewer role), a different credential shape from
+ * Azure's tenant/client/secret or AWS's access-key pair; the shared connect
+ * dialog collects it. GCP uses real nested routes, same as AWS (see
+ * GcpAccountContext.tsx).
  */
 export function GcpAccountManager() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const confirm = useConfirm();
-  const { accounts, addAccount, removeAccount } = useGcpAccounts();
+  const { accounts, removeAccount } = useGcpAccounts();
   const isReadOnly = user?.role !== 'admin' && user?.role !== 'owner' && Boolean(user?.canViewGcp === false);
 
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormState | 'general', string>>>({});
-  const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState('');
-  const formRef = useRef<HTMLFormElement>(null);
-  // Ctrl+K "Connect Google Cloud project": the form is always on this page, so arrival focuses its first field.
-  useOpenOnArrival('connect', () => formRef.current?.querySelector('input')?.focus());
-
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    const found = validate(form);
-    if (Object.keys(found).length > 0) {
-      setErrors(found);
-      return;
-    }
-    setSaving(true);
-    setErrors({});
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    addAccount({ name: form.name.trim(), projectId: form.projectId.trim() });
-    setForm(emptyForm);
-    setSaving(false);
-    setSuccess('GCP account added successfully.');
-    window.setTimeout(() => setSuccess(''), 4000);
-  };
+  // A "connect" request (Ctrl+K, a deep link) opens the shared connect dialog over this page.
+  useConnectOnArrival('gcp');
 
   const deleteAccount = async (id: string, name: string) => {
     const ok = await confirm({
@@ -135,39 +82,11 @@ export function GcpAccountManager() {
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Connect New Project</h2></div>
           <div className="mv-notice">
-            In GCP Console → IAM &amp; Admin → Service Accounts, create a service account and grant it the <strong>Billing Account Viewer</strong> role. Download the JSON key and paste it below. Credentials are encrypted before storage.
+            In GCP Console → IAM &amp; Admin → Service Accounts, create a service account and grant it the <strong>Billing Account Viewer</strong> role. Download the JSON key and paste it when you connect. Credentials are encrypted before storage.
           </div>
-          {errors.general && <div className="mv-inline-error" role="alert" style={{ marginTop: '0.75rem' }}>{errors.general}</div>}
-          {success && <div className="mv-notice" style={{ marginTop: '0.75rem' }}>{success}</div>}
-          <form ref={formRef} onSubmit={submit} style={{ marginTop: '1rem' }}>
-            <div className="mv-sa-field-grid">
-              <label className="mv-field">
-                Display Name
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="My GCP Project" />
-                {errors.name && <span className="mv-field-error">{errors.name}</span>}
-              </label>
-              <label className="mv-field">
-                Project ID
-                <input value={form.projectId} onChange={(e) => setForm({ ...form, projectId: e.target.value })} placeholder="my-project-123456" />
-                {errors.projectId && <span className="mv-field-error">{errors.projectId}</span>}
-                <span className="mv-field-help">The GCP project ID (not the project number).</span>
-              </label>
-            </div>
-            <label className="mv-field">
-              Service Account JSON Key
-              <textarea
-                rows={7}
-                value={form.serviceAccountJson}
-                onChange={(e) => setForm({ ...form, serviceAccountJson: e.target.value })}
-                placeholder={'{\n  "type": "service_account",\n  "project_id": "...",\n  "client_email": "...",\n  "private_key": "..."\n}'}
-              />
-              {errors.serviceAccountJson && <span className="mv-field-error">{errors.serviceAccountJson}</span>}
-              <span className="mv-field-help">Paste the full downloaded JSON key file content.</span>
-            </label>
-            <button className="mv-primary-button" type="submit" disabled={saving}>
-              <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />{saving ? 'Connecting…' : 'Connect Project'}
-            </button>
-          </form>
+          <button className="mv-primary-button" style={{ marginTop: '1rem' }} onClick={() => openConnectDialog('gcp')}>
+            <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Connect Project
+          </button>
         </section>
       )}
     </div>

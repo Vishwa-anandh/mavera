@@ -7,7 +7,7 @@ import { CloseIcon, ServerIcon } from '../../../shared/ui/icons';
 import { useModalOverlay } from '../../../shared/ui/useOverlay';
 import {
   CONNECTION_STRATEGIES, TIMEZONES, draftFromDestination, emptyDraft, toInput, validateDestination, type DestinationDraft, type DestinationErrors,
-} from '../model/destinations';
+} from '../../sapDestinations';
 
 interface DestinationDialogProps {
   /** The destination being edited; omit to add a new one. */

@@ -73,18 +73,18 @@ export function BackgroundJobsPanel({ jobs, initialFilter = 'All', initialQuery 
         </div>
       ) : (
         <div className="mv-table-wrap">
-          <table className="mv-table">
+          <table className="mv-table mv-table--stack">
             <thead><tr><th>Job Name</th><th>Status</th><th>Started</th><th>Finished</th><th className="mv-num">Duration</th><th>User</th><th>Client</th></tr></thead>
             <tbody>
               {shown.map((job) => (
                 <tr key={`${job.name}-${job.startedAt}`}>
-                  <td><button type="button" className="mv-link-button" onClick={() => onOpenJob(job)}>{job.name}</button></td>
-                  <td><span className={`mv-status mv-status--${JOB_STATUS_TONE[job.status]}`}>{JOB_STATUS_LABEL[job.status]}</span></td>
-                  <td className="mv-muted mv-date">{job.startedAt}</td>
-                  <td className="mv-muted mv-date">{job.finishedAt ?? '—'}</td>
-                  <td className="mv-num">{job.durationSec !== null ? `${job.durationSec}s` : '—'}</td>
-                  <td>{job.user}</td>
-                  <td>{job.client}</td>
+                  <td data-label="Job Name" className="mv-stack-title"><button type="button" className="mv-link-button" onClick={() => onOpenJob(job)}>{job.name}</button></td>
+                  <td data-label="Status"><span className={`mv-status mv-status--${JOB_STATUS_TONE[job.status]}`}>{JOB_STATUS_LABEL[job.status]}</span></td>
+                  <td data-label="Started" className="mv-muted mv-date">{job.startedAt}</td>
+                  <td data-label="Finished" className="mv-muted mv-date">{job.finishedAt ?? '—'}</td>
+                  <td data-label="Duration" className="mv-num">{job.durationSec !== null ? `${job.durationSec}s` : '—'}</td>
+                  <td data-label="User">{job.user}</td>
+                  <td data-label="Client">{job.client}</td>
                 </tr>
               ))}
             </tbody>

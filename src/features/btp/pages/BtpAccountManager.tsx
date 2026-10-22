@@ -1,60 +1,13 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { CloudIcon, ChevronDownIcon, ChevronRightIcon, TrashIcon, PencilIcon, CheckIcon, CloseIcon, PlusIcon, LockIcon } from '../../../shared/ui/icons';
 import { useBtpAccounts } from '../model/BtpAccountContext';
-import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { cloudSamplesRepository } from '../../../data-access';
-import { SampleDataBadge } from '../../workspace';
+import { SampleDataBadge, openConnectDialog, useConnectOnArrival } from '../../workspace';
 import { btpRegionLabel } from '../model/btpDerivations';
 import type { BtpAccount } from '../model/btpTypes';
-
-interface FormState {
-  name: string;
-  clientId: string;
-  clientSecret: string;
-  tokenUrl: string;
-  targetUrl: string;
-  cisClientId: string;
-  cisClientSecret: string;
-  cisTokenUrl: string;
-  cisAccountsUrl: string;
-}
-
-const emptyForm: FormState = { name: '', clientId: '', clientSecret: '', tokenUrl: '', targetUrl: '', cisClientId: '', cisClientSecret: '', cisTokenUrl: '', cisAccountsUrl: '' };
-
-function subdomainOf(url: string): string | null {
-  try {
-    return new URL(url).hostname.split('.')[0] || null;
-  } catch {
-    return null;
-  }
-}
-
-function validate(form: FormState): string | null {
-  if (!form.name.trim()) return 'Account name is required.';
-  if (!form.clientId.trim() || !form.clientSecret.trim()) return 'Client ID and Client Secret are required.';
-  if (!form.tokenUrl.trim().startsWith('https://')) return 'Token URL must start with https://.';
-  if (!form.targetUrl.trim().startsWith('https://')) return 'Reporting API Base URL must start with https://.';
-
-  const cisAny = form.cisClientId || form.cisClientSecret || form.cisTokenUrl || form.cisAccountsUrl;
-  if (cisAny) {
-    if (!form.cisClientId.trim() || !form.cisClientSecret.trim()) return 'CIS Client ID and Client Secret are required if configuring CIS_Central.';
-    if (!form.cisTokenUrl.trim().startsWith('https://')) return 'CIS Token URL must start with https://.';
-    if (!form.cisAccountsUrl.trim().startsWith('https://')) return 'Accounts Service URL must start with https://.';
-    const costSub = subdomainOf(form.tokenUrl);
-    const cisSub = subdomainOf(form.cisTokenUrl);
-    if (costSub && cisSub && costSub.toLowerCase() !== cisSub.toLowerCase()) {
-      return `Subdomain mismatch — COST_API uses "${costSub}" but CIS uses "${cisSub}". Both must share the same authentication tenant.`;
-    }
-  }
-  return null;
-}
-
-function appendOAuthPath(url: string): string {
-  return url && !url.endsWith('/oauth/token') ? `${url.replace(/\/$/, '')}/oauth/token` : url;
-}
 
 /**
  * AccountManager, ported from the reference CCM app's
@@ -64,6 +17,7 @@ function appendOAuthPath(url: string): string {
  * per-subaccount). This form collects the first two; Service Manager is
  * configured per-subaccount from the expanded subaccounts list below (a
  * lightweight inline stand-in for the reference's `BtpServiceManagerModal`).
+ * The credentials are collected by the shared connect dialog.
  *
  * There's no centralized `derivePermissions()` in the reference codebase
  * (confirmed via research) — every page inlines its own read-only check,
@@ -74,41 +28,16 @@ export function BtpAccountManager() {
   const { user, accountLimits } = useAuth();
   const navigate = useNavigate();
   const confirm = useConfirm();
-  const { accounts, addAccount, removeAccount, renameAccount } = useBtpAccounts();
+  const { accounts, removeAccount, renameAccount } = useBtpAccounts();
   const isReadOnly = user?.role !== 'admin' && user?.role !== 'owner' && Boolean(user?.canViewBtp === false);
   const maxAccounts = accountLimits.btp ?? 3;
   const atLimit = maxAccounts > 0 && accounts.length >= maxAccounts;
 
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [cisOpen, setCisOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  // Ctrl+K "Connect SAP BTP account": the form is always on this page, so arrival focuses its first field.
-  useOpenOnArrival('connect', () => formRef.current?.querySelector('input')?.focus());
-
-  const update = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [key]: e.target.value });
-  const blurAppendOAuth = (key: 'tokenUrl' | 'cisTokenUrl') => () => setForm((f) => ({ ...f, [key]: appendOAuthPath(f[key]) }));
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    const found = validate(form);
-    if (found) { setError(found); return; }
-    setError(null);
-    setSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    addAccount({
-      name: form.name,
-      targetUrl: form.targetUrl,
-      region: subdomainOf(form.targetUrl) ?? undefined,
-      hasCis: Boolean(form.cisClientId),
-    });
-    setForm(emptyForm);
-    setSaving(false);
-  };
+  // A "connect" request (Ctrl+K, a deep link) opens the shared connect dialog over this page.
+  useConnectOnArrival('btp');
 
   const startRename = (account: BtpAccount) => { setRenamingId(account.id); setRenameValue(account.name); };
   const commitRename = () => { if (renamingId) renameAccount(renamingId, renameValue.trim() || accounts.find((a) => a.id === renamingId)?.name || ''); setRenamingId(null); };
@@ -218,39 +147,12 @@ export function BtpAccountManager() {
       ) : (
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Connect New Account</h2></div>
-          {error && <div className="mv-inline-error" role="alert" style={{ marginBottom: '1rem' }}>{error}</div>}
-          <form ref={formRef} onSubmit={submit}>
-            <div className="mv-notice" style={{ marginBottom: '1rem' }}>
-              <strong>Service Instance 1 — COST_API</strong> (required, Usage Data Management Service, plan <code className="mv-code">reporting-ga-admin</code>). Path: BTP Cockpit → subaccount → Cloud Foundry → Spaces → Instances → COST_API → Service Keys → View.
-            </div>
-            <div className="mv-sa-field-grid">
-              <label className="mv-field">Account Name<input value={form.name} onChange={update('name')} placeholder="Mavera SAP Landscape" /></label>
-              <label className="mv-field">Client ID<input value={form.clientId} onChange={update('clientId')} /></label>
-              <label className="mv-field">Client Secret<input type="password" value={form.clientSecret} onChange={update('clientSecret')} /></label>
-              <label className="mv-field">Token URL<input value={form.tokenUrl} onChange={update('tokenUrl')} onBlur={blurAppendOAuth('tokenUrl')} placeholder="https://...authentication.eu10.hana.ondemand.com" /></label>
-              <label className="mv-field" style={{ gridColumn: '1 / -1' }}>Reporting API Base URL<input value={form.targetUrl} onChange={update('targetUrl')} placeholder="https://reporting.cf.eu10.hana.ondemand.com" /></label>
-            </div>
-
-            <button type="button" className="mv-quiet-button" style={{ display: 'flex', marginBottom: '1rem' }} onClick={() => setCisOpen((v) => !v)}>
-              <ChevronDownIcon size={14} style={{ marginRight: '0.375rem', transform: cisOpen ? 'rotate(180deg)' : undefined }} />
-              Service Instance 2 — CIS_Central (optional — account hierarchy &amp; subaccounts)
-            </button>
-            {cisOpen && (
-              <div style={{ marginBottom: '1rem' }}>
-                <div className="mv-notice" style={{ marginBottom: '1rem' }}>
-                  Cloud Management Service, plan <code className="mv-code">central-viewer</code>. Adding this unlocks the directory/subaccount Hierarchy tab on the cost page. Expected subdomain: same as COST_API's Token URL.
-                </div>
-                <div className="mv-sa-field-grid">
-                  <label className="mv-field">CIS Client ID<input value={form.cisClientId} onChange={update('cisClientId')} /></label>
-                  <label className="mv-field">CIS Client Secret<input type="password" value={form.cisClientSecret} onChange={update('cisClientSecret')} /></label>
-                  <label className="mv-field">CIS Token URL<input value={form.cisTokenUrl} onChange={update('cisTokenUrl')} onBlur={blurAppendOAuth('cisTokenUrl')} /></label>
-                  <label className="mv-field">Accounts Service URL<input value={form.cisAccountsUrl} onChange={update('cisAccountsUrl')} /></label>
-                </div>
-              </div>
-            )}
-
-            <button className="mv-primary-button" type="submit" disabled={saving}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />{saving ? 'Connecting…' : 'Connect Account'}</button>
-          </form>
+          <div className="mv-notice">
+            <strong>Service Instance 1 — COST_API</strong> (required, Usage Data Management Service, plan <code className="mv-code">reporting-ga-admin</code>). Path: BTP Cockpit → subaccount → Cloud Foundry → Spaces → Instances → COST_API → Service Keys → View. Add <strong>CIS_Central</strong> (Cloud Management Service, plan <code className="mv-code">central-viewer</code>) to unlock the directory and subaccount hierarchy.
+          </div>
+          <button className="mv-primary-button" style={{ marginTop: '1rem' }} onClick={() => openConnectDialog('btp')}>
+            <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Connect Account
+          </button>
         </section>
       )}
     </div>

@@ -3,9 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
-import { ConnectCloudAccountWizard } from '../../cloud';
-import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
-import { SampleDataBadge, addAccountFromWizard } from '../../workspace';
+import { SampleDataBadge, openConnectDialog, useConnectOnArrival } from '../../workspace';
 import { CreditCardIcon, PencilIcon, EyeIcon, TrashIcon, CheckIcon, CloseIcon, LockIcon, ChevronLeftIcon, PlusIcon } from '../../../shared/ui/icons';
 import { useAwsAccounts } from '../model/AwsAccountContext';
 import type { AwsAccount } from '../model/awsTypes';
@@ -23,9 +21,9 @@ function maskAccessKey(accessKey: string): string {
  * `useNavigate`/`Link` to `/aws/account/:id` and `/aws` instead of callback
  * props. No real backend exists for this prototype, so accounts live in
  * `AwsAccountContext`'s local state, seeded from mock data — the connect
- * flow still runs through the real `ConnectCloudAccountWizard` (same
+ * flow runs through the shared connect dialog (same
  * AKIA/ASIA-prefixed access-key regex and 40-char secret-key validation as
- * the reference), just with a mocked save.
+ * the reference).
  */
 export function AwsAccountManager() {
   const navigate = useNavigate();
@@ -34,7 +32,6 @@ export function AwsAccountManager() {
   const confirm = useConfirm();
   const { accounts, removeAccount, renameAccount } = useAwsAccounts();
 
-  const [wizardOpen, setWizardOpen] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [detailsAccount, setDetailsAccount] = useState<AwsAccount | null>(null);
@@ -43,8 +40,8 @@ export function AwsAccountManager() {
   const maxAccounts = accountLimits.aws ?? 3;
   const atLimit = maxAccounts > 0 && accounts.length >= maxAccounts;
 
-  // Ctrl+K "Connect AWS account" lands here with the connect form already open.
-  useOpenOnArrival('connect', () => { if (!isReadOnly && !atLimit) setWizardOpen(true); });
+  // A "connect" request (Ctrl+K, a deep link) opens the shared connect dialog over this page.
+  useConnectOnArrival('aws');
 
   const startRename = (account: AwsAccount) => {
     setRenamingId(account.id);
@@ -157,24 +154,12 @@ export function AwsAccountManager() {
         ) : (
           <>
             <div className="mv-notice">AWS Cost Explorer data syncs on demand — once saved, EC2, S3, RDS and Lambda costs are fetched live from Cost Explorer. Ensure Cost Explorer is enabled in your AWS account.</div>
-            <button className="mv-primary-button" style={{ marginTop: '1rem' }} onClick={() => setWizardOpen(true)}>
+            <button className="mv-primary-button" style={{ marginTop: '1rem' }} onClick={() => openConnectDialog('aws')}>
               <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Connect Account
             </button>
           </>
         )}
       </section>
-
-      {wizardOpen && (
-        <ConnectCloudAccountWizard
-          provider="aws"
-          open
-          onClose={() => setWizardOpen(false)}
-          onSave={async (payload) => {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            addAccountFromWizard('aws', payload);
-          }}
-        />
-      )}
 
       {detailsAccount && (
         <div className="mv-dialog-backdrop" onClick={() => setDetailsAccount(null)}>

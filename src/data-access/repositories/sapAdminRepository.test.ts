@@ -38,6 +38,25 @@ describe('security notes', () => {
     expect(await repo.securityNotes.remove('3727078', 'Ana')).toBe(false);
   });
 
+  it('deletes several notes as one history entry and restores them to their old places', async () => {
+    const before = repo.securityNotes.list().map((n) => n.noteNumber);
+    const historyBefore = repo.securityNotes.history().length;
+    const removal = await repo.securityNotes.removeMany([before[1], before[3], 'not-a-note'], 'Ana');
+    expect(removal.removed.map((n) => n.noteNumber)).toEqual([before[1], before[3]]);
+    expect(repo.securityNotes.list()).toHaveLength(before.length - 2);
+    expect(repo.securityNotes.history()[0]).toMatchObject({ kind: 'delete', summary: 'Deleted 2 notes' });
+    expect(await repo.securityNotes.restore(removal)).toBe(2);
+    expect(repo.securityNotes.list().map((n) => n.noteNumber)).toEqual(before);
+    expect(repo.securityNotes.history()).toHaveLength(historyBefore);
+    expect(await repo.securityNotes.restore(removal)).toBe(0);
+  });
+
+  it('removeMany of nothing known changes nothing', async () => {
+    const removal = await repo.securityNotes.removeMany(['0000000'], 'Ana');
+    expect(removal).toMatchObject({ removed: [], entryId: null });
+    expect(repo.securityNotes.history()[0]?.kind).not.toBe('delete');
+  });
+
   it('simulates the same answer for the same note number', () => {
     expect(simulateNoteCheck('3800001')).toEqual(simulateNoteCheck('3800001'));
   });

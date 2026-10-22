@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { ProfileMenu } from './ProfileMenu';
 import type { AuthContextValue } from '../../features/auth';
+import { workspaceRepository } from '../../data-access';
 
 const useAuthMock = vi.fn<() => AuthContextValue>();
 const useMaveraThemeMock = vi.fn();
@@ -156,5 +157,58 @@ describe('ProfileMenu', () => {
 
     expect(logout).not.toHaveBeenCalled();
     expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it('offers "Request a plan", a link that opens the plan request on the Subscription page, and closes the menu', async () => {
+    useAuthMock.mockReturnValue(auth());
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ProfileMenu />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByLabelText('Profile menu'));
+    const link = screen.getByRole('menuitem', { name: /Request a plan/ });
+    expect(link).toHaveAttribute('href', '/subscription?open=request-plan');
+    expect(screen.getByRole('menuitem', { name: 'Subscription' })).toHaveAttribute('href', '/subscription');
+    await user.click(link);
+    expect(screen.queryByRole('menu', { name: 'Profile' })).toBeNull();
+  });
+
+  it('offers "Getting started" with its progress to a new organisation, and brings a hidden checklist back on the dashboard', async () => {
+    workspaceRepository.setProfile('empty');
+    workspaceRepository.dismissOnboarding();
+    useAuthMock.mockReturnValue(auth());
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ProfileMenu />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByLabelText('Profile menu'));
+    const item = screen.getByRole('menuitem', { name: /Getting started/ });
+    expect(item).toHaveTextContent('0 of 6 done');
+    await user.click(item);
+
+    expect(workspaceRepository.onboarding().dismissed).toBe(false);
+    expect(navigateMock).toHaveBeenCalledWith('/');
+    expect(screen.queryByRole('menu', { name: 'Profile' })).toBeNull();
+    workspaceRepository.setProfile('populated');
+  });
+
+  it('has no "Getting started" for an organisation that is already set up', async () => {
+    workspaceRepository.setProfile('populated');
+    useAuthMock.mockReturnValue(auth());
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <ProfileMenu />
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByLabelText('Profile menu'));
+    expect(screen.queryByRole('menuitem', { name: /Getting started/ })).toBeNull();
   });
 });

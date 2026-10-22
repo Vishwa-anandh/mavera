@@ -1,5 +1,5 @@
 import type {
-  NewWorkspaceAccount, OnboardingState, OnboardingStep, WorkspaceAccountsByProvider, WorkspaceProfile, WorkspaceProvider, WorkspaceSampleSpend,
+  NewWorkspaceAccount, OnboardingState, OnboardingStep, WorkspaceAccountsByProvider, WorkspaceProfile, WorkspaceProgressSignals, WorkspaceProvider, WorkspaceSampleSpend,
 } from '../contracts/workspace';
 import { accessRepository } from './accessRepository';
 import { budgetsRepository } from './budgetsRepository';
@@ -37,9 +37,27 @@ const STEP_MODULE: Partial<Record<OnboardingStep['id'], OnboardingStep['module']
   cloud: 'cloudCost', budget: 'cloudCost', sap: 'sapMonitoring',
 };
 
+/** How many alert recipients exist across the budget channels, the smart-alert types and the SAP alerts. */
+function recipientCount(): number {
+  const channels = budgetsRepository.listChannels().filter((c) => c.enabled && (c.email_addresses.length > 0 || c.webhook_url !== ''));
+  const smart = smartAlertsRepository.listRecipients().reduce((sum, c) => sum + c.recipients.length, 0);
+  return channels.length + smart + sapAdminRepository.alerts.listRecipients().length;
+}
+
+/** The counts the live coach watches to know a step was done ("accounts went up"); read fresh on every call. */
+function progressSignals(): WorkspaceProgressSignals {
+  return {
+    accounts: workspaceStore.count(),
+    destinations: sapAdminRepository.destinations.count(),
+    budgets: budgetsRepository.listBudgets().length,
+    recipients: recipientCount(),
+    members: accessRepository.getSnapshot().members.length,
+  };
+}
+
 function onboarding(): OnboardingState {
   const flags = workspaceStore.getFlags();
-  const hasRecipients = smartAlertsRepository.listRecipients().some((c) => c.recipients.length > 0) || sapAdminRepository.alerts.listRecipients().length > 0;
+  const hasRecipients = recipientCount() > 0;
   const done: Record<OnboardingStep['id'], boolean> = {
     cloud: workspaceStore.count() > 0,
     sap: sapAdminRepository.destinations.count() > 0,
@@ -107,6 +125,7 @@ export const workspaceRepository = {
 
   // ---- first-run checklist ----
   onboarding,
+  progressSignals,
   dismissOnboarding(dismissed = true): void {
     workspaceStore.setFlags({ dismissed });
   },

@@ -4,6 +4,7 @@
  *   `css:<selector>`   the first element matching the CSS selector
  *   `btn:<label>`      the first button, link or tab whose visible text or aria-label contains the label
  *   `panel:<heading>`  the section/card whose heading starts with the text (e.g. `panel:Needs attention`)
+ *   `none:`            nothing to outline: a step that only talks (the card is centred), e.g. a flow's last step
  *
  * Names rather than hard-coded markup keep tours working as pages are reshuffled, and a target that isn't
  * on the page (a module the org isn't subscribed to, an empty state) simply resolves to null so the step

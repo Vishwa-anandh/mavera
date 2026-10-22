@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { invoicesRepository } from '../../../data-access';
-import { cspBreakdownOf, providerCountsOf } from './invoicesDerivations';
+import type { CloudProvider } from '../../../shared/types/auth';
+import { cspBreakdownOf, detectInvoiceUpload, providerCountsOf } from './invoicesDerivations';
 
 const byId = (id: string) => invoicesRepository.list().find((i) => i.id === id)!;
 
@@ -50,5 +51,45 @@ describe('providerCountsOf', () => {
   it('counts invoices overall and per provider', () => {
     expect(providerCountsOf(invoicesRepository.list())).toEqual({ all: 9, azure: 3, aws: 2, btp: 2, gcp: 2 });
     expect(providerCountsOf([])).toEqual({ all: 0, azure: 0, aws: 0, btp: 0, gcp: 0 });
+  });
+});
+
+describe('detectInvoiceUpload', () => {
+  const all: CloudProvider[] = ['azure', 'aws', 'btp', 'gcp'];
+
+  it('reads the provider from the file name and starts without asking', () => {
+    expect(detectInvoiceUpload('Azure-invoice-Oct.pdf', all)).toEqual({ provider: 'azure', confident: true, problem: null });
+    expect(detectInvoiceUpload('amazon_web_services_2026-10.pdf', all)).toMatchObject({ provider: 'aws', confident: true });
+    expect(detectInvoiceUpload('invoice-aws.pdf', all)).toMatchObject({ provider: 'aws', confident: true });
+    expect(detectInvoiceUpload('google cloud october.pdf', all)).toMatchObject({ provider: 'gcp', confident: true });
+    expect(detectInvoiceUpload('SAP BTP usage.xlsx', all)).toMatchObject({ provider: 'btp', confident: true });
+  });
+
+  it('does not mistake a longer word for a provider hint', () => {
+    expect(detectInvoiceUpload('laws-of-invoices.pdf', all)).toMatchObject({ provider: 'azure', confident: false });
+  });
+
+  it('takes a lone spreadsheet as SAP BTP and a nameless PDF as a guess when several providers fit', () => {
+    expect(detectInvoiceUpload('october.xlsx', all)).toMatchObject({ provider: 'btp', confident: true });
+    expect(detectInvoiceUpload('october.pdf', all)).toMatchObject({ provider: 'azure', confident: false });
+  });
+
+  it('is confident about a nameless PDF when the member can upload for one PDF provider only', () => {
+    expect(detectInvoiceUpload('october.pdf', ['aws', 'btp'])).toMatchObject({ provider: 'aws', confident: true });
+  });
+
+  it('refuses a file of the wrong type, a hint that needs the other type, and a member with no cloud access', () => {
+    expect(detectInvoiceUpload('invoice.docx', all).problem).toMatch(/PDF .* or an XLSX/);
+    expect(detectInvoiceUpload('azure.xlsx', all).problem).toBe('Azure invoices must be a .pdf file.');
+    expect(detectInvoiceUpload('btp.pdf', all).problem).toBe('SAP BTP invoices must be a .xlsx file.');
+    expect(detectInvoiceUpload('azure.pdf', [])).toMatchObject({ provider: null, problem: expect.stringMatching(/No cloud access/) });
+  });
+
+  it('ignores a hint for a provider the member cannot upload for', () => {
+    expect(detectInvoiceUpload('azure-oct.pdf', ['aws'])).toMatchObject({ provider: 'aws', confident: true });
+  });
+
+  it('says so when no provider they can use takes this file type', () => {
+    expect(detectInvoiceUpload('oct.xlsx', ['azure']).problem).toMatch(/SAP BTP|PDF/);
   });
 });

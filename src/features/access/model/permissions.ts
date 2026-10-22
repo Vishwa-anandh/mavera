@@ -190,6 +190,15 @@ export function customRoleToAccessRole(record: CustomRoleRecord): AccessRole {
   };
 }
 
+/**
+ * The module a permission matrix should open on: the first module (in matrix order) the role holds any
+ * grant on, or the first module when it holds none. Editing a role starts where its access starts.
+ */
+export function firstGrantedModuleId(matrix: PermissionMatrix): ModuleId {
+  const granted = MODULES.find((module) => (matrix[module.id as ModuleId] ?? []).length > 0);
+  return (granted ?? MODULES[0]).id as ModuleId;
+}
+
 export function toGrants(matrix: PermissionMatrix): Record<string, AccessActionKey[]> {
   return Object.fromEntries(Object.entries(matrix).filter(([, actions]) => (actions?.length ?? 0) > 0).map(([id, actions]) => [id, [...(actions ?? [])]]));
 }

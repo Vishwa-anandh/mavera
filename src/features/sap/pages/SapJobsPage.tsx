@@ -81,15 +81,15 @@ function SapJobsPageContent() {
               />
             ) : (
               <div className="mv-table-wrap">
-                <table className="mv-table">
+                <table className="mv-table mv-table--stack">
                   <thead><tr><th>Program</th><th>Error Type</th><th>Occurred</th><th>User</th></tr></thead>
                   <tbody>
                     {dumps.map((err) => (
                       <tr key={err.id}>
-                        <td><button type="button" className="mv-link-button" onClick={() => setOpenDumpId(err.id)}>{err.program}</button></td>
-                        <td>{err.errorType}</td>
-                        <td className="mv-date">{err.occurredAt}</td>
-                        <td>{err.user}</td>
+                        <td data-label="Program" className="mv-stack-title"><button type="button" className="mv-link-button" onClick={() => setOpenDumpId(err.id)}>{err.program}</button></td>
+                        <td data-label="Error Type">{err.errorType}</td>
+                        <td data-label="Occurred" className="mv-date">{err.occurredAt}</td>
+                        <td data-label="User">{err.user}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -1,5 +1,11 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { sapRepository, type SapCondition, type SapSystem } from '../../../data-access';
+import { ClickableRow, RowChevronCell, RowOpenButton } from '../../../shared/ui/ClickableRow';
+import { EmptyState } from '../../../shared/ui/EmptyState';
+import { FilterChips } from '../../../shared/ui/FilterChips';
+import { ServerIcon } from '../../../shared/ui/icons';
+import { SapSystemDrawer } from './SapSystemDrawer';
 
 export function sapConditionCounts(systems: SapSystem[]): Record<SapCondition, number> {
   return systems.reduce(
@@ -45,19 +51,36 @@ interface SapSystemsPanelProps {
   compact?: boolean;
 }
 
+type ConditionFilter = 'all' | SapCondition;
+
 export function SapSystemsPanel({ limit, showCounts = true, compact = false }: SapSystemsPanelProps) {
   const systems = sapRepository.listSystems();
+  const [filter, setFilter] = useState<ConditionFilter>('all');
+  const [openId, setOpenId] = useState<string | null>(null);
   const counts = sapConditionCounts(systems);
   const sorted = [...systems].sort((a, b) => {
     const priority: Record<SapCondition, number> = { critical: 0, warning: 1, healthy: 2 };
     return priority[a.condition] - priority[b.condition] || a.id.localeCompare(b.id);
   });
-  const rows = limit ? sorted.slice(0, limit) : sorted;
+  const visible = compact || filter === 'all' ? sorted : sorted.filter((system) => system.condition === filter);
+  const rows = limit ? visible.slice(0, limit) : visible;
+  const opened = systems.find((system) => system.id === openId);
   const tone = (condition: SapCondition) => (condition === 'healthy' ? 'success' : condition === 'warning' ? 'warning' : 'danger');
 
   return (
     <div>
-      {showCounts && (
+      {showCounts && !compact && (
+        <FilterChips<ConditionFilter>
+          label="Filter systems by condition"
+          value={filter}
+          onChange={setFilter}
+          chips={[
+            { value: 'all', label: 'All', count: systems.length },
+            ...(Object.keys(CONDITION_LABEL) as SapCondition[]).map((condition) => ({ value: condition, label: CONDITION_LABEL[condition], count: counts[condition] })),
+          ]}
+        />
+      )}
+      {showCounts && compact && (
         <div className="mv-condition-counts">
           {(Object.keys(CONDITION_LABEL) as SapCondition[]).map((condition) => (
             <span className={`mv-condition-pill mv-condition-pill--${condition}`} key={condition}>
@@ -83,33 +106,40 @@ export function SapSystemsPanel({ limit, showCounts = true, compact = false }: S
           ))}
         </ul>
       ) : (
-        <div className="mv-table-wrap">
-          <table className="mv-table">
-            <thead>
-              <tr>
-                <th>System</th>
-                <th>Environment</th>
-                <th>Condition</th>
-                <th className="mv-num">CPU</th>
-                <th className="mv-num">Memory</th>
-                <th>Last collection</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((system) => (
-                <tr key={system.id}>
-                  <td>{system.name}</td>
-                  <td>{system.environment}</td>
-                  <td><span className={`mv-status mv-status--${tone(system.condition)}`}>{CONDITION_LABEL[system.condition]}</span></td>
-                  <td className="mv-num">{system.cpuPercent}%</td>
-                  <td className="mv-num">{system.memoryPercent}%</td>
-                  <td className="mv-muted">{system.lastCollection}</td>
+        rows.length === 0 ? (
+          <EmptyState icon={<ServerIcon size={28} />} heading="No systems match" explanation="No system is in that condition right now." actionLabel="Show all systems" onAction={() => setFilter('all')} />
+        ) : (
+          <div className="mv-table-wrap">
+            <table className="mv-table mv-table--stack">
+              <thead>
+                <tr>
+                  <th>System</th>
+                  <th>Environment</th>
+                  <th>Condition</th>
+                  <th className="mv-num">CPU</th>
+                  <th className="mv-num">Memory</th>
+                  <th>Last collection</th>
+                  <th aria-hidden="true" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((system) => (
+                  <ClickableRow key={system.id} onOpen={() => setOpenId(system.id)}>
+                    <td data-label="System"><RowOpenButton onOpen={() => setOpenId(system.id)}>{system.name}</RowOpenButton></td>
+                    <td data-label="Environment">{system.environment}</td>
+                    <td data-label="Condition"><span className={`mv-status mv-status--${tone(system.condition)}`}>{CONDITION_LABEL[system.condition]}</span></td>
+                    <td data-label="CPU" className="mv-num">{system.cpuPercent}%</td>
+                    <td data-label="Memory" className="mv-num">{system.memoryPercent}%</td>
+                    <td data-label="Last collection" className="mv-muted">{system.lastCollection}</td>
+                    <RowChevronCell />
+                  </ClickableRow>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
       )}
+      {opened && <SapSystemDrawer system={opened} onClose={() => setOpenId(null)} />}
     </div>
   );
 }

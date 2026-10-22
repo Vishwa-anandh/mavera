@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { ConfirmProvider, useConfirm } from './ConfirmProvider';
@@ -66,5 +66,27 @@ describe('ConfirmProvider', () => {
     await user.click(screen.getByRole('button', { name: 'go: pending' }));
 
     expect(await screen.findByText('Remove saved view')).toBeInTheDocument();
+  });
+
+  it('cancels with Escape, starts on Cancel, keeps Tab inside and returns focus to the control that asked', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConfirmProvider>
+        <Harness />
+      </ConfirmProvider>,
+    );
+
+    const opener = screen.getByRole('button', { name: 'go: pending' });
+    await user.click(opener);
+    const dialog = await screen.findByRole('alertdialog', { name: 'Remove saved view' });
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    await user.tab();
+    expect(within(dialog).getByRole('button', { name: 'Confirm' })).toHaveFocus();
+    await user.tab();
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+    expect(await screen.findByRole('button', { name: 'go: cancelled' })).toHaveFocus();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 });

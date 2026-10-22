@@ -92,16 +92,16 @@ export function OperationsTab(props: BtpCostTabProps) {
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Subaccount Cost Summary</h2></div>
           <div className="mv-table-wrap">
-            <table className="mv-table">
+            <table className="mv-table mv-table--stack">
               <thead><tr><th>Subaccount</th><th className="mv-num">Cost</th><th>Share</th></tr></thead>
               <tbody>
                 {sortedSubaccounts.map((sub) => {
                   const pct = data.totalCost > 0 ? (sub.cost / data.totalCost) * 100 : 0;
                   return (
                     <tr key={sub.name}>
-                      <td>{sub.name}</td>
-                      <td className="mv-num">{formatCurrency(sub.cost, currency)}</td>
-                      <td>
+                      <td data-label="Subaccount" className="mv-stack-title">{sub.name}</td>
+                      <td data-label="Cost" className="mv-num">{formatCurrency(sub.cost, currency)}</td>
+                      <td data-label="Share">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <div style={{ flex: 1, height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', minWidth: '3.75rem' }}>
                             <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${pct}%`, background: 'var(--mv-primary)' }} />

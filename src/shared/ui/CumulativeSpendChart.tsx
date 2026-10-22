@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { CumulativePoint } from '../lib/costAnalysis';
+import { ChartDataDialog } from './ChartDataDialog';
 import { useMaveraTheme } from '../theme/ThemeProvider';
 import { chartColors } from '../theme/tokens';
 
@@ -50,28 +51,20 @@ export function CumulativeSpendChart({ data, title }: { data: CumulativePoint[];
       </div>
       <button type="button" className="mv-quiet-button" onClick={() => setTableOpen(true)}>View data</button>
       {tableOpen && (
-        <div className="mv-dialog-backdrop" onClick={() => setTableOpen(false)}>
-          <section className="mv-dialog" role="dialog" aria-modal="true" aria-label={title} onClick={(event) => event.stopPropagation()}>
-            <div className="mv-panel-header">
-              <h2 className="mv-panel-title">{title}</h2>
-              <button type="button" className="mv-icon-button" aria-label="Close data table" onClick={() => setTableOpen(false)}>×</button>
-            </div>
-            <div className="mv-table-wrap">
-              <table className="mv-table">
-                <thead><tr><th>Date</th><th className="mv-num">Spend so far</th><th className="mv-num">Projected</th></tr></thead>
-                <tbody>
-                  {data.map((point) => (
-                    <tr key={point.date}>
-                      <td>{shortDate(point.date)}</td>
-                      <td className="mv-num">{point.actual !== undefined ? money(point.actual) : '—'}</td>
-                      <td className="mv-num">{point.projected !== undefined ? money(point.projected) : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+        <ChartDataDialog label={title} onClose={() => setTableOpen(false)}>
+          <table className="mv-table">
+            <thead><tr><th>Date</th><th className="mv-num">Spend so far</th><th className="mv-num">Projected</th></tr></thead>
+            <tbody>
+              {data.map((point) => (
+                <tr key={point.date}>
+                  <td>{shortDate(point.date)}</td>
+                  <td className="mv-num">{point.actual !== undefined ? money(point.actual) : '—'}</td>
+                  <td className="mv-num">{point.projected !== undefined ? money(point.projected) : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ChartDataDialog>
       )}
     </div>
   );

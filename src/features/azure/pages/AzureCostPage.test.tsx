@@ -22,7 +22,7 @@ function setup() {
   return userEvent.setup();
 }
 
-const view = (name: RegExp) => screen.getByRole('button', { name });
+const view = (name: RegExp) => screen.getByRole('tab', { name });
 const money = (text: string | null) => Number((text ?? '').replace(/[$,]/g, ''));
 /** The dollar amounts in a piece of text, in order. */
 const amounts = (text: string | null) => (text ?? '').match(/\$[\d,]+\.\d{2}/g)?.map(money) ?? [];
@@ -154,7 +154,8 @@ describe('Azure account page', () => {
       for (const name of ['Resources and allocation', 'Spend over time', 'Savings and optimization', 'Billing']) {
         expect(screen.getByRole('heading', { level: 2, name })).toBeInTheDocument();
       }
-      expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+      // The only tabs are the three views themselves: the long view is split by headings, not by nested tabs.
+      expect(screen.getAllByRole('tab').map((tab) => tab.firstChild?.textContent)).toEqual(['Executive', 'Operations', 'Technical']);
     });
 
     it('keeps the existing sections and adds the missing ones', async () => {

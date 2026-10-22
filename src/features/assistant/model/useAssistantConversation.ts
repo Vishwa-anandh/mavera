@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { flowGuideForPath, type FlowGuide } from './flowGuides';
 import { answerFromDemoData, answerableTopics } from './assistantAnswers';
+import { requestCoachFlow, requestShowChecklist } from './assistantCommands';
+import { nextCoachFlow, startableSetupIntent } from './setupIntents';
 
 export interface AssistantMessage {
   id: string;
@@ -15,10 +17,27 @@ interface AssistantModules {
   sapMonitoring: boolean;
 }
 
+/** Which setup chips to offer: only while the getting-started checklist still has something real to do. */
+export interface SetupChips {
+  show: boolean;
+  cloudOpen: boolean;
+  sapOpen: boolean;
+}
+
 /** Drops suggestions for modules the org isn't subscribed to — "Generate
- * report" stays, since Reports isn't gated by a module entitlement. */
-export function assistantSuggestions(modules: AssistantModules): string[] {
+ * report" stays, since Reports isn't gated by a module entitlement. A new
+ * organisation is offered the setup chips first. */
+export function assistantSuggestions(modules: AssistantModules, setup?: SetupChips): string[] {
+  const setupChips = setup?.show
+    ? [
+      'Set me up',
+      modules.cloudCost && setup.cloudOpen && 'Help me connect Azure',
+      modules.sapMonitoring && setup.sapOpen && 'Help me connect SAP',
+      'Show my checklist',
+    ]
+    : [];
   return [
+    ...setupChips,
     modules.cloudCost && 'What is our cloud spend this month?',
     modules.sapMonitoring && 'System health',
     modules.cloudCost && 'Top savings',
@@ -71,6 +90,18 @@ export function useAssistantConversation(pathname?: string, modules: AssistantMo
   const send = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
+    // A setup request ("Help me connect Azure", "Set me up", "Show my checklist") is answered in the chat and also acted on:
+    // the assistant widget, always mounted in the app shell, listens for these requests and starts the guide.
+    if (!(flowGuide && trimmed === flowGuide.chipLabel)) {
+      const intent = startableSetupIntent(trimmed, modules);
+      if (intent?.kind === 'coach') requestCoachFlow(intent.flow.key);
+      else if (intent?.kind === 'checklist') requestShowChecklist();
+      else if (intent?.kind === 'setup') {
+        requestShowChecklist();
+        const flow = nextCoachFlow(modules);
+        if (flow) requestCoachFlow(flow.key);
+      }
+    }
     const reply = flowGuide && trimmed === flowGuide.chipLabel
       ? flowGuide.reply
       : answerFromDemoData(trimmed, modules) ?? noModelReply(modules);

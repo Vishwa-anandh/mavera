@@ -5,6 +5,7 @@ import { fireToast } from '../../../shared/lib/toastEvents';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
 import { useHashTab } from '../../../shared/lib/useHashTab';
+import { useUrlFilter } from '../../../shared/lib/useUrlFilter';
 import { Pagination } from '../../../shared/ui/Pagination';
 import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
 import { Select } from '../../../shared/ui/Select';
@@ -41,14 +42,15 @@ function statusOf(alert: SapSmartAlert): { label: string; tone: StatusTone } {
  * narrows everything on the page to HANA or SAP Monitoring; alerts can be marked read, resolved or ignored
  * and brought back. Three tabs (ids in the URL hash): Alerts (the list), Settings (anomaly detection and the
  * metric thresholds) and Recipients. The settings form state lives here so unsaved edits survive a tab switch.
- * Alert state lives in the data-access store, so it survives moving between pages.
+ * Alert state lives in the data-access store, so it survives moving between pages. The source, status and type
+ * filters are in the URL query (`?source=HANA&status=resolved`), so a link restores them.
  */
 function SapAlertsPageContent() {
   const [alerts, setAlerts] = useState<SapSmartAlert[]>(() => repo.list());
   const [adjustments, setAdjustments] = useState<string[]>(() => repo.listAdjustments());
-  const [source, setSource] = useState<SourceFilter>('All');
-  const [view, setView] = useState<AlertFilters['view']>('active');
-  const [type, setType] = useState<AlertFilters['type']>('All');
+  const [source, setSource] = useUrlFilter<SourceFilter>('source', SOURCES.map((s) => s.value), 'All');
+  const [view, setView] = useUrlFilter<AlertFilters['view']>('status', ALERT_VIEWS.map((v) => v.value), 'active');
+  const [type, setType] = useUrlFilter<AlertFilters['type']>('type', ['All', ...ALERT_TYPES], 'All');
   const [tab, setTab] = useHashTab(TABS);
 
   const reload = () => { setAlerts(repo.list()); setAdjustments(repo.listAdjustments()); };

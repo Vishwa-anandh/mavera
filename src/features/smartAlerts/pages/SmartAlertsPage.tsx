@@ -3,6 +3,7 @@ import { NothingConnected, useCloudEmpty } from '../../workspace';
 import { smartAlertsRepository } from '../../../data-access';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { useHashTab } from '../../../shared/lib/useHashTab';
+import { useUrlFilter } from '../../../shared/lib/useUrlFilter';
 import { DetailDrawer, DetailList } from '../../../shared/ui/DetailDrawer';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { Pagination } from '../../../shared/ui/Pagination';
@@ -45,15 +46,16 @@ function statusOf(alert: SmartAlert): { label: string; tone: StatusTone } {
  * type and provider, a paged table with Read, Resolve and Ignore), Recipients and Settings. Ignored alerts
  * leave every counter and are listed under the Ignored status; resolved ones under Resolved, and both can be
  * reopened. Alert state lives in the data-access store, so it survives moving between pages, and the settings
- * form state lives here so unsaved edits survive a tab switch.
+ * form state lives here so unsaved edits survive a tab switch. The status, type and provider filters are in the
+ * URL query (`?status=resolved&type=spike`), so a link restores them.
  */
 export function SmartAlertsPage() {
   const [alerts, setAlerts] = useState<SmartAlert[]>(() => repo.list());
   const [adjustments, setAdjustments] = useState<string[]>(() => repo.listAdjustments());
   const [feedback, setFeedback] = useState<Record<string, number>>(() => repo.getAccountFeedback());
-  const [view, setView] = useState<AlertView>('active');
-  const [type, setType] = useState<TypeFilter>('all');
-  const [provider, setProvider] = useState<ProviderFilter>('all');
+  const [view, setView] = useUrlFilter<AlertView>('status', ALERT_VIEWS.map((v) => v.value), 'active');
+  const [type, setType] = useUrlFilter<TypeFilter>('type', TYPE_FILTERS.map((t) => t.value), 'all');
+  const [provider, setProvider] = useUrlFilter<ProviderFilter>('provider', PROVIDER_OPTIONS.map((p) => p.value), 'all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [tab, setTab] = useHashTab(TABS);
   const cloudEmpty = useCloudEmpty();

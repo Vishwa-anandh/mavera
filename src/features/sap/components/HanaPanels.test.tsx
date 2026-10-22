@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -93,7 +93,7 @@ describe('HanaBackupTimeline', () => {
     expect(within(findings).getByText('Last successful data backup: 16 Oct 01:30')).toBeInTheDocument();
     expect(within(findings).getByText(/Data backup completed with a warning on 14 Oct/)).toBeInTheDocument();
     expect(within(findings).getByText(/Log backup failed on 9 Oct/)).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /Data backup lane: 2 backups in 14 days, 1 successful/ })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /Data backup lane: 2 backups in 14 days, 1 successful/ })).toBeInTheDocument();
     expect(screen.getByRole('list', { name: 'Legend' })).toHaveTextContent('SuccessWarningFailed');
   });
 
@@ -113,6 +113,27 @@ describe('HanaBackupTimeline', () => {
     expect(within(rows[1]).getByText('16 Oct 01:40')).toBeInTheDocument();
     expect(within(dialog).getByText('8m 50s')).toBeInTheDocument();
     expect(within(dialog).getByText('Failed')).toBeInTheDocument();
+  });
+
+  it('makes every marker a button that opens its details, with one Tab stop per lane and arrow keys along it', async () => {
+    const user = userEvent.setup();
+    wrap(<HanaBackupTimeline backups={backups} />);
+    const dataLane = screen.getByRole('group', { name: /Data backup lane/ });
+    const markers = within(dataLane).getAllByRole('button');
+    expect(markers).toHaveLength(2);
+    // One tab stop per lane: the newest marker; the older one is reached with the arrow keys.
+    expect(markers.filter((m) => m.tabIndex === 0)).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('Hover, focus or click a marker');
+
+    await user.click(markers.find((m) => /warning/i.test(m.getAttribute('aria-label') ?? ''))!);
+    const detail = screen.getByRole('status');
+    expect(detail).toHaveTextContent('Data backup');
+    expect(detail).toHaveTextContent('Warning');
+    expect(detail).toHaveTextContent('Slow run.');
+
+    await user.keyboard('{ArrowRight}');
+    expect(within(screen.getByRole('status')).getByText('Success')).toBeInTheDocument();
+    expect(markers.find((m) => /Success/.test(m.getAttribute('aria-label') ?? ''))).toHaveFocus();
   });
 
   it('says there is no clean backup when none succeeded', () => {
@@ -165,6 +186,8 @@ describe('SyncStatus and the HANA page countdown', () => {
 });
 
 describe('HanaMonitoringPage tabs', () => {
+  beforeEach(() => sessionStorage.clear());
+
   it('has three tabs, keeps the host line, KPI strip and sessions above them, and renders only the active panel', () => {
     wrap(<HanaMonitoringPage />);
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Vitals', 'Services and disk', 'Backups']);
@@ -206,5 +229,14 @@ describe('HanaMonitoringPage tabs', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Backups' }));
     expect(screen.getByRole('heading', { name: 'Backup Timeline' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'System Vitals Timeline' })).not.toBeInTheDocument();
+  });
+
+  it('reopens the tab last used when the page is visited again without a hash', async () => {
+    const first = wrap(<HanaMonitoringPage />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Backups' }));
+    first.unmount();
+    wrap(<HanaMonitoringPage />);
+    expect(screen.getByRole('tab', { name: 'Backups' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Backup Timeline' })).toBeInTheDocument();
   });
 });

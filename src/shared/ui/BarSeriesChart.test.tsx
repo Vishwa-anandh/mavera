@@ -37,6 +37,21 @@ describe('BarSeriesChart', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('closes the data table with Escape, keeps Tab inside it and returns focus to View data', async () => {
+    const user = userEvent.setup();
+    renderChart();
+    const opener = screen.getByRole('button', { name: 'View data' });
+    await user.click(opener);
+    const dialog = screen.getByRole('dialog', { name: 'CPU and memory by system' });
+    const close = within(dialog).getByRole('button', { name: 'Close data table' });
+    expect(close).toHaveFocus();
+    await user.tab();
+    expect(close).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
+  });
+
   it('says so instead of drawing an empty chart', () => {
     renderChart({ data: [] });
     expect(screen.getByText('No data available for this period.')).toBeInTheDocument();

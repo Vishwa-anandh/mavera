@@ -20,13 +20,15 @@ interface RoleDialogProps {
 }
 
 const NOTHING = '';
+/** A new role starts as a copy of this one: a useful set of permissions to adjust beats an empty role nobody can sign in with. */
+const DEFAULT_COPY_FROM = 'analyst';
 
-/** Name and description for a custom role; a new role may start from a copy of an existing one's permissions. */
+/** Name and description for a custom role; a new role starts from a copy of Analyst unless another role (or nothing) is chosen. */
 export function RoleDialog({ role, roles, onCancel, onSave }: RoleDialogProps) {
   const panelRef = useModalOverlay<HTMLElement>(onCancel);
   const [name, setName] = useState(role?.name ?? '');
   const [description, setDescription] = useState(role?.description ?? '');
-  const [copyFrom, setCopyFrom] = useState(NOTHING);
+  const [copyFrom, setCopyFrom] = useState(() => (roles.some((item) => item.id === DEFAULT_COPY_FROM) ? DEFAULT_COPY_FROM : NOTHING));
   const [errors, setErrors] = useState<RoleFormErrors>({});
   const editing = Boolean(role);
 
@@ -43,7 +45,7 @@ export function RoleDialog({ role, roles, onCancel, onSave }: RoleDialogProps) {
       <section ref={panelRef} className="mv-dialog" role="dialog" aria-modal="true" aria-labelledby="role-dialog-title" onClick={(e) => e.stopPropagation()}>
         <h2 className="mv-panel-title" id="role-dialog-title">{editing ? 'Edit role' : 'Add role'}</h2>
         <p className="mv-subtitle">
-          {editing ? 'Rename the role or change its description. Permissions are edited in the matrix below.' : 'Name the role, then set what it can do in the permission matrix.'}
+          {editing ? 'Rename the role or change its description. Permissions are edited in the Permissions tab.' : 'Name the role. It starts as a copy of another role, and the permission matrix opens next so you can adjust it.'}
         </p>
         <form className="mv-form-stack" onSubmit={submit} noValidate>
           <label className="mv-field">
@@ -79,7 +81,7 @@ export function RoleDialog({ role, roles, onCancel, onSave }: RoleDialogProps) {
               value={copyFrom}
               onChange={setCopyFrom}
               options={[{ value: NOTHING, label: 'Nothing (no access)' }, ...roles.map((item) => ({ value: item.id, label: `Copy of ${item.name}` }))]}
-              helpText="You can change every permission afterwards."
+              helpText={copyFrom === NOTHING ? 'The role starts with no access; turn permissions on in the matrix.' : 'You can change every permission afterwards.'}
             />
           )}
           <div className="mv-dialog-actions">

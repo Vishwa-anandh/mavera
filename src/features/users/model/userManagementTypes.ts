@@ -78,9 +78,21 @@ export type NewMemberErrors = Partial<Record<keyof NewMemberInput, string>>;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * A readable name from a work e-mail address, so adding someone takes only their address:
+ * `nina.patel+ops@x.com` becomes "Nina Patel". Digits and tags are dropped; an address with no usable
+ * words falls back to its local part.
+ */
+export function nameFromEmail(email: string): string {
+  const local = email.trim().split('@')[0]?.split('+')[0] ?? '';
+  const words = local.split(/[._-]+/).map((word) => word.replace(/[^\p{L}'’]/gu, '')).filter(Boolean);
+  if (words.length === 0) return local;
+  return words.map((word) => word.charAt(0).toLocaleUpperCase() + word.slice(1).toLocaleLowerCase()).join(' ');
+}
+
+/** The name is optional (it is taken from the e-mail address when left blank); the address is required and must be unused. */
 export function validateNewMember(input: NewMemberInput, existing: OrgMember[]): NewMemberErrors {
   const errors: NewMemberErrors = {};
-  if (!input.fullName.trim()) errors.fullName = 'Enter the member’s full name.';
   const email = input.email.trim().toLowerCase();
   if (!email) errors.email = 'Enter a work email address.';
   else if (!EMAIL_PATTERN.test(email)) errors.email = 'Enter a valid email address.';

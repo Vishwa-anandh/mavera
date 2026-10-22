@@ -21,9 +21,11 @@ interface AssistantConversationProps {
   onStartFlow?: (flow: FlowTour) => void;
   /** When given, the prompt offers "Don't show this again". */
   onDismissFlowPrompt?: () => void;
+  /** A first-visit greeting from the assistant that offers the setup checklist; shown above everything else until a message is sent. */
+  welcome?: { text: string; actionLabel: string; onAction: () => void; onDismiss: () => void };
 }
 
-export function AssistantConversation({ messages, draft, onDraftChange, onSend, introLabel, suggestions = ASSISTANT_SUGGESTIONS, flowGuide, hideFlowPrompt = false, onDismissFlowPrompt, onStartFlow }: AssistantConversationProps) {
+export function AssistantConversation({ messages, draft, onDraftChange, onSend, introLabel, suggestions = ASSISTANT_SUGGESTIONS, flowGuide, hideFlowPrompt = false, onDismissFlowPrompt, onStartFlow, welcome }: AssistantConversationProps) {
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
     onSend(draft);
@@ -34,7 +36,17 @@ export function AssistantConversation({ messages, draft, onDraftChange, onSend, 
       <div className="mv-assistant-messages" style={{ overflowY: 'auto', display: 'grid', gap: '0.75rem', alignContent: 'start', paddingRight: '0.25rem' }}>
         {messages.length === 0 && (
           <div style={{ display: 'grid', gap: '0.625rem' }}>
-            {flowGuide && !hideFlowPrompt && (
+            {welcome && (
+              <div className="mv-assistant-message mv-assistant-message--assistant mv-assistant-welcome">
+                <span className="mv-sr-only">Assistant</span>
+                <p style={{ margin: 0 }}>{welcome.text}</p>
+                <div className="mv-assistant-welcome-actions">
+                  <button type="button" className="mv-chip mv-chip--primary" onClick={welcome.onAction}>{welcome.actionLabel}</button>
+                  <button type="button" className="mv-quiet-button" onClick={welcome.onDismiss}>Not now</button>
+                </div>
+              </div>
+            )}
+            {flowGuide && !hideFlowPrompt && !welcome && (
               <div className="mv-assistant-message mv-assistant-message--assistant mv-assistant-flow-prompt">
                 <span className="mv-sr-only">Assistant</span>
                 <p style={{ margin: 0 }}>{flowGuide.prompt}</p>

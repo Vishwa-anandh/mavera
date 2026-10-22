@@ -4,12 +4,13 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { resetSapAdminStore, sapAdminRepository, setSapAdminLatency } from '../../../data-access';
 import { ConfirmProvider } from '../../../shared/ui/ConfirmProvider';
+import { ToastListener } from '../../../shared/ui/ToastListener';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import { SecurityNotesPage } from './SecurityNotesPage';
 
 vi.mock('../../auth', () => ({ useAuth: () => ({ user: { id: '1', email: 'ana@maitsys.com', name: 'Ana', role: 'admin' } }) }));
 
-const renderPage = () => render(<ThemeProvider><MemoryRouter><ConfirmProvider><SecurityNotesPage /></ConfirmProvider></MemoryRouter></ThemeProvider>);
+const renderPage = () => render(<ThemeProvider><MemoryRouter><ConfirmProvider><ToastListener /><SecurityNotesPage /></ConfirmProvider></MemoryRouter></ThemeProvider>);
 const kpi = (label: string) => screen.getByText(label, { selector: '.mv-kpi-label' }).closest('.mv-kpi') as HTMLElement;
 
 beforeEach(() => {
@@ -55,6 +56,9 @@ describe('SecurityNotesPage', () => {
     await user.clear(within(dialog).getByRole('textbox', { name: 'Note numbers' }));
     await user.type(within(dialog).getByRole('textbox', { name: 'Note numbers' }), '3800001 3800002');
     expect(within(dialog).getByText(/2 new notes to add/)).toBeInTheDocument();
+    // Checking after the upload is on by default; this case looks at the notes as they arrive, so switch it off.
+    expect(within(dialog).getByRole('checkbox', { name: 'Check status after upload' })).toBeChecked();
+    await user.click(within(dialog).getByRole('checkbox', { name: 'Check status after upload' }));
     await user.click(submit);
     expect(await screen.findByText('3800001')).toBeInTheDocument();
     expect(within(kpi('Total Notes')).getByText('16')).toBeInTheDocument();
@@ -74,17 +78,70 @@ describe('SecurityNotesPage', () => {
     expect(unknownAfter).toBeLessThan(3);
   });
 
-  it('asks before deleting a note, then removes it and updates the counters', async () => {
+  it('deletes a note at once, with no confirmation, and Undo in the toast puts it back in the same place', async () => {
     const user = userEvent.setup();
     renderPage();
+    const orderBefore = sapAdminRepository.securityNotes.list().map((n) => n.noteNumber);
     await user.click(screen.getByRole('button', { name: 'Delete note 3727078' }));
-    const confirmation = await screen.findByRole('alertdialog');
-    await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }));
-    expect(screen.getByText('3727078')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Delete note 3727078' }));
-    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Delete note' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
     await screen.findByText('13', { selector: '.mv-kpi-value' });
     expect(screen.queryByText('3727078')).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    await screen.findByText('14', { selector: '.mv-kpi-value' });
+    expect(screen.getByText('3727078')).toBeInTheDocument();
+    expect(sapAdminRepository.securityNotes.list().map((n) => n.noteNumber)).toEqual(orderBefore);
+  });
+
+  it('deletes several selected notes in one step with the shared selection bar, and Undo restores them all', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    expect(screen.queryByRole('region', { name: 'Bulk actions' })).toBeNull();
+    await user.click(screen.getByRole('checkbox', { name: 'Select note 3727078' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Select note 3754659' }));
+    const bar = screen.getByRole('region', { name: 'Bulk actions' });
+    expect(bar).toHaveTextContent('2 notes selected');
+    await user.click(within(bar).getByRole('button', { name: 'Delete 2 notes' }));
+    await screen.findByText('12', { selector: '.mv-kpi-value' });
+    expect(screen.queryByRole('region', { name: 'Bulk actions' })).toBeNull();
+    expect(screen.queryByText('3727078')).not.toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Undo' }));
+    await screen.findByText('14', { selector: '.mv-kpi-value' });
+    expect(screen.getByText('3727078')).toBeInTheDocument();
+    expect(screen.getByText('3754659')).toBeInTheDocument();
+  });
+
+  it('selects every note on the page from the header checkbox and clears the selection', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('checkbox', { name: 'Select all notes on this page' }));
+    expect(screen.getByRole('region', { name: 'Bulk actions' })).toHaveTextContent('10 notes selected');
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(screen.queryByRole('region', { name: 'Bulk actions' })).toBeNull();
+  });
+
+  it('runs Check Status by itself after an upload, so the new notes arrive resolved', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    const dialog = screen.getByRole('dialog', { name: 'Upload security notes' });
+    await user.type(within(dialog).getByRole('textbox', { name: 'Note numbers' }), '3800001 3800002');
+    await user.click(within(dialog).getByRole('button', { name: 'Upload' }));
+    await screen.findByText(/2 notes added and checked/);
+    const mine = sapAdminRepository.securityNotes.list().filter((n) => ['3800001', '3800002'].includes(n.noteNumber));
+    expect(mine).toHaveLength(2);
+    expect(mine.some((n) => n.downloadStatus === 'Pending')).toBe(false);
+    expect(sapAdminRepository.securityNotes.history().slice(0, 2).map((h) => h.kind)).toEqual(['check', 'upload']);
+  });
+
+  it('remembers switching Check status after upload off', async () => {
+    const user = userEvent.setup();
+    const first = renderPage();
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('checkbox', { name: 'Check status after upload' }));
+    first.unmount();
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    expect(within(screen.getByRole('dialog')).getByRole('checkbox', { name: 'Check status after upload' })).not.toBeChecked();
   });
 
   it('rechecks a note from SAP and shows what happened in History', async () => {

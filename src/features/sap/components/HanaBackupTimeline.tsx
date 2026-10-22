@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { HanaBackupEntry, HanaBackupKind, HanaBackupStatus } from '../../../data-access';
+import { DetailList } from '../../../shared/ui/DetailDrawer';
 import { InsightList } from '../../../shared/ui/InsightList';
 import {
   BACKUP_KINDS, backupInsights, backupsInWindow, formatBackupStamp, formatDuration, stampMs, summariseBackups,
@@ -20,8 +21,9 @@ function describe(b: HanaBackupEntry): string {
 
 /**
  * Backup Timeline: one lane per backup type with a marker per backup, placed by start time. Status is
- * carried by shape as well as colour (circle, triangle, square). Hover or tap a marker for its time,
- * duration, size and status; View data lists every backup in a table for keyboard and screen-reader use.
+ * carried by shape as well as colour (circle, triangle, square). Each marker is a real button: hover, focus
+ * or click it for its time, duration, size and status. Each lane is one Tab stop and the arrow keys move
+ * along it. View data lists every backup in a table.
  */
 export function HanaBackupTimeline({ backups }: { backups: HanaBackupEntry[] }) {
   const [days, setDays] = useState<WindowDays>('14');
@@ -38,6 +40,18 @@ export function HanaBackupTimeline({ backups }: { backups: HanaBackupEntry[] }) 
   }, [backups, windowDays]);
 
   const selected = view.inWindow.find((b) => b.id === selectedId);
+  const dotRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  /** Left and right arrows, Home and End move between the markers of one lane, oldest to newest. */
+  const onLaneKeyDown = (event: KeyboardEvent<HTMLDivElement>, lane: HanaBackupEntry[]) => {
+    const ordered = [...lane].sort((a, b) => stampMs(a.startedAt) - stampMs(b.startedAt));
+    const current = ordered.findIndex((b) => b.id === (document.activeElement as HTMLElement | null)?.dataset.backupId);
+    const target = event.key === 'ArrowRight' ? current + 1 : event.key === 'ArrowLeft' ? current - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? ordered.length - 1 : null;
+    if (target === null || ordered.length === 0) return;
+    event.preventDefault();
+    const next = ordered[Math.min(Math.max(target, 0), ordered.length - 1)];
+    setSelectedId(next.id);
+    dotRefs.current[next.id]?.focus();
+  };
   const position = (b: HanaBackupEntry) => `${(((stampMs(b.startedAt) - view.start) / (view.end - view.start)) * 100).toFixed(2)}%`;
   const dayLabel = (ms: number) => {
     const d = new Date(ms);
@@ -73,20 +87,26 @@ export function HanaBackupTimeline({ backups }: { backups: HanaBackupEntry[] }) 
       <div className="mv-backup-chart">
         {BACKUP_KINDS.map((kind) => {
           const lane = view.inWindow.filter((b) => b.kind === kind);
+          // One Tab stop per lane: the selected marker if it is in this lane, else the newest.
+          const stop = lane.find((b) => b.id === selectedId) ?? [...lane].sort((a, b) => stampMs(b.startedAt) - stampMs(a.startedAt))[0];
           return (
             <div key={kind} className="mv-backup-row">
               <span className="mv-backup-lane-label">{LANE_LABEL[kind]}</span>
-              <div className="mv-backup-lane" role="img" aria-label={`${kind} lane: ${lane.length} backups in ${windowDays} days, ${lane.filter((b) => b.status === 'success').length} successful`}>
+              <div className="mv-backup-lane" role="group" aria-label={`${kind} lane: ${lane.length} backups in ${windowDays} days, ${lane.filter((b) => b.status === 'success').length} successful`} onKeyDown={(event) => onLaneKeyDown(event, lane)}>
                 {lane.map((b) => (
                   <button
                     key={b.id}
+                    ref={(el) => { dotRefs.current[b.id] = el; }}
                     type="button"
-                    tabIndex={-1}
-                    aria-hidden="true"
+                    data-backup-id={b.id}
+                    tabIndex={stop?.id === b.id ? 0 : -1}
                     className={`mv-backup-dot mv-backup-dot--${b.status}${selectedId === b.id ? ' is-selected' : ''}`}
                     style={{ left: position(b) }}
+                    aria-label={describe(b)}
+                    aria-pressed={selectedId === b.id}
                     title={describe(b)}
                     onMouseEnter={() => setSelectedId(b.id)}
+                    onFocus={() => setSelectedId(b.id)}
                     onClick={() => setSelectedId(b.id)}
                   />
                 ))}
@@ -102,7 +122,22 @@ export function HanaBackupTimeline({ backups }: { backups: HanaBackupEntry[] }) 
         </div>
       </div>
 
-      <p className="mv-backup-detail" aria-hidden="true">{selected ? describe(selected) : 'Hover or tap a marker for time, duration, size and status.'}</p>
+      <div className="mv-backup-detail" role="status" aria-live="polite">
+        {selected ? (
+          <DetailList
+            items={[
+              { label: 'Type', value: selected.kind },
+              { label: 'Started', value: formatBackupStamp(selected.startedAt) },
+              { label: 'Duration', value: formatDuration(selected.durationSec) },
+              { label: 'Size', value: selected.sizeGb > 0 ? `${selected.sizeGb.toFixed(selected.sizeGb < 1 ? 2 : 1)} GB` : 'No data written' },
+              { label: 'Status', value: STATUS_LABEL[selected.status] },
+              ...(selected.message ? [{ label: 'Note', value: selected.message }] : []),
+            ]}
+          />
+        ) : (
+          'Hover, focus or click a marker for time, duration, size and status.'
+        )}
+      </div>
 
       <div className="mv-backup-foot">
         <ul className="mv-backup-legend" aria-label="Legend">

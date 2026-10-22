@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SapConnectionGate } from '../components/SapConnectionGate';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
-import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { Pagination } from '../../../shared/ui/Pagination';
 import { Select } from '../../../shared/ui/Select';
 import { SearchField } from '../../../shared/ui/SearchField';
+import { SelectionBar } from '../../../shared/ui/SelectionBar';
 import { FilterBar } from '../../../shared/ui/FilterBar';
 import { StatusTag } from '../../../shared/ui/StatusTag';
 import { Tooltip } from '../../../shared/ui/Tooltip';
@@ -37,14 +37,14 @@ const KPI_HELP: Record<(typeof NOTE_STATUSES)[number], string> = {
  * every row can be rechecked against SAP or deleted. SAP itself is simulated in the data-access store.
  */
 function SecurityNotesPageContent() {
-  const confirm = useConfirm();
-  const { notes, history, busy, upload, checkStatus, recheck, remove } = useSecurityNotes();
+  const { notes, history, busy, upload, checkStatus, recheck, remove, restore } = useSecurityNotes();
   const [search, setSearch] = useState('');
   const [priority, setPriority] = useRememberedState<NoteFilters['priority']>('sap', 'security-notes-priority', 'All', oneOf(['All', ...NOTE_PRIORITIES]));
   const [status, setStatus] = useRememberedState<NoteFilters['status']>('sap', 'security-notes-status', 'All', oneOf(['All', ...NOTE_STATUSES]));
   const [download, setDownload] = useRememberedState<NoteFilters['download']>('sap', 'security-notes-download', 'All', oneOf(['All', ...NOTE_DOWNLOAD_STATUSES]));
   const [historyOpen, setHistoryOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
   // Ctrl+K "Upload security notes" lands here with the upload dialog already open.
   useOpenOnArrival('upload', () => setUploadOpen(true));
 
@@ -54,15 +54,35 @@ function SecurityNotesPageContent() {
   const paging = usePagination(filtered, 10, `${search}|${priority}|${status}|${download}`);
   const clearFilters = () => { setSearch(''); setPriority('All'); setStatus('All'); setDownload('All'); };
   const working = busy !== null;
+  // A selection only ever holds notes that still exist (a delete, an undo or another page of results can change the list).
+  useEffect(() => {
+    setSelected((current) => {
+      const kept = current.filter((n) => notes.some((note) => note.noteNumber === n));
+      return kept.length === current.length ? current : kept;
+    });
+  }, [notes]);
+  const pageNumbers = paging.pageItems.map((n) => n.noteNumber);
+  const allOnPage = pageNumbers.length > 0 && pageNumbers.every((n) => selected.includes(n));
+  const toggleNote = (noteNumber: string) => setSelected((current) => (current.includes(noteNumber) ? current.filter((n) => n !== noteNumber) : [...current, noteNumber]));
+  const togglePage = () => setSelected((current) => (allOnPage ? current.filter((n) => !pageNumbers.includes(n)) : [...new Set([...current, ...pageNumbers])]));
 
-  const onUpload = async (numbers: string[]) => {
+  const onUpload = async (numbers: string[], checkAfter: boolean) => {
     const { added, updated } = await upload(numbers);
     setUploadOpen(false);
+    const tracked = updated.length ? `, ${updated.length} already tracked` : '';
+    if (added.length === 0) {
+      fireToast({ type: 'success', message: `${plural(updated.length, 'note')} already tracked; nothing new to add.` });
+      return;
+    }
+    if (!checkAfter) {
+      fireToast({ type: 'success', message: `${plural(added.length, 'note')} added as Unknown${tracked}. Run Check Status to resolve them.` });
+      return;
+    }
+    // The usual next step happens by itself: ask SAP about the new numbers straight away.
+    const result = await checkStatus();
     fireToast({
-      type: 'success',
-      message: added.length > 0
-        ? `${plural(added.length, 'note')} added as Unknown${updated.length ? `, ${updated.length} already tracked` : ''}. Run Check Status to resolve them.`
-        : `${plural(updated.length, 'note')} already tracked; nothing new to add.`,
+      type: result.failed > 0 ? 'warning' : 'success',
+      message: `${plural(added.length, 'note')} added${tracked} and checked: ${result.resolved} resolved${result.failed > 0 ? `, ${result.failed} could not be downloaded from SAP` : ''}.`,
     });
   };
 
@@ -83,15 +103,20 @@ function SecurityNotesPageContent() {
     if (note) fireToast({ type: note.status === 'Unknown' ? 'warning' : 'info', message: `Note ${noteNumber} rechecked from SAP: ${note.status}.` });
   };
 
-  const onDelete = async (noteNumber: string) => {
-    const ok = await confirm({
-      title: `Delete note ${noteNumber}?`,
-      description: 'The note stops being tracked in Mavera and the counts update. SAP itself is not changed.',
-      variant: 'delete',
-      okText: 'Delete note',
+  /** Deletes at once (one row's trash or the selection) and offers Undo, which puts the notes back where they were. */
+  const onDelete = async (noteNumbers: string[]) => {
+    const removal = await remove(noteNumbers);
+    setSelected([]);
+    if (removal.removed.length === 0) return;
+    const count = removal.removed.length;
+    fireToast({
+      type: 'success',
+      message: count === 1 ? `Note ${removal.removed[0].noteNumber} deleted.` : `${plural(count, 'note')} deleted.`,
+      action: {
+        label: 'Undo',
+        onClick: () => { void restore(removal).then((back) => fireToast({ type: 'info', message: `${plural(back, 'note')} restored.` })); },
+      },
     });
-    if (!ok) return;
-    if (await remove(noteNumber)) fireToast({ type: 'success', message: `Note ${noteNumber} deleted.` });
   };
 
   return (
@@ -126,6 +151,12 @@ function SecurityNotesPageContent() {
         <p className="mv-sr-only" role="status" aria-live="polite">{busy?.kind === 'check' ? 'Checking unknown notes against SAP' : busy?.kind === 'upload' ? 'Uploading notes' : ''}</p>
         {busy?.kind === 'check' && <p className="mv-muted mv-working-line" aria-hidden>Checking unknown notes against SAP…</p>}
 
+        <SelectionBar count={selected.length} noun={selected.length === 1 ? 'note selected' : 'notes selected'} onClear={() => setSelected([])}>
+          <button type="button" className="mv-secondary-button" disabled={working} onClick={() => onDelete(selected)}>
+            <TrashIcon size={14} style={{ marginRight: '0.375rem' }} />Delete {selected.length === 1 ? 'note' : `${selected.length} notes`}
+          </button>
+        </SelectionBar>
+
         {notes.length === 0 ? (
           <div className="mv-empty-inline">
             <p><strong>No security notes are tracked yet.</strong></p>
@@ -141,6 +172,7 @@ function SecurityNotesPageContent() {
                 <caption className="mv-sr-only">SAP security notes</caption>
                 <thead>
                   <tr>
+                    <th className="mv-select-cell"><input type="checkbox" aria-label="Select all notes on this page" checked={allOnPage} onChange={togglePage} /></th>
                     <th>Note Number</th><th>Title</th><th>Priority</th><th className="mv-hide-phone">Component</th><th className="mv-num">CVSS</th>
                     <th className="mv-hide-phone">Released On</th><th>SAP Download</th><th>Status</th><th><span className="mv-sr-only">Actions</span></th>
                   </tr>
@@ -149,7 +181,8 @@ function SecurityNotesPageContent() {
                   {paging.pageItems.map((note) => {
                     const rowBusy = busy !== null && 'noteNumber' in busy && busy.noteNumber === note.noteNumber;
                     return (
-                      <tr key={note.noteNumber}>
+                      <tr key={note.noteNumber} className={selected.includes(note.noteNumber) ? 'is-selected' : undefined}>
+                        <td className="mv-select-cell"><input type="checkbox" aria-label={`Select note ${note.noteNumber}`} checked={selected.includes(note.noteNumber)} onChange={() => toggleNote(note.noteNumber)} /></td>
                         <td data-label="Note Number" className="mv-stack-title"><strong>{note.noteNumber}</strong></td>
                         <td data-label="Title" className="mv-note-title">{note.title}</td>
                         <td data-label="Priority">{note.priority ? <StatusTag tone={PRIORITY_TONE[note.priority]}>{note.priority}</StatusTag> : <span className="mv-muted">—</span>}</td>
@@ -166,7 +199,7 @@ function SecurityNotesPageContent() {
                               </button>
                             </Tooltip>
                             <Tooltip content="Delete note">
-                              <button type="button" className="mv-icon-button" aria-label={`Delete note ${note.noteNumber}`} disabled={working} onClick={() => onDelete(note.noteNumber)}>
+                              <button type="button" className="mv-icon-button" aria-label={`Delete note ${note.noteNumber}`} disabled={working} onClick={() => onDelete([note.noteNumber])}>
                                 <TrashIcon size={14} />
                               </button>
                             </Tooltip>

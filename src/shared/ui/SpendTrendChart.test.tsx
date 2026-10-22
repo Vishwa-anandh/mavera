@@ -44,4 +44,19 @@ describe('SpendTrendChart', () => {
     expect(screen.getByText('2026-09-01')).toBeInTheDocument();
     expect(screen.getByText('120.50')).toBeInTheDocument();
   });
+
+  it('closes the data table with Escape and returns focus to View data', async () => {
+    const user = userEvent.setup();
+    render(
+      <ThemeProvider>
+        <SpendTrendChart data={[{ date: '2026-09-01', amount: 120.5 }]} />
+      </ThemeProvider>,
+    );
+    const opener = screen.getByRole('button', { name: 'View data' });
+    await user.click(opener);
+    expect(screen.getByRole('button', { name: 'Close data table' })).toHaveFocus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
+  });
 });

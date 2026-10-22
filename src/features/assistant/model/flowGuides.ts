@@ -1,3 +1,24 @@
+/** The counts a coach step can watch for a change ("accounts went up"); see workspaceRepository.progressSignals. */
+export type TourSignal = 'accounts' | 'destinations' | 'budgets' | 'recipients' | 'members';
+
+/** What a coach step waits for before it moves on by itself. */
+export type TourWait =
+  /** An element matching the CSS selector is on screen. */
+  | { kind: 'element'; selector: string }
+  /** The element matching the CSS selector is gone (a dialog closed). */
+  | { kind: 'gone'; selector: string }
+  /** The input matching the CSS selector is not empty. */
+  | { kind: 'field'; selector: string }
+  /** The person clicked the step's own target. */
+  | { kind: 'click' }
+  /** A watched count differs from what it was when the flow began. */
+  | { kind: 'change'; signal: TourSignal }
+  /** The app is on a page whose path starts with this. */
+  | { kind: 'route'; startsWith: string };
+
+/** Which connect form an `enter` can open. */
+export type ConnectProviderKey = 'azure' | 'aws' | 'gcp' | 'btp' | 'sap';
+
 /** One stop in a page tour: what to outline, and what to say about it. */
 export interface TourStep {
   /** What to outline — `css:<selector>`, `btn:<label>` or `panel:<heading>` (see tourTargets.ts). */
@@ -6,6 +27,20 @@ export interface TourStep {
   /** A one-word label shown beside the title, e.g. "Filters", "Action", "Chart". */
   tag?: string;
   body: string;
+
+  // ---- live coach (all optional; a step with none of them is a plain "Next" step) ----
+  /** The instruction shown in place of Next while the step waits, e.g. "Do this: click Connect". */
+  action?: string;
+  /** What to wait for; the coach advances by itself when it is met. A list means any one of them. */
+  waitFor?: TourWait | TourWait[];
+  /** A small extra line, e.g. which values to try. */
+  hint?: string;
+  /** Inputs the "Fill it in for me" button fills with an example. */
+  fill?: Array<{ selector: string; value: string }>;
+  /** Run when the step starts: go to a page, or open a connect form. */
+  enter?: { navigate?: string; openConnect?: ConnectProviderKey };
+  /** Skipped when its target is not on screen as the step starts (a picker that is already answered). */
+  optional?: boolean;
 }
 
 /** A task-specific tour on a page that has several (e.g. "Add a user", "Deactivate a user"). */
@@ -180,7 +215,7 @@ export const FLOW_GUIDES: FlowGuide[] = [
         prompt: `Want help reading this ${label} account?`,
         chipLabel: 'Walk me through this account',
         steps: [
-          { target: 'css:.mv-cost-tabs', title: 'Three views of the same account', tag: 'Tabs', body: 'Executive for leadership (totals, forecast, savings), Operations for managers (monthly spend and top services) and Technical for engineers (usage detail).' },
+          { target: 'css:.mv-cost-view-tabs', title: 'Three views of the same account', tag: 'Tabs', body: 'Executive for leadership (totals, forecast, savings), Operations for managers (monthly spend and top services) and Technical for engineers (usage detail).' },
           { target: 'css:.mv-spend-summary', title: 'Spend at a glance', tag: 'Key figures', body: 'One summary for the account: month-to-date spend and how it compares with last month, the month-end forecast (a projection, not billed cost), the daily pace and today, and the Maitsys CSP saving. Services and resources sit on the line underneath.' },
           { target: 'btn:Switch account', title: 'Switch account', tag: 'Action', body: 'Jump to another connected account without going back to the overview.' },
           { target: 'btn:Month-to-Date', title: 'Choose the period', tag: 'Filters', body: 'Look at the current month or pick a past month. A banner reminds you when you are viewing history.' },
@@ -275,10 +310,10 @@ export const FLOW_GUIDES: FlowGuide[] = [
     prompt: 'Want help uploading or reading an invoice?',
     chipLabel: 'Help me with invoices',
     steps: [
-      { target: 'btn:Upload Invoice', title: 'Upload an invoice', tag: 'Action', body: 'Add an Azure, AWS, SAP BTP or Google Cloud invoice (PDF or CSV). Mavera reads it and builds the cost breakdown for you.' },
+      { target: 'btn:Upload Invoice', title: 'Upload an invoice', tag: 'Action', body: 'Add an Azure, AWS or Google Cloud invoice (PDF) or a SAP BTP one (XLSX): choose a file, or drop it anywhere on the page. A file named after its provider uploads straight away; Mavera reads it and builds the cost breakdown for you.' },
       { target: 'panel:Invoice Records', title: 'Your invoices', tag: 'List', body: 'Filter by provider (each chip shows how many invoices it holds), then choose a record to see its breakdown. Use the page controls under the list when there are more than a few.' },
       { target: 'panel:Select an invoice', title: 'Breakdown and savings', tag: 'Detail', body: "The selected invoice's costs and the Maitsys CSP Savings block appear here: the discount rate, the saving in money terms, a donut of where it comes from and bars of the spend it applies to." },
-      { target: 'btn:Delete invoice', title: 'Delete an invoice', tag: 'Action', body: 'Removes the selected invoice after you confirm. It then drops out of the savings totals and the Cost Overview invoices view.' },
+      { target: 'btn:Delete invoice', title: 'Delete an invoice', tag: 'Action', body: 'Removes the invoice at once (use the trash button on its row, or in its detail), with an Undo in the notification if you change your mind. It drops out of the savings totals and the Cost Overview invoices view.' },
     ],
   }),
   guide({
@@ -404,7 +439,7 @@ export const FLOW_GUIDES: FlowGuide[] = [
       { target: 'css:.mv-kpi-row-5', title: 'Where you stand', tag: 'Key figures', body: 'How many notes you track and how many are implemented, can be implemented, cannot be implemented, obsolete or not yet checked.' },
       { target: 'css:input[placeholder^="Search"]', title: 'Search and filter', tag: 'Filters', body: 'Find a note by number, title or component, and filter by priority (Hot News, High Priority, Correction) and status.' },
       { target: 'btn:Check Status', title: 'Check against your system', tag: 'Action', body: 'Re-checks the notes against the connected SAP system so the status reflects what is actually applied.' },
-      { target: 'btn:Upload', title: 'Add notes', tag: 'Action', body: 'Upload one or many 7-digit note numbers to track, typed or pasted, or read from a .csv or .txt file (save an Excel sheet as CSV first); they start as Unknown until checked. History lists every upload, check and deletion with who did it and the counts.' },
+      { target: 'btn:Upload', title: 'Add notes', tag: 'Action', body: 'Upload one or many 7-digit note numbers to track, typed or pasted, or read from a .csv or .txt file (save an Excel sheet as CSV first); they are checked against SAP straight after the upload (untick Check status after upload to leave them Unknown). History lists every upload, check and deletion with who did it and the counts.' },
       { target: 'css:table', title: 'The notes', tag: 'Table', body: 'Each note with its priority, component, CVSS score, release date, SAP download status and implementation status. Recheck a note against SAP or delete it from its row.' },
     ],
   }),
@@ -546,17 +581,17 @@ export const FLOW_GUIDES: FlowGuide[] = [
     chipLabel: 'Help me understand my subscription',
     reply: [
       "Here's how Subscription works:",
-      '1. The Your plan tab shows your current plan, renewal date and enabled modules.',
-      '2. If you\'re an admin, "Update Cloud Access" lets you change which providers your org connects to.',
-      '3. Compare plans on the Available plans tab — "Choose Plan" opens a contact form, since upgrades go through Maitsys rather than self-service.',
+      '1. The Your plan tab shows your current plan, renewal date and, right under it, the available plans.',
+      '2. The Modules and access tab shows the modules and cloud providers your organisation is subscribed to; Maitsys manages them.',
+      '3. To change plan, choose one under Available plans, or pick Request a plan in the profile menu. It sends Maitsys a request, since upgrades go through Maitsys rather than self-service.',
       "4. Cloud access for non-admins is admin-managed — contact your org administrator to request a change.",
     ].join('\n'),
     steps: [
-      { target: 'css:.mv-tabbar', title: 'Two tabs', tag: 'Tabs', body: 'Your plan shows what your organisation has today. Available plans compares Free, Professional and Enterprise and lets you request a change.' },
+      { target: 'css:.mv-tabbar', title: 'Two tabs', tag: 'Tabs', body: 'Your plan shows what your organisation has today and the plans you could move to. Modules and access shows what you are subscribed to.' },
       { target: 'css:main .mv-panel', title: 'Your plan', tag: 'Details', body: 'Your current plan, when it started and when it is valid until, how many team members it allows, and which features are included.' },
+      { target: 'panel:Available plans', title: 'Available plans', tag: 'Tip', body: 'Each plan with its features, on the same tab as your current plan. Choose plan sends Maitsys a request; your current plan is marked, and a request you have sent shows as Requested. The profile menu has a Request a plan shortcut.' },
+      { target: 'btn:Modules and access', title: 'Modules and access', tag: 'Tabs', body: 'Open this tab to see which modules and cloud providers your organisation is subscribed to.' },
       { target: 'panel:What your organisation', title: 'Modules and cloud access', tag: 'Details', body: 'The modules and cloud providers your organisation is subscribed to. Maitsys manages these; contact them to change them.' },
-      { target: 'btn:Available plans', title: 'Compare plans', tag: 'Tabs', body: 'Open this tab to see what each plan includes. Upgrades go through Maitsys rather than self-service: Choose plan sends a request.' },
-      { target: 'panel:Available plans', title: 'Available plans', tag: 'Tip', body: 'Each plan with its features. Your current plan is marked, and a request you have sent shows as Requested.' },
     ],
   }),
 ];

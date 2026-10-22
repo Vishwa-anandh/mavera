@@ -1,47 +1,27 @@
 import { useState } from 'react';
-import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
-import { RefreshIcon } from '../../../shared/ui/icons';
-import { SearchField } from '../../../shared/ui/SearchField';
-import { Select } from '../../../shared/ui/Select';
+import { RefreshIcon, SearchIcon } from '../../../shared/ui/icons';
 
 interface DashboardToolbarProps {
   onRefresh: () => void;
-  /** Which modules the organisation has; the search wording and the System filter follow them. */
+  /** Which modules the organisation has; the search wording follows them. */
   modules?: { cloudCost: boolean; sapMonitoring: boolean };
 }
 
-const TIME_RANGE_OPTIONS = [
-  { value: '24h', label: 'Last 24 Hours' },
-  { value: '7d', label: 'Last 7 days' },
-  { value: '30d', label: 'Last 30 days' },
-];
-const ENVIRONMENT_OPTIONS = [
-  { value: 'all', label: 'All Environments' },
-  { value: 'production', label: 'Production' },
-  { value: 'qa', label: 'QA' },
-  { value: 'development', label: 'Development' },
-];
-const SYSTEM_OPTIONS = [
-  { value: 'all', label: 'All Systems' },
-  { value: 'sap', label: 'SAP' },
-  { value: 'cloud', label: 'Cloud' },
-];
+/** Opens the command palette the same way the keyboard shortcut does (the app shell listens for Ctrl+K). */
+function openCommandPalette() {
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true, cancelable: true }));
+}
 
 /**
- * Search plus a scope/filter row (MAVERA_DESIGN_SYSTEM.md §6.2: "context
- * bar contains date range, time zone, environment, system/subscription
- * selection and refresh controls"). The three selects are presentational —
- * this prototype has one fixed mock dataset per module, so changing them
- * doesn't refetch anything; Refresh is real and re-runs the actual queries.
+ * The dashboard's context bar: a search that opens the real command palette (pages, accounts, systems and
+ * actions, also Ctrl+K) and Refresh, which re-runs the actual queries. The time range, environment and system
+ * filters that used to sit here changed nothing (each module has one fixed dataset), so they are gone rather
+ * than left looking interactive.
  */
 export function DashboardToolbar({ onRefresh, modules = { cloudCost: true, sapMonitoring: true } }: DashboardToolbarProps) {
   const both = modules.cloudCost && modules.sapMonitoring;
   const searchLabel = both ? 'Search systems, resources, alerts' : modules.cloudCost ? 'Search accounts, resources, alerts' : 'Search systems, jobs, alerts';
   const [refreshing, setRefreshing] = useState(false);
-  const [query, setQuery] = useState('');
-  const [timeRange, setTimeRange] = useRememberedState('dashboard', 'time-range', '24h', oneOf(TIME_RANGE_OPTIONS.map((o) => o.value)));
-  const [environment, setEnvironment] = useRememberedState('dashboard', 'environment', 'all', oneOf(ENVIRONMENT_OPTIONS.map((o) => o.value)));
-  const [system, setSystem] = useRememberedState('dashboard', 'system', 'all', oneOf(SYSTEM_OPTIONS.map((o) => o.value)));
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -51,11 +31,12 @@ export function DashboardToolbar({ onRefresh, modules = { cloudCost: true, sapMo
 
   return (
     <div className="mv-dashboard-toolbar">
-      <SearchField label={searchLabel} value={query} onChange={setQuery} />
+      <button type="button" className="mv-search mv-search-launcher" onClick={openCommandPalette} aria-haspopup="dialog" aria-keyshortcuts="Control+K">
+        <SearchIcon size={16} aria-hidden />
+        <span className="mv-search-launcher-text">{searchLabel}…</span>
+        <span className="mv-search-launcher-keys" aria-hidden><kbd className="mv-kbd">Ctrl</kbd><kbd className="mv-kbd">K</kbd></span>
+      </button>
       <div className="mv-dashboard-filters">
-        <Select label="Time range" hideLabel value={timeRange} onChange={setTimeRange} options={TIME_RANGE_OPTIONS} />
-        <Select label="Environment" hideLabel value={environment} onChange={setEnvironment} options={ENVIRONMENT_OPTIONS} />
-        {both && <Select label="System" hideLabel value={system} onChange={setSystem} options={SYSTEM_OPTIONS} />}
         <button type="button" className="mv-primary-button" onClick={handleRefresh} disabled={refreshing}>
           <RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />
           {refreshing ? 'Refreshing…' : 'Refresh'}

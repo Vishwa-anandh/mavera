@@ -25,7 +25,7 @@ function setup() {
   return userEvent.setup();
 }
 
-const view = (name: RegExp) => screen.getByRole('button', { name });
+const view = (name: RegExp) => screen.getByRole('tab', { name });
 const money = (text: string | null) => Number((text ?? '').replace(/[$,]/g, ''));
 /** The dollar amounts in a piece of text, in order. */
 const amounts = (text: string | null) => (text ?? '').match(/\$[\d,]+\.\d{2}/g)?.map(money) ?? [];

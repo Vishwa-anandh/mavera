@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import { CostOverviewPage } from './CostOverviewPage';
 import type { AuthContextValue } from '../../auth';
 import { workspaceRepository } from '../../../data-access';
+import { ConnectDialogHost, closeConnectDialog } from '../../workspace';
 import { newOrganisationData } from '../../dashboard/model/newOrganisationData';
 import type { DashboardData } from '../../dashboard';
 
@@ -25,16 +26,11 @@ vi.mock('recharts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('recharts')>();
   return { ...actual, ResponsiveContainer: ({ children }: { children: ReactNode }) => <div style={{ width: 300, height: 180 }}>{children}</div> };
 });
-vi.mock('../components/ConnectCloudAccountWizard', () => ({
-  ConnectCloudAccountWizard: ({ provider, onSave, onClose }: { provider: string; onSave: (payload: Record<string, string>) => Promise<void>; onClose: () => void }) => (
-    <div>
-      Wizard stub for {provider}
-      <button onClick={() => void onSave({ name: 'Contoso Prod', subscriptionId: 's', tenantId: 't', clientId: 'c' }).then(onClose)}>Save stub account</button>
-    </div>
-  ),
-}));
+function AccountPage() {
+  return <p>Opened Azure account {useParams().accountId}</p>;
+}
 
-const renderPage = () => render(<ThemeProvider><MemoryRouter><CostOverviewPage /></MemoryRouter></ThemeProvider>);
+const renderPage = () => render(<ThemeProvider><MemoryRouter initialEntries={['/cloud/overview']}><Routes><Route path="/cloud/overview" element={<><CostOverviewPage /><ConnectDialogHost /></>} /><Route path="/azure/:accountId" element={<AccountPage />} /></Routes></MemoryRouter></ThemeProvider>);
 
 describe('CostOverviewPage for a brand-new organisation', () => {
   beforeEach(() => {
@@ -45,9 +41,9 @@ describe('CostOverviewPage for a brand-new organisation', () => {
     });
     useDashboardDataMock.mockImplementation(() => ({ ...newOrganisationData([]), refetch: vi.fn() }));
   });
-  afterEach(() => workspaceRepository.setProfile('populated'));
+  afterEach(() => { closeConnectDialog(); workspaceRepository.setProfile('populated'); });
 
-  it('offers one action, which opens the connect form in place, and shows no NaN or undefined', async () => {
+  it('offers one action, which opens the connect dialog in place, and shows no NaN or undefined', async () => {
     const user = userEvent.setup();
     const { container } = renderPage();
     expect(screen.getByRole('heading', { name: 'Connect your first cloud account' })).toBeInTheDocument();
@@ -56,16 +52,20 @@ describe('CostOverviewPage for a brand-new organisation', () => {
     expect(container.textContent).not.toMatch(/NaN|undefined/);
 
     await user.click(screen.getByRole('button', { name: 'Connect your first account' }));
-    expect(screen.getByText('Wizard stub for azure')).toBeInTheDocument();
+    // Straight onto the Azure credentials (no provider picker), with the other providers one click away.
+    expect(screen.getByRole('dialog', { name: 'Connect Azure account' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose another provider' })).toBeInTheDocument();
   });
 
-  it('connecting through that form really adds the account', async () => {
+  it('two more clicks (sample credentials, Connect) add the account and open it', async () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByRole('button', { name: 'Connect your first account' }));
-    await user.click(screen.getByRole('button', { name: 'Save stub account' }));
-    // The page waits a moment for the simulated connection, then saves.
-    await waitFor(() => expect(workspaceRepository.listAccounts('azure').map((a) => a.name)).toEqual(['Contoso Prod']));
+    await user.click(screen.getByRole('button', { name: 'Use sample credentials' }));
+    await user.click(screen.getByRole('button', { name: 'Connect' }));
+    expect(await screen.findByText(/Opened Azure account/, undefined, { timeout: 4000 })).toBeInTheDocument();
+    expect(workspaceRepository.listAccounts('azure').map((a) => a.name)).toEqual(['Northwind Production']);
     expect(workspaceRepository.listAccounts('azure')[0].sample).toBe(true);
-  });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  }, 15000);
 });

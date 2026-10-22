@@ -26,7 +26,7 @@ const cellLabel = (text: string) => <span className="mv-muted mv-cell-caption">{
 /** View-access cell: always-on and disabled for admins/owners, otherwise a plain on/off toggle. */
 function ViewCell({ privileged, readOnly, checked, name, provider, onToggle }: { privileged: boolean; readOnly: boolean; checked: boolean; name: string; provider: string; onToggle: (value: boolean) => void }) {
   return (
-    <td className="mv-cell-center mv-cell-divided">
+    <td data-label={`${provider} view`} className="mv-cell-center mv-cell-divided">
       <div className="mv-cell-stack">
         <Toggle checked={privileged || checked} disabled={privileged || readOnly} onChange={onToggle} label={`${provider} view access for ${name}`} />
         {cellLabel(privileged ? 'Always On' : checked ? 'On' : 'Off')}
@@ -38,11 +38,11 @@ function ViewCell({ privileged, readOnly, checked, name, provider, onToggle }: {
 /** Full-access cell: a dash when the member can't view this provider at all (nothing to grant read-only vs. full on). */
 function AccessCell({ privileged, readOnly, canView, isReadOnly, name, provider, onToggle }: { privileged: boolean; readOnly: boolean; canView: boolean; isReadOnly: boolean; name: string; provider: string; onToggle: (value: boolean) => void }) {
   if (!privileged && !canView) {
-    return <td className="mv-cell-center"><span className="mv-muted">—</span></td>;
+    return <td data-label={`${provider} full access`} className="mv-cell-center"><span className="mv-muted">—</span></td>;
   }
   const isFullAccess = privileged || !isReadOnly;
   return (
-    <td className="mv-cell-center">
+    <td data-label={`${provider} full access`} className="mv-cell-center">
       <div className="mv-cell-stack">
         <Toggle checked={isFullAccess} disabled={privileged || readOnly} onChange={onToggle} label={`${provider} full access for ${name}`} />
         {cellLabel(isFullAccess ? 'Full' : 'Read Only')}
@@ -128,7 +128,7 @@ export function MembersSection({ members, roles, currentUserId, searchTerm, onCl
   return (
     <>
       <div className="mv-table-wrap">
-        <table className="mv-table mv-members-table">
+        <table className="mv-table mv-table--stack mv-members-table">
           <caption className="mv-sr-only">Members of your organisation, with their role, cloud access, alert e-mails and status</caption>
           <thead>
             <tr>
@@ -170,7 +170,7 @@ export function MembersSection({ members, roles, currentUserId, searchTerm, onCl
               const statusBlocked = isSelf || isOwner || (member.status === 'inactive' && seats.full);
               return (
                 <tr key={member.userId}>
-                  <td>
+                  <td className="mv-stack-title">
                     <div className="mv-member-cell">
                       <span className="mv-member-avatar" aria-hidden>{member.fullName.charAt(0).toUpperCase()}</span>
                       <div className="mv-member-text">
@@ -184,7 +184,7 @@ export function MembersSection({ members, roles, currentUserId, searchTerm, onCl
                     </div>
                   </td>
 
-                  <td className="mv-cell-divided mv-member-role">
+                  <td data-label="Role" className="mv-cell-divided mv-member-role">
                     <Select
                       label={`Role for ${member.fullName}`}
                       hideLabel
@@ -235,7 +235,7 @@ export function MembersSection({ members, roles, currentUserId, searchTerm, onCl
 
                   {showInvoiceColumn && <ViewCell privileged={privileged} readOnly checked name={member.fullName} provider="Invoice" onToggle={() => {}} />}
 
-                  <td className="mv-cell-center mv-cell-divided">
+                  <td data-label="Alert e-mails" className="mv-cell-center mv-cell-divided">
                     <div className="mv-cell-stack">
                       <Toggle
                         checked={Boolean(member.alertsEnabled)}
@@ -247,7 +247,7 @@ export function MembersSection({ members, roles, currentUserId, searchTerm, onCl
                     </div>
                   </td>
 
-                  <td className="mv-cell-divided">
+                  <td data-label="Status" className="mv-cell-divided">
                     <div className="mv-cell-stack mv-status-actions">
                       <StatusBadge status={member.status} />
                       {canEdit && !privileged && !isSelf && (

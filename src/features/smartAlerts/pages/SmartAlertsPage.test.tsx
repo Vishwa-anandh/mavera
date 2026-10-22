@@ -67,6 +67,18 @@ describe('SmartAlertsPage alerts', () => {
     expect(rows()).toHaveLength(10);
   });
 
+  it('keeps the status, type and provider filters in the URL, so a link restores them and a tab switch keeps them', async () => {
+    const user = setup('?status=critical&type=unusual_spend#alerts');
+    expect(screen.getByRole('button', { name: 'Critical alerts' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Unusual spend' })).toHaveAttribute('aria-pressed', 'true');
+    expect(rows()).toHaveLength(1);
+    await user.click(screen.getByRole('tab', { name: 'Settings' }));
+    await user.click(screen.getByRole('tab', { name: 'Alerts' }));
+    expect(screen.getByRole('button', { name: 'Critical alerts' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getAllByRole('button', { name: /Clear filters|Show active alerts/ })[0]);
+    expect(rows()).toHaveLength(10);
+  });
+
   it('marks an alert read, resolves it and takes it out of the counters', async () => {
     const user = setup();
     await user.click(screen.getByRole('button', { name: 'Mark Cost Spike alert on az-acc-1 as read' }));

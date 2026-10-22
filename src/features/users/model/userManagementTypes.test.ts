@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { seatSummary, validateNewMember, type OrgMember } from './userManagementTypes';
+import { nameFromEmail, seatSummary, validateNewMember, type OrgMember } from './userManagementTypes';
 
 const member = (over: Partial<OrgMember>): OrgMember => ({
   userId: 'u', fullName: 'A B', email: 'a@x.com', role: 'member', status: 'active', ...over,
@@ -33,11 +33,9 @@ describe('validateNewMember', () => {
     expect(validateNewMember({ fullName: 'New Person', email: 'new@x.com', role: 'member' }, existing)).toEqual({});
   });
 
-  it('requires a name and an email', () => {
-    expect(validateNewMember({ fullName: '  ', email: '', role: 'member' }, existing)).toEqual({
-      fullName: expect.any(String),
-      email: expect.any(String),
-    });
+  it('requires an email but not a name (the name is taken from the address)', () => {
+    expect(validateNewMember({ fullName: '  ', email: '', role: 'member' }, existing)).toEqual({ email: expect.any(String) });
+    expect(validateNewMember({ fullName: '', email: 'new@x.com', role: 'member' }, existing)).toEqual({});
   });
 
   it('rejects a malformed email', () => {
@@ -46,5 +44,18 @@ describe('validateNewMember', () => {
 
   it('rejects a duplicate email regardless of case', () => {
     expect(validateNewMember({ fullName: 'N', email: ' TAKEN@x.com ', role: 'member' }, existing).email).toMatch(/already/);
+  });
+});
+
+describe('nameFromEmail', () => {
+  it('turns an address into a readable name', () => {
+    expect(nameFromEmail('nina.patel@x.com')).toBe('Nina Patel');
+    expect(nameFromEmail('  TOM_wu+ops@x.com ')).toBe('Tom Wu');
+    expect(nameFromEmail('priya-sharma2@x.com')).toBe('Priya Sharma');
+  });
+
+  it('falls back to the local part when there are no words, and to nothing for no address', () => {
+    expect(nameFromEmail('1234@x.com')).toBe('1234');
+    expect(nameFromEmail('')).toBe('');
   });
 });

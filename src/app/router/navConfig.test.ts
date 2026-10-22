@@ -156,17 +156,40 @@ describe('resolveNav', () => {
     expect(leaf(entries, 'budgets')?.locked).toBe(false);
   });
 
-  it('shows Invoices only for invoice-only or hybrid orgs', () => {
+  it('shows Invoices to every org with Cloud Cost (cloud-account, invoice-only and hybrid) and hides it with the module', () => {
     const admin: User = { id: '1', email: 'a@b.com', role: 'admin' };
 
     const cloudOrg = resolveNav(derivePermissions(admin, ['azure'], false), ctx());
-    expect(leaf(cloudOrg, 'invoices')).toBeUndefined();
+    expect(leaf(cloudOrg, 'invoices')).toMatchObject({ path: '/invoices', section: 'Billing & reports', locked: false });
+    expect(leaf(resolveNav(derivePermissions(admin, ['azure'], false), ctx({}, false, { cloudCost: false })), 'invoices')).toBeUndefined();
 
     const invoiceOrg = resolveNav(derivePermissions(admin, [], true), ctx({}, true));
     expect(leaf(invoiceOrg, 'invoices')).toBeDefined();
 
     const hybridOrg = resolveNav(derivePermissions(admin, ['aws'], true), ctx({}, true));
     expect(leaf(hybridOrg, 'invoices')).toBeDefined();
+  });
+
+  it('puts All Alerts under Cloud Cost > Governance, one menu click from anywhere', () => {
+    const member: User = { id: '1', email: 'a@b.com', role: 'member' };
+    const entries = resolveNav(derivePermissions(member, [], false), ctx());
+    expect(leaf(entries, 'alerts')).toMatchObject({ label: 'All Alerts', path: '/alerts', section: 'Governance', locked: false });
+    const governance = navSections(group(entries, 'cloud-cost').children).find((s) => s.label === 'Governance');
+    expect(governance?.children.map((c) => c.key)).toEqual(['budgets', 'smart-alerts', 'alerts']);
+  });
+
+  it('puts the AI Assistant in the header as a top-level destination, not inside one module, for every org', () => {
+    const member: User = { id: '1', email: 'a@b.com', role: 'member' };
+    const entries = resolveNav(derivePermissions(member, [], false), ctx({}, false, { cloudCost: false, sapMonitoring: false }));
+    const assistant = entries.find((e) => e.key === 'ai-assistant');
+    expect(assistant).toMatchObject({ type: 'leaf', label: 'AI Assistant', path: '/ai-assistant' });
+    expect(entries[entries.length - 1].key).toBe('ai-assistant');
+  });
+
+  it('hides the AI Assistant from a role that may not view it', () => {
+    const member: User = { id: '1', email: 'a@b.com', role: 'member' };
+    const entries = resolveNav(derivePermissions(member, [], false), { ...ctx(), canView: (module) => module !== 'assistant' });
+    expect(leaf(entries, 'ai-assistant')).toBeUndefined();
   });
 
   it('hides true cloud-resource destinations for a pure invoice-only org, but keeps them for a hybrid org', () => {

@@ -43,16 +43,16 @@ export function HanaCoreServicesPanel({ services }: { services: HanaService[] })
         <ServiceMemoryChart services={services} />
       ) : (
         <div className="mv-table-wrap">
-          <table className="mv-table">
+          <table className="mv-table mv-table--stack">
             <thead><tr><th>Service</th><th>Status</th><th className="mv-num">Heap used</th><th className="mv-num">Allocated</th><th className="mv-num">Shared</th></tr></thead>
             <tbody>
               {ordered.map((service) => (
                 <tr key={service.name}>
-                  <td>{service.name}</td>
-                  <td><span className={`mv-status ${service.status === 'running' ? 'mv-status--success' : 'mv-status--warning'}`}>{service.status === 'running' ? 'Running' : 'Stopped'}</span></td>
-                  <td className="mv-num">{gb(service.memoryMb)}</td>
-                  <td className="mv-num">{gb(service.allocatedMb)}</td>
-                  <td className="mv-num">{gb(service.sharedMb)}</td>
+                  <td data-label="Service" className="mv-stack-title">{service.name}</td>
+                  <td data-label="Status"><span className={`mv-status ${service.status === 'running' ? 'mv-status--success' : 'mv-status--warning'}`}>{service.status === 'running' ? 'Running' : 'Stopped'}</span></td>
+                  <td data-label="Heap used" className="mv-num">{gb(service.memoryMb)}</td>
+                  <td data-label="Allocated" className="mv-num">{gb(service.allocatedMb)}</td>
+                  <td data-label="Shared" className="mv-num">{gb(service.sharedMb)}</td>
                 </tr>
               ))}
             </tbody>

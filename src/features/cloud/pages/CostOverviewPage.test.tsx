@@ -1,12 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import { CostOverviewPage } from './CostOverviewPage';
 import type { AuthContextValue } from '../../auth';
 import type { DashboardData } from '../../dashboard';
+import { ConnectDialogHost, closeConnectDialog } from '../../workspace';
 
 const useAuthMock = vi.fn<() => AuthContextValue>();
 const useDashboardDataMock = vi.fn<() => DashboardData & { refetch: () => void }>();
@@ -27,14 +28,6 @@ vi.mock('recharts', async (importOriginal) => {
   return { ...actual, ResponsiveContainer: ({ children }: { children: ReactNode }) => <div style={{ width: 300, height: 180 }}>{children}</div> };
 });
 vi.mock('../../../shared/ui/SpendTrendChart', () => ({ SpendTrendChart: () => <div>Spend trend chart stub</div> }));
-vi.mock('../components/ConnectCloudAccountWizard', () => ({
-  ConnectCloudAccountWizard: ({ onClose }: { onClose: () => void }) => (
-    <div>
-      Wizard stub
-      <button onClick={onClose}>Close wizard</button>
-    </div>
-  ),
-}));
 
 function auth(overrides: Partial<AuthContextValue> = {}): AuthContextValue {
   return {
@@ -109,6 +102,7 @@ function renderPage() {
     <ThemeProvider>
       <MemoryRouter>
         <CostOverviewPage />
+        <ConnectDialogHost />
       </MemoryRouter>
     </ThemeProvider>,
   );
@@ -119,7 +113,12 @@ function kpiValue(title: string): string | null {
   return card?.querySelector('.mv-kpi-value')?.textContent ?? null;
 }
 
+// The period and the Cloud / Invoices choice are remembered for the session; every case starts from a clean slate.
+beforeEach(() => sessionStorage.clear());
+
 describe('CostOverviewPage', () => {
+  afterEach(closeConnectDialog);
+
   it('shows an onboarding empty state when the org has no cloud access at all', () => {
     useAuthMock.mockReturnValue(auth({ cloudAccess: [], user: { id: '1', email: 'a@b.com', role: 'member' } }));
     useDashboardDataMock.mockReturnValue(dashboardData());
@@ -189,14 +188,15 @@ describe('CostOverviewPage', () => {
     expect(screen.queryByRole('button', { name: 'Connect cloud account' })).not.toBeInTheDocument();
   });
 
-  it('opens the connect-account wizard when the button is clicked', async () => {
+  it('opens the shared connect dialog on the Azure credentials when the button is clicked', async () => {
     useAuthMock.mockReturnValue(auth({ user: { id: '1', email: 'a@b.com', role: 'member', canViewAzure: true } }));
     useDashboardDataMock.mockReturnValue(dashboardData());
     const user = userEvent.setup();
     renderPage();
 
     await user.click(screen.getByRole('button', { name: 'Connect cloud account' }));
-    expect(screen.getByText('Wizard stub')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Connect Azure account' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Account name')).toHaveFocus();
   });
 });
 
@@ -335,5 +335,116 @@ describe('CostOverviewPage Cloud | Invoices view', () => {
     await user.click(screen.getByRole('button', { name: 'Invoices summary' }));
     expect(screen.getByText('No invoices uploaded yet')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Upload invoices' })).toHaveAttribute('href', '/invoices');
+  });
+});
+
+function LocationProbe() {
+  const location = useLocation();
+  return <p data-testid="location">{location.pathname}{location.search}</p>;
+}
+
+function renderAt(url: string) {
+  return render(
+    <ThemeProvider>
+      <MemoryRouter initialEntries={[url]}>
+        <Routes>
+          <Route path="/cloud/overview" element={<><CostOverviewPage /><LocationProbe /></>} />
+          <Route path="/budgets" element={<h1>Budgets page</h1>} />
+          <Route path="/smart-alerts" element={<h1>Smart alerts page</h1>} />
+          <Route path="/cloud/optimization" element={<h1>Optimization page</h1>} />
+          <Route path="/invoices" element={<h1>Invoices page</h1>} />
+        </Routes>
+      </MemoryRouter>
+    </ThemeProvider>,
+  );
+}
+
+describe('CostOverviewPage remembers the period and the view', () => {
+  it('keeps the chosen period in the URL, so a link or a reload restores it', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ summary: summaryWithHistory() }));
+    const user = userEvent.setup();
+    renderAt('/cloud/overview');
+    expect(screen.getByTestId('location')).toHaveTextContent('/cloud/overview');
+    await user.click(screen.getByRole('button', { name: 'Last 3 months' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/cloud/overview?period=3M');
+    expect(screen.getByRole('button', { name: 'Last 3 months' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('opens on the period named in the URL', () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ summary: summaryWithHistory() }));
+    renderAt('/cloud/overview?period=7D');
+    expect(screen.getByRole('button', { name: 'Last 7 days' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('trend-summary')).toHaveTextContent('Last 7 days');
+  });
+
+  it('ignores a period it does not know', () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ summary: summaryWithHistory() }));
+    renderAt('/cloud/overview?period=banana');
+    expect(screen.getByRole('button', { name: 'Last 6 months' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('comes back to the last period when the page is opened again without one in the link', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ summary: summaryWithHistory() }));
+    const user = userEvent.setup();
+    const first = renderAt('/cloud/overview');
+    await user.click(screen.getByRole('button', { name: 'Last 12 months' }));
+    first.unmount();
+    renderAt('/cloud/overview');
+    expect(screen.getByRole('button', { name: 'Last 12 months' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('keeps the other parameters in the URL when the period changes', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ summary: summaryWithHistory() }));
+    const user = userEvent.setup();
+    renderAt('/cloud/overview?foo=bar');
+    await user.click(screen.getByRole('button', { name: 'Last 30 days' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/cloud/overview?foo=bar&period=30D');
+  });
+
+  it('remembers the Invoices view too, and Cloud again once it is chosen', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData());
+    const user = userEvent.setup();
+    const first = renderAt('/cloud/overview');
+    await user.click(screen.getByRole('button', { name: 'Invoices summary' }));
+    first.unmount();
+    const second = renderAt('/cloud/overview');
+    expect(screen.getByRole('button', { name: 'Invoices summary' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('region', { name: 'Invoices summary' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cloud costs' }));
+    second.unmount();
+    renderAt('/cloud/overview');
+    expect(screen.getByRole('button', { name: 'Cloud costs' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+describe('CostOverviewPage links stay inside the app', () => {
+  it('"create one" goes to Budgets through the router, with no page reload', async () => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ budgets: loadedSource([]) }));
+    const user = userEvent.setup();
+    renderAt('/cloud/overview');
+    await user.click(screen.getByRole('link', { name: 'create one' }));
+    expect(screen.getByRole('heading', { name: 'Budgets page' })).toBeInTheDocument();
+  });
+
+  it.each([
+    ['4 recommendations', 'Optimization page'],
+    ['View alerts', 'Smart alerts page'],
+    ['View all', 'Smart alerts page'],
+    ['View all insights', 'Optimization page'],
+    ['View Invoices', 'Invoices page'],
+  ])('"%s" opens its page through the router', async (linkName, heading) => {
+    useAuthMock.mockReturnValue(auth());
+    useDashboardDataMock.mockReturnValue(dashboardData({ invoices: loadedSource({ data: [{ id: 'i1', provider: 'azure', total_cost: 10 }] }) }));
+    const user = userEvent.setup();
+    renderAt('/cloud/overview');
+    await user.click(screen.getByRole('link', { name: linkName }));
+    expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
   });
 });

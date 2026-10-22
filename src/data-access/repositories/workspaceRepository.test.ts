@@ -176,6 +176,15 @@ describe('workspaceRepository: empty profile (a brand-new organisation)', () => 
     expect(workspaceRepository.onboarding().dismissed).toBe(false);
   });
 
+  it('counts an email channel added on Budgets & Alerts as alert recipients, and reports the counts the coach watches', () => {
+    expect(workspaceRepository.progressSignals()).toEqual({ accounts: 0, destinations: 0, budgets: 0, recipients: 0, members: 0 });
+    budgetsRepository.addChannel({ provider: 'email', alert_scope: 'global', budget_ids: [], email_addresses: ['ops@example.com'], webhook_url: '' });
+    expect(workspaceRepository.onboarding().steps.find((s) => s.id === 'alerts')?.done).toBe(true);
+    expect(workspaceRepository.progressSignals().recipients).toBe(1);
+    workspaceRepository.addConnectedAccount('azure', azureInput);
+    expect(workspaceRepository.progressSignals().accounts).toBe(1);
+  });
+
   it('reset() returns the organisation to its seed', () => {
     workspaceRepository.addConnectedAccount('azure', azureInput);
     budgetsRepository.createBudget({ name: 'Cap', target_amount: 1000, alert_threshold: 80, scope_type: 'organization', scope_value: '' });

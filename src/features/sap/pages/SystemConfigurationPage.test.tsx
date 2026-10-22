@@ -1,15 +1,22 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { resetSapAdminStore, sapAdminRepository } from '../../../data-access';
 import { ConfirmProvider } from '../../../shared/ui/ConfirmProvider';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
+import { ConnectDialogHost, closeConnectDialog } from '../../workspace';
 import { SystemConfigurationPage } from './SystemConfigurationPage';
 
-const renderPage = () => render(<ThemeProvider><MemoryRouter><ConfirmProvider><SystemConfigurationPage /></ConfirmProvider></MemoryRouter></ThemeProvider>);
+vi.mock('../../auth/model/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../auth/model/AuthContext')>();
+  return { ...actual, useAuth: () => ({ user: { id: '1', email: 'a@b.com', role: 'admin' }, cloudAccess: ['azure'], invoiceOnly: false, accountLimits: { azure: 3, aws: 3, btp: 3 }, modules: { cloudCost: true, sapMonitoring: true } }) };
+});
+
+const renderPage = () => render(<ThemeProvider><MemoryRouter><ConfirmProvider><SystemConfigurationPage /><ConnectDialogHost /></ConfirmProvider></MemoryRouter></ThemeProvider>);
 
 beforeEach(() => resetSapAdminStore());
+afterEach(closeConnectDialog);
 
 describe('SystemConfigurationPage', () => {
   it('lists the destinations and searches by name or URL', async () => {
@@ -32,19 +39,22 @@ describe('SystemConfigurationPage', () => {
     expect(screen.getByText(/6 destinations · 1 active/)).toBeInTheDocument();
   });
 
-  it('adds a destination only when the form is valid', async () => {
+  it('adds a destination through the shared connect dialog only when the form is valid, and connects it', async () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(screen.getByRole('button', { name: 'Add Destination' }));
-    const dialog = screen.getByRole('dialog', { name: 'New Destination' });
-    await user.click(within(dialog).getByRole('button', { name: 'Add Destination' }));
+    const dialog = screen.getByRole('dialog', { name: 'Connect SAP system' });
+    await user.click(within(dialog).getByRole('button', { name: 'Connect' }));
     expect(within(dialog).getAllByRole('alert')).toHaveLength(3);
-    await user.type(within(dialog).getByLabelText(/^Environment Name/), 'Sandbox');
-    await user.type(within(dialog).getByLabelText(/^SID/), 'sbx');
-    await user.type(within(dialog).getByLabelText(/^Gateway URL/), 'https://sbx.example.com');
-    await user.click(within(dialog).getByRole('button', { name: 'Add Destination' }));
+    await user.type(within(dialog).getByLabelText('Environment Name'), 'Sandbox');
+    await user.type(within(dialog).getByLabelText('SID'), 'sbx');
+    await user.type(within(dialog).getByLabelText('Gateway URL'), 'https://sbx.example.com');
+    await user.click(within(dialog).getByRole('button', { name: 'Connect' }));
+    expect(await within(dialog).findByText('Testing connection…', { selector: 'button' })).toBeInTheDocument();
+    // The page stays where it is and shows the new destination, already connected.
+    expect(await screen.findByRole('heading', { name: 'Sandbox' }, { timeout: 4000 })).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Sandbox' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Disconnect Sandbox' })).toBeInTheDocument();
     expect(sapAdminRepository.destinations.list().find((d) => d.name === 'Sandbox')?.systems).toEqual(['SBX']);
   });
 
@@ -104,9 +114,10 @@ describe('SystemConfigurationPage', () => {
 });
 
 describe('SystemConfigurationPage: opening the form on arrival (command palette)', () => {
-  it('?open=connect opens the New Destination form', () => {
-    render(<ThemeProvider><MemoryRouter initialEntries={['/sap/configuration?open=connect']}><ConfirmProvider><SystemConfigurationPage /></ConfirmProvider></MemoryRouter></ThemeProvider>);
-    expect(screen.getByRole('dialog', { name: 'New Destination' })).toBeInTheDocument();
+  it('?open=connect opens the shared connect dialog on the SAP system credentials', () => {
+    render(<ThemeProvider><MemoryRouter initialEntries={['/sap/configuration?open=connect']}><ConfirmProvider><SystemConfigurationPage /><ConnectDialogHost /></ConfirmProvider></MemoryRouter></ThemeProvider>);
+    expect(screen.getByRole('dialog', { name: 'Connect SAP system' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Environment Name')).toHaveFocus();
   });
 
   it('opens no form when reached normally', () => {

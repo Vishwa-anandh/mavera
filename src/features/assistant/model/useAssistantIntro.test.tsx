@@ -74,3 +74,25 @@ describe('welcome greeting', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Hi there');
   });
 });
+
+describe('first visit', () => {
+  it('is true on the first visit only, for each person, even when the animation is skipped', () => {
+    setReducedMotion(false);
+    const first = renderHook(() => useAssistantIntro('user-1'));
+    expect(first.result.current.first).toBe(true);
+    first.unmount();
+    expect(renderHook(() => useAssistantIntro('user-1')).result.current.first).toBe(false);
+    expect(renderHook(() => useAssistantIntro('user-2')).result.current.first).toBe(true);
+
+    window.localStorage.clear();
+    setReducedMotion(true);
+    const reduced = renderHook(() => useAssistantIntro('user-3'));
+    expect(reduced.result.current.playing).toBe(false);
+    expect(reduced.result.current.first).toBe(true);
+  });
+
+  it('is false without a signed-in user', () => {
+    setReducedMotion(false);
+    expect(renderHook(() => useAssistantIntro(undefined)).result.current.first).toBe(false);
+  });
+});

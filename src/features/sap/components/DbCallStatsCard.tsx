@@ -23,15 +23,15 @@ export function DbCallStatsCard({ stats }: { stats: SapDbCallStatistics | null }
             <div><dt>Avg call</dt><dd>{stats.avgCallMs}<small> ms</small></dd></div>
           </dl>
           <div className="mv-table-wrap">
-            <table className="mv-table">
+            <table className="mv-table mv-table--stack">
               <thead><tr><th>Buffer</th><th className="mv-num">Hit ratio</th><th className="mv-num">Calls</th><th className="mv-num">Swaps</th></tr></thead>
               <tbody>
                 {stats.buffers.map((buffer) => (
                   <tr key={buffer.buffer}>
-                    <td>{buffer.buffer}</td>
-                    <td className="mv-num"><span className={`mv-status mv-status--${hitTone(buffer.hitRatioPercent)}`}>{buffer.hitRatioPercent.toFixed(1)}%</span></td>
-                    <td className="mv-num">{buffer.calls.toLocaleString()}</td>
-                    <td className="mv-num">{buffer.swaps}</td>
+                    <td data-label="Buffer" className="mv-stack-title">{buffer.buffer}</td>
+                    <td data-label="Hit ratio" className="mv-num"><span className={`mv-status mv-status--${hitTone(buffer.hitRatioPercent)}`}>{buffer.hitRatioPercent.toFixed(1)}%</span></td>
+                    <td data-label="Calls" className="mv-num">{buffer.calls.toLocaleString()}</td>
+                    <td data-label="Swaps" className="mv-num">{buffer.swaps}</td>
                   </tr>
                 ))}
               </tbody>

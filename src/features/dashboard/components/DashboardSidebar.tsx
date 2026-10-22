@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
-import { CONNECT_TARGETS } from '../../workspace';
+import { CONNECT_TARGETS, openConnectDialog } from '../../workspace';
 import { CrownIcon, ServerIcon, CloudIcon, BellIcon, ReportIcon, SettingsIcon, HeadsetIcon } from '../../../shared/ui/icons';
 
-const QUICK_ACCESS = [
-  { key: 'sap', label: 'Add SAP System', path: CONNECT_TARGETS.sap.path, icon: ServerIcon, module: 'sapMonitoring' as const },
-  { key: 'azure', label: 'Add Azure Subscription', path: CONNECT_TARGETS.azure.path, icon: CloudIcon, module: 'cloudCost' as const },
+interface QuickAccessItem { key: string; label: string; path: string; icon: typeof ServerIcon; module?: 'cloudCost' | 'sapMonitoring'; connect?: 'sap' | 'azure' }
+
+/** Items with `connect` open the shared connect dialog in place on a plain click; their link still reaches the page with the dialog open. */
+const QUICK_ACCESS: QuickAccessItem[] = [
+  { key: 'sap', label: 'Add SAP System', path: CONNECT_TARGETS.sap.path, connect: 'sap', icon: ServerIcon, module: 'sapMonitoring' },
+  { key: 'azure', label: 'Add Azure Subscription', path: CONNECT_TARGETS.azure.path, connect: 'azure', icon: CloudIcon, module: 'cloudCost' },
   { key: 'alerts', label: 'Manage Alerts', path: '/alerts', icon: BellIcon },
   { key: 'reports', label: 'Generate Report', path: '/cloud/analytics', icon: ReportIcon },
   { key: 'settings', label: 'Settings', path: '/account', icon: SettingsIcon },
@@ -40,7 +43,7 @@ export function DashboardSidebar() {
         <div className="mv-side-card-header"><span>Quick Access</span></div>
         <nav className="mv-quick-access-list">
           {quickAccess.map((item) => (
-            <Link key={item.key} to={item.path}>
+            <Link key={item.key} to={item.path} onClick={item.connect ? (event) => { event.preventDefault(); openConnectDialog(item.connect); } : undefined}>
               <item.icon size={17} />
               {item.label}
             </Link>

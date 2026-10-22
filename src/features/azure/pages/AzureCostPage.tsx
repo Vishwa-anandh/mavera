@@ -4,6 +4,8 @@ import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { ChevronLeftIcon, ChevronDownIcon, RefreshIcon, SparkleIcon } from '../../../shared/ui/icons';
 import { Tooltip } from '../../../shared/ui/Tooltip';
+import { CostViewTabs } from '../../../shared/ui/CostViewTabs';
+import { costViewPanelProps, useCostView } from '../../../shared/lib/useCostView';
 import { CloudSpendSummary } from '../../../shared/ui/CloudSpendSummary';
 import { daysInMonthOf } from '../../../shared/lib/costAnalysis';
 import { cloudSamplesRepository } from '../../../data-access';
@@ -37,12 +39,8 @@ function emptyCosts(base: AzureYearlyMonth): AzureCosts {
   };
 }
 
-type TabKey = 'executive' | 'operations' | 'technical';
-const TABS: Array<{ key: TabKey; label: string; sub: string }> = [
-  { key: 'executive', label: 'Executive', sub: 'CEO / Leadership' },
-  { key: 'operations', label: 'Operations', sub: 'Manager / Dept. Head' },
-  { key: 'technical', label: 'Technical', sub: 'Engineer / In-depth' },
-];
+
+const COST_VIEWS = ['executive', 'operations', 'technical'] as const;
 
 function useOutsideClose(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null);
@@ -68,7 +66,7 @@ export function AzureCostPage() {
   const yearly = useMemo(() => cloudSamplesRepository.azure.yearly(), []);
   const cspRecommendations = useMemo(() => cloudSamplesRepository.azure.cspRecommendations(account), [account]);
 
-  const [activeTab, setActiveTab] = useState<TabKey>('executive');
+  const [activeTab, setActiveTab] = useCostView('azure', accountId, COST_VIEWS);
   const [selectedMonth, setSelectedMonth] = useState<{ year: number; month: number } | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
@@ -191,14 +189,7 @@ export function AzureCostPage() {
         </div>
       </div>
 
-      <nav className="mv-cost-tabs" aria-label="Cost view">
-        {TABS.map((tab) => (
-          <button key={tab.key} className={`mv-cost-tab${activeTab === tab.key ? ' is-active' : ''}`} onClick={() => setActiveTab(tab.key)} aria-current={activeTab === tab.key ? 'page' : undefined}>
-            <span>{tab.label}</span>
-            <span className="mv-muted">{tab.sub}</span>
-          </button>
-        ))}
-      </nav>
+      <CostViewTabs views={COST_VIEWS} active={activeTab} onChange={setActiveTab} />
 
       {!isCurrentMonth && (
         <div className="mv-notice mv-cost-banner">
@@ -230,11 +221,11 @@ export function AzureCostPage() {
       ) : !hasData ? (
         <div className="mv-empty"><h2>No data available yet.</h2><p>{isCurrentMonth ? 'Cost data will appear once this billing cycle syncs.' : `No history is stored for ${MONTH_LABELS[selectedMonth!.month - 1]} ${selectedMonth!.year}.`}</p></div>
       ) : (
-        <>
+        <div {...costViewPanelProps(activeTab)}>
           {activeTab === 'executive' && <ExecutiveTab {...tabProps} aiInsights={aiInsights} />}
           {activeTab === 'operations' && <OperationsTab {...tabProps} />}
           {activeTab === 'technical' && <TechnicalTab {...tabProps} />}
-        </>
+        </div>
       )}
     </div>
   );

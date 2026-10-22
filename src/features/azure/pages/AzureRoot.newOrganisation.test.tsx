@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ConfirmProvider } from '../../../shared/ui/ConfirmProvider';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import { workspaceRepository } from '../../../data-access';
+import { ConnectDialogHost, closeConnectDialog } from '../../workspace';
 import { AzureRoot } from './AzureRoot';
 import { AzureCostPage } from './AzureCostPage';
 
@@ -13,7 +14,7 @@ vi.mock('../../auth/model/AuthContext', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../auth/model/AuthContext')>();
   return {
     ...actual,
-    useAuth: () => ({ user: { id: '1', email: 'a@b.com', role: 'admin', canViewAzure: true }, cloudAccess: ['azure'], invoiceOnly: false, accountLimits: { azure: 3, aws: 3, btp: 3 } }),
+    useAuth: () => ({ user: { id: '1', email: 'a@b.com', role: 'admin', canViewAzure: true }, cloudAccess: ['azure'], invoiceOnly: false, modules: { cloudCost: true, sapMonitoring: true }, accountLimits: { azure: 3, aws: 3, btp: 3 } }),
   };
 });
 vi.mock('recharts', async (importOriginal) => {
@@ -29,6 +30,7 @@ const renderAt = (url: string) => render(
           <Route path="/azure" element={<AzureRoot />} />
           <Route path="/azure/:accountId" element={<AzureCostPage />} />
         </Routes>
+        <ConnectDialogHost />
       </ConfirmProvider>
     </MemoryRouter>
   </ThemeProvider>,
@@ -36,7 +38,7 @@ const renderAt = (url: string) => render(
 
 describe('Azure pages for a brand-new organisation', () => {
   beforeEach(() => workspaceRepository.setProfile('empty'));
-  afterEach(() => workspaceRepository.setProfile('populated'));
+  afterEach(() => { closeConnectDialog(); workspaceRepository.setProfile('populated'); });
 
   it('the overview has no subscriptions, no numbers and one action: Connect Azure', async () => {
     const user = userEvent.setup();
@@ -44,9 +46,10 @@ describe('Azure pages for a brand-new organisation', () => {
     expect(screen.getByRole('heading', { name: 'No Azure subscriptions connected yet' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Manage Accounts' })).toBeNull();
     expect(container.textContent).not.toMatch(/NaN|undefined/);
-    // The action opens the account manager with the connect form open.
+    // The action opens the shared connect dialog in place: no page change.
     await user.click(screen.getByRole('button', { name: 'Connect Azure' }));
     expect(await screen.findByRole('dialog', { name: 'Connect Azure account' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'No Azure subscriptions connected yet' })).toBeInTheDocument();
   });
 
   it('a connected account appears in the overview and has a cost page full of sample data under its name', () => {

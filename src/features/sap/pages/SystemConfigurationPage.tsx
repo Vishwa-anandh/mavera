@@ -3,13 +3,13 @@ import { useState } from 'react';
 import { sapAdminRepository, type SapDestination, type SapDestinationInput } from '../../../data-access';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
-import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { StatusTag } from '../../../shared/ui/StatusTag';
 import { Tooltip } from '../../../shared/ui/Tooltip';
 import { CloudIcon, HierarchyIcon, PencilIcon, PlusIcon, TrashIcon } from '../../../shared/ui/icons';
+import { openConnectDialog, useConnectOnArrival } from '../../workspace';
 import { DestinationDialog } from '../components/DestinationDialog';
-import { CONNECTION_STRATEGIES, filterDestinations } from '../model/destinations';
+import { CONNECTION_STRATEGIES, filterDestinations } from '../../sapDestinations';
 
 const repo = sapAdminRepository.destinations;
 const TYPE_LABEL = Object.fromEntries(CONNECTION_STRATEGIES.map((s) => [s.key, s.label]));
@@ -23,10 +23,12 @@ export function SystemConfigurationPage() {
   const confirm = useConfirm();
   const [destinations, setDestinations] = useState<SapDestination[]>(() => repo.list());
   const [search, setSearch] = useState('');
-  const [dialog, setDialog] = useState<{ mode: 'add' } | { mode: 'edit'; destination: SapDestination } | null>(null);
+  const [editing, setEditing] = useState<SapDestination | null>(null);
   const reload = () => setDestinations(repo.list());
-  // Ctrl+K "Connect SAP system" lands here with the Add destination form already open.
-  useOpenOnArrival('connect', () => setDialog({ mode: 'add' }));
+  // Adding a destination is the shared connect dialog: it stays on this page and connects the new system straight away.
+  const addDestination = () => openConnectDialog('sap', { stay: true, onConnected: reload });
+  // Ctrl+K "Connect SAP system" and old `?open=connect` links open the same dialog over this page.
+  useConnectOnArrival('sap');
 
   const connectedCount = destinations.filter((d) => d.status === 'Connected').length;
   const visible = filterDestinations(destinations, search);
@@ -39,15 +41,11 @@ export function SystemConfigurationPage() {
   };
 
   const save = (input: SapDestinationInput) => {
-    if (dialog?.mode === 'edit') {
-      repo.update(dialog.destination.id, input);
-      fireToast({ type: 'success', message: `${input.name} updated.` });
-    } else {
-      repo.add(input);
-      fireToast({ type: 'success', message: `${input.name} added — ready to connect.` });
-    }
+    if (!editing) return;
+    repo.update(editing.id, input);
+    fireToast({ type: 'success', message: `${input.name} updated.` });
     reload();
-    setDialog(null);
+    setEditing(null);
   };
 
   const remove = async (d: SapDestination) => {
@@ -68,7 +66,7 @@ export function SystemConfigurationPage() {
   return (
     <div>
       <PageHeader title="System Configuration" subtitle="Manage and connect your SAP environment endpoints.">
-        {destinations.length > 0 && <button type="button" className="mv-primary-button" onClick={() => setDialog({ mode: 'add' })}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Destination</button>}
+        {destinations.length > 0 && <button type="button" className="mv-primary-button" onClick={addDestination}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Destination</button>}
       </PageHeader>
 
       <div className="mv-config-bar">
@@ -80,7 +78,7 @@ export function SystemConfigurationPage() {
       </div>
 
       {destinations.length === 0 ? (
-        <div className="mv-empty-inline"><p><strong>No destinations yet.</strong></p><p>Add a destination to connect an SAP environment; its health, alerts, jobs and transports then appear across SAP Monitoring.</p><button type="button" className="mv-primary-button" onClick={() => setDialog({ mode: 'add' })}>Add Destination</button></div>
+        <div className="mv-empty-inline"><p><strong>No destinations yet.</strong></p><p>Add a destination to connect an SAP environment; its health, alerts, jobs and transports then appear across SAP Monitoring.</p><button type="button" className="mv-primary-button" onClick={addDestination}>Add Destination</button></div>
       ) : visible.length === 0 ? (
         <div className="mv-empty-inline"><p><strong>No destinations match “{search.trim()}”.</strong></p><button type="button" className="mv-quiet-button" onClick={() => setSearch('')}>Clear search</button></div>
       ) : (
@@ -104,7 +102,7 @@ export function SystemConfigurationPage() {
               <div className="mv-destination-actions">
                 <button type="button" className={d.status === 'Connected' ? 'mv-secondary-button' : 'mv-primary-button'} onClick={() => toggleConnection(d)} aria-label={`${d.status === 'Connected' ? 'Disconnect' : 'Connect'} ${d.name}`}>{d.status === 'Connected' ? 'Disconnect' : 'Connect'}</button>
                 <Tooltip content="Edit destination">
-                  <button type="button" className="mv-icon-button" aria-label={`Edit destination ${d.name}`} onClick={() => setDialog({ mode: 'edit', destination: d })}><PencilIcon size={16} /></button>
+                  <button type="button" className="mv-icon-button" aria-label={`Edit destination ${d.name}`} onClick={() => setEditing(d)}><PencilIcon size={16} /></button>
                 </Tooltip>
                 <Tooltip content="Remove destination">
                   <button type="button" className="mv-icon-button" aria-label={`Remove destination ${d.name}`} onClick={() => remove(d)}><TrashIcon size={16} /></button>
@@ -115,12 +113,12 @@ export function SystemConfigurationPage() {
         </div>
       )}
 
-      {dialog && (
+      {editing && (
         <DestinationDialog
-          key={dialog.mode === 'edit' ? dialog.destination.id : 'new'}
-          destination={dialog.mode === 'edit' ? dialog.destination : undefined}
+          key={editing.id}
+          destination={editing}
           existing={destinations}
-          onClose={() => setDialog(null)}
+          onClose={() => setEditing(null)}
           onSave={save}
         />
       )}

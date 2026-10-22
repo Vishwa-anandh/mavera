@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { accessRepository } from '../../../data-access';
 import { useAuth } from '../../auth';
-import { Can, buildSelfMember, useAccessDirectory, usePermission } from '../../access';
+import { Can, buildSelfMember, diffMatrices, useAccessDirectory, usePermission, type ModuleId } from '../../access';
 import { PlusIcon } from '../../../shared/ui/icons';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { TabBar } from '../../../shared/ui/TabBar';
 import { SearchField } from '../../../shared/ui/SearchField';
 import { useHashTab } from '../../../shared/lib/useHashTab';
 import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
+import { useRememberedState } from '../../../shared/lib/useRememberedState';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { alertRecipients, seatSummary, type OrgMember } from '../model/userManagementTypes';
@@ -15,7 +16,8 @@ import { directoryActions } from '../model/directoryActions';
 import { AddUserDialog } from '../components/AddUserDialog';
 import { MembersSection } from '../components/MembersSection';
 import { PROVIDER_GROUPS } from '../model/providerGroups';
-import { PermissionsSection } from '../components/PermissionsSection';
+import { PermissionsSection, type PermissionsDraft } from '../components/PermissionsSection';
+import { RoleDialog, type RoleDialogValue } from '../components/RoleDialog';
 import { RolesSection } from '../components/RolesSection';
 
 const DEFAULT_PERMISSIONS_ROLE = 'analyst';
@@ -26,7 +28,8 @@ const TABS: UsersTab[] = ['members', 'roles', 'permissions'];
 /**
  * One page for people and what they may do, in three tabs (the owner asked for tabs here): the members
  * (role, cloud access, alerts, status), the roles (system and custom), and the permission matrix for the
- * role you pick. The active tab lives in the URL hash (#members, #roles, #permissions) so it can be linked to.
+ * role you pick. The active tab lives in the URL hash (#members, #roles, #permissions) so it can be linked to,
+ * and the last one used is remembered for the session so coming back to /users reopens it.
  * Provider columns are derived from the org's own `cloudAccess` (the same subscription source of truth the
  * Subscription page edits). Data lives in the in-memory access directory (data-access).
  */
@@ -40,9 +43,12 @@ export function UserManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [adding, setAdding] = useState(false);
   const [addingRole, setAddingRole] = useState(false);
-  const [permissionsRoleId, setPermissionsRoleId] = useState(DEFAULT_PERMISSIONS_ROLE);
-  const dirtyRef = useRef(false);
-  const [hashTab, showTab] = useHashTab(TABS);
+  // Which role the matrix shows is remembered for the session; unsaved edits and the open module live here
+  // (not in the matrix) so they survive a switch of tab.
+  const [permissionsRoleId, setPermissionsRoleId] = useRememberedState('users', 'permissions-role', DEFAULT_PERMISSIONS_ROLE, (value) => typeof value === 'string');
+  const [draft, setDraft] = useState<PermissionsDraft | null>(null);
+  const [permissionsModule, setPermissionsModule] = useState<ModuleId | null>(null);
+  const [hashTab, showTab] = useHashTab(TABS, 'members', { remember: 'users' });
   const tab: UsersTab = hashTab === 'members' || canViewRoles ? hashTab : 'members';
 
   // The signed-in user is always in the directory (the access provider adds them too; this covers isolated renders).
@@ -58,29 +64,41 @@ export function UserManagementPage() {
   useOpenOnArrival('add-user', () => { if (canCreateUser && !seats.full) setAdding(true); });
   useOpenOnArrival('add-role', () => { if (canCreateRole && canViewRoles) setAddingRole(true); });
 
-  const addMember = (member: OrgMember) => {
+  const addMember = (member: OrgMember, { addAnother }: { addAnother: boolean }) => {
     directoryActions.addMember(member);
-    setAdding(false);
+    if (!addAnother) setAdding(false);
     fireToast({ type: 'success', message: `${member.fullName} was added to your organisation.` });
   };
 
-  const onDirtyChange = useCallback((dirty: boolean) => {
-    dirtyRef.current = dirty;
-  }, []);
+  const draftRole = draft ? roles.find((role) => role.id === draft.roleId) : undefined;
+  const unsavedChanges = draft && draftRole ? diffMatrices(draftRole.permissions, draft.matrix).length : 0;
 
   /** Switches the matrix to another role, asking first when edits to the current one would be lost. */
   const selectRole = useCallback(
-    async (roleId: string, scroll = false) => {
-      if (roleId !== permissionsRoleId && dirtyRef.current) {
+    async (roleId: string, open = false) => {
+      if (roleId !== permissionsRoleId && unsavedChanges > 0) {
         const ok = await confirm({ title: 'Discard unsaved changes?', description: 'You have unsaved permission changes. Switching roles discards them.', okText: 'Discard changes', variant: 'warning' });
         if (!ok) return;
-        dirtyRef.current = false;
+        setDraft(null);
       }
       setPermissionsRoleId(roleId);
-      if (scroll) showTab('permissions');
+      // Coming from a role (its row, its drawer, a new role) opens the matrix on that role's first area.
+      if (open) {
+        setPermissionsModule(null);
+        showTab('permissions');
+      }
     },
-    [confirm, permissionsRoleId, showTab],
+    [confirm, permissionsRoleId, setPermissionsRoleId, showTab, unsavedChanges],
   );
+
+  /** Creates the role (a copy of the chosen one's permissions) and opens the matrix on it, whichever tab the dialog was opened from. */
+  const createRole = (value: RoleDialogValue) => {
+    const source = roles.find((role) => role.id === value.copyFrom);
+    const id = directoryActions.createRole({ name: value.name, description: value.description, permissions: source?.permissions });
+    setAddingRole(false);
+    fireToast({ type: 'success', message: `Role “${value.name}” was added. Its permissions are open in the matrix.` });
+    void selectRole(id, true);
+  };
 
   const duplicateFromMatrix = (roleId: string) => {
     const id = directoryActions.duplicateRole(roleId);
@@ -124,7 +142,7 @@ export function UserManagementPage() {
           label="User management sections"
           activeId={tab}
           onChange={(id) => showTab(id as UsersTab)}
-          items={[{ id: 'members', label: 'Members', count: members.length }, { id: 'roles', label: 'Roles', count: roles.length }, { id: 'permissions', label: 'Permissions' }]}
+          items={[{ id: 'members', label: 'Members', count: members.length }, { id: 'roles', label: 'Roles', count: roles.length }, { id: 'permissions', label: 'Permissions', hint: unsavedChanges > 0 ? 'Unsaved' : undefined }]}
         />
       )}
 
@@ -169,8 +187,6 @@ export function UserManagementPage() {
               roles={roles}
               members={members}
               onEditPermissions={(roleId) => void selectRole(roleId, true)}
-              adding={addingRole}
-              onCloseAdd={() => setAddingRole(false)}
             />
           </div>
         </section>
@@ -183,18 +199,29 @@ export function UserManagementPage() {
               <h2 className="mv-section-title" id="permissions-title">Permissions</h2>
               <p className="mv-muted">Choose a role to see, and for custom roles change, what it can do in each part of Mavera.</p>
             </div>
+            {canCreateRole && (
+              <button type="button" className="mv-secondary-button" onClick={() => setAddingRole(true)}>
+                <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />
+                Add role
+              </button>
+            )}
           </div>
           <div className="mv-panel">
             <PermissionsSection
               roles={roles}
               selectedRoleId={permissionsRoleId}
               onSelectRole={(roleId) => void selectRole(roleId)}
-              onDirtyChange={onDirtyChange}
+              draft={draft}
+              onDraftChange={setDraft}
+              moduleId={permissionsModule}
+              onModuleChange={setPermissionsModule}
               onDuplicate={duplicateFromMatrix}
             />
           </div>
         </section>
       )}
+
+      {addingRole && canCreateRole && canViewRoles && <RoleDialog roles={roles} onCancel={() => setAddingRole(false)} onSave={createRole} />}
 
       {adding && canCreateUser && (
         <AddUserDialog members={members} seats={seats} providers={visibleProviders} roles={roles} onCancel={() => setAdding(false)} onAdd={addMember} />

@@ -155,12 +155,33 @@ describe('members', () => {
     const user = setup();
     await user.click(screen.getByRole('button', { name: 'Add user' }));
     const dialog = screen.getByRole('dialog', { name: 'Add user' });
-    await user.type(within(dialog).getByLabelText('Full name'), 'Nina Patel');
+    await user.type(within(dialog).getByLabelText(/Full name/), 'Nina Patel');
     await user.type(within(dialog).getByLabelText('Work email'), 'nina@maitsys.com');
-    await pickRole(user, /^Role/, 'SAP Operator (custom)', dialog);
+    await user.click(within(within(dialog).getByRole('group', { name: 'Role' })).getByRole('button', { name: 'SAP Operator (custom)' }));
     await user.click(within(dialog).getByRole('button', { name: 'Add user' }));
     expect(screen.getByRole('button', { name: 'Role for Nina Patel' })).toHaveTextContent('SAP Operator');
     expect(lastAudit()).toMatchObject({ action: 'User added', target: 'nina@maitsys.com' });
+  });
+
+  it('adds a user from the e-mail address alone, and the next person from the same dialog with the same role', async () => {
+    const user = setup();
+    const addedBefore = auditRepository.getSnapshot().filter((event) => event.action === 'User added').length;
+    await user.click(screen.getByRole('button', { name: 'Add user' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add user' });
+    const roles = within(within(dialog).getByRole('group', { name: 'Role' }));
+    await user.click(roles.getByRole('button', { name: 'Analyst' }));
+    await user.click(within(dialog).getByLabelText('Add another user after this one'));
+    await user.type(within(dialog).getByLabelText('Work email'), 'omar.haddad@maitsys.com{Enter}');
+    expect(screen.getByRole('dialog', { name: 'Add user' })).toBeInTheDocument();
+    await user.keyboard('lena.fischer@maitsys.com{Enter}');
+    await user.click(within(dialog).getByRole('button', { name: 'Done' }));
+    expect(screen.queryByRole('dialog', { name: 'Add user' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Role for Omar Haddad' })).toHaveTextContent('Analyst');
+    expect(screen.getByRole('button', { name: 'Role for Lena Fischer' })).toHaveTextContent('Analyst');
+    expect(auditRepository.getSnapshot().filter((event) => event.action === 'User added')).toHaveLength(addedBefore + 2);
+    // The role is remembered: the next Add user opens on Analyst.
+    await user.click(screen.getByRole('button', { name: 'Add user' }));
+    expect(within(screen.getByRole('group', { name: 'Role' })).getByRole('button', { name: 'Analyst' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('is read-only for a role without Edit on User Management', () => {
@@ -197,6 +218,7 @@ describe('roles', () => {
     expect(within(dialog).getByRole('alert')).toHaveTextContent(/already exists/);
     await user.clear(within(dialog).getByLabelText(/Role name/));
     await user.type(within(dialog).getByLabelText(/Role name/), 'FinOps');
+    expect(within(dialog).getByRole('button', { name: /Start from/ })).toHaveTextContent('Copy of Analyst');
     await pickRole(user, /Start from/, 'Copy of Viewer', dialog);
     await user.click(within(dialog).getByRole('button', { name: 'Add role' }));
     expect(screen.queryByRole('dialog', { name: 'Add role' })).toBeNull();
@@ -210,6 +232,59 @@ describe('roles', () => {
     await user.click(screen.getByRole('tab', { name: /Permissions/ }));
     expect(screen.getByRole('button', { name: 'Role' })).toHaveTextContent('FinOps');
     expect(screen.getByRole('switch', { name: 'View: Dashboard' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('starts a new role as a copy of Analyst and opens the matrix on it, with nothing more to do', async () => {
+    const user = setup('roles');
+    await user.click(screen.getByRole('button', { name: 'Add role' }));
+    await user.type(within(screen.getByRole('dialog', { name: 'Add role' })).getByLabelText(/Role name/), 'Reviewer{Enter}');
+    expect(screen.queryByRole('dialog', { name: 'Add role' })).toBeNull();
+    expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Role' })).toHaveTextContent('Reviewer (custom)');
+    expect(screen.getByRole('heading', { level: 3, name: 'Dashboard' })).toBeInTheDocument();
+    await openModule(user, 'Budgets, alerts', 'Budgets');
+    // Analyst can manage budgets, so the copy can too without a single switch being touched.
+    expect(screen.getByRole('switch', { name: 'Edit: Budgets' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('adds a role from the Permissions tab too, and the matrix switches to it', async () => {
+    const user = setup('permissions');
+    await user.click(screen.getByRole('button', { name: 'Add role' }));
+    await user.type(within(screen.getByRole('dialog', { name: 'Add role' })).getByLabelText(/Role name/), 'From matrix{Enter}');
+    expect(screen.queryByRole('dialog', { name: 'Add role' })).toBeNull();
+    expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Role' })).toHaveTextContent('From matrix (custom)');
+    expect(lastAudit().action).toBe('Role created');
+  });
+
+  it('starts a role with no access when “Nothing” is chosen', async () => {
+    const user = setup('roles');
+    await user.click(screen.getByRole('button', { name: 'Add role' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add role' });
+    await user.type(within(dialog).getByLabelText(/Role name/), 'Blank');
+    await pickRole(user, /Start from/, 'Nothing (no access)', dialog);
+    await user.click(within(dialog).getByRole('button', { name: 'Add role' }));
+    expect(screen.getByRole('switch', { name: 'View: Dashboard' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('edits a role’s permissions straight from its row, opening the matrix on that role and its first area', async () => {
+    accessRepository.createRole({ id: 'role-budget-keeper', name: 'Budget Keeper', description: '', permissions: { budgets: ['VIEW'] }, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', updatedBy: 'Sarah Johnson' });
+    const user = setup('roles');
+    await user.click(screen.getByRole('button', { name: 'Edit permissions of Budget Keeper' }));
+    expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Role' })).toHaveTextContent('Budget Keeper (custom)');
+    expect(screen.getByRole('heading', { level: 3, name: 'Budgets' })).toBeInTheDocument();
+    await user.click(screen.getByRole('switch', { name: 'Edit: Budgets' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(lastAudit()).toMatchObject({ action: 'Permission matrix saved', target: 'Role · Budget Keeper' });
+  });
+
+  it('offers a built-in role’s permissions as view-only from its row', async () => {
+    const user = setup('roles');
+    expect(screen.queryByRole('button', { name: 'Edit permissions of Analyst' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'View permissions of Analyst' }));
+    expect(screen.getByRole('button', { name: 'Role' })).toHaveTextContent('Analyst');
+    expect(screen.getByRole('switch', { name: 'View: Dashboard' })).toBeDisabled();
   });
 
   it('edits a custom role’s name', async () => {
@@ -312,12 +387,61 @@ describe('permissions', () => {
     expect(screen.queryByRole('region', { name: 'Unsaved changes' })).toBeNull();
   });
 
+  it('keeps unsaved edits when you switch tab and come back, and flags them on the tab', async () => {
+    const user = setup('permissions');
+    await pickRole(user, 'Role', 'SAP Operator (custom)');
+    await openModule(user, 'Budgets, alerts', 'Budgets');
+    await user.click(screen.getByRole('switch', { name: 'Edit: Budgets' }));
+    expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveTextContent('Unsaved');
+    await user.click(screen.getByRole('tab', { name: /Members/ }));
+    expect(screen.getByRole('tab', { name: /Permissions/ })).toHaveTextContent('Unsaved');
+    await user.click(screen.getByRole('tab', { name: /Permissions/ }));
+    expect(screen.getByRole('button', { name: 'Role' })).toHaveTextContent('SAP Operator');
+    expect(screen.getByRole('heading', { level: 3, name: 'Budgets' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Edit: Budgets' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('region', { name: 'Unsaved changes' })).toHaveTextContent('2 unsaved changes');
+    await user.click(within(screen.getByRole('region', { name: 'Unsaved changes' })).getByRole('button', { name: 'Save changes' }));
+    expect(screen.getByRole('tab', { name: /Permissions/ })).not.toHaveTextContent('Unsaved');
+  });
+
   it('explains the Owner role and shows ownership transfer as Owner-only', async () => {
     const user = setup('permissions');
     await pickRole(user, 'Role', 'Owner');
     expect(screen.getByRole('note')).toHaveTextContent(/always holds every permission/);
     await openModule(user, 'Administration', 'Ownership transfer');
     expect(screen.getByRole('switch', { name: 'Edit: Ownership transfer' })).toBeDisabled();
+  });
+});
+
+describe('UserManagementPage: remembers the last tab', () => {
+  const visit = (url: string) => render(
+    <MemoryRouter initialEntries={[url]}>
+      <ConfirmProvider>
+        <AccessProvider><UserManagementPage /></AccessProvider>
+      </ConfirmProvider>
+    </MemoryRouter>,
+  );
+
+  it('reopens the tab last used when /users is reached without a hash, and a hash in the URL still wins', async () => {
+    const user = userEvent.setup();
+    const first = visit('/users');
+    expect(screen.getByRole('tab', { name: /^Members/ })).toHaveAttribute('aria-selected', 'true');
+    await user.click(screen.getByRole('tab', { name: /^Roles/ }));
+    first.unmount();
+    const second = visit('/users');
+    expect(screen.getByRole('tab', { name: /^Roles/ })).toHaveAttribute('aria-selected', 'true');
+    second.unmount();
+    visit('/users#members');
+    expect(screen.getByRole('tab', { name: /^Members/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('reopens the matrix on the role last chosen', async () => {
+    const user = userEvent.setup();
+    const first = visit('/users#permissions');
+    await pickRole(user, 'Role', 'SAP Operator (custom)');
+    first.unmount();
+    visit('/users#permissions');
+    expect(screen.getByRole('button', { name: 'Role' })).toHaveTextContent('SAP Operator');
   });
 });
 

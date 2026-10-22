@@ -8,6 +8,7 @@ import { NotificationsDrawer } from './NotificationsDrawer';
 import { ProfileMenu } from './ProfileMenu';
 import { formatBadgeCount, useNotifications } from './notifications';
 import { AssistantWidget } from '../../features/assistant';
+import { ConnectDialogHost } from '../../features/workspace';
 import { RouteAccessGuard } from '../../features/access';
 import { productModuleFor, routeModuleFor } from '../router/route-manifest';
 import { ModuleNotSubscribed } from './ModuleNotSubscribed';
@@ -101,6 +102,7 @@ export function AppShell() {
       {overlay === 'mobile-nav' && <MobileNav onClose={close} />}
       {overlay === 'search' && <SearchDialog onClose={close} />}
       {overlay === 'notifications' && <NotificationsDrawer onClose={close} notifications={notifications} />}
+      <ConnectDialogHost />
       <AssistantWidget />
     </div>
   );

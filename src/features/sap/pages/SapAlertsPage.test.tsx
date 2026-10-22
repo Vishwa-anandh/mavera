@@ -36,6 +36,16 @@ describe('SapAlertsPage', () => {
     expect(screen.queryByRole('tab', { name: /HANA Monitoring|SAP Monitoring/ })).not.toBeInTheDocument(); // the source switch is a toggle, not a tab
   });
 
+  it('keeps the source, status and type in the URL, so a link restores them', async () => {
+    const user = userEvent.setup();
+    renderPage('/?source=HANA&status=resolved#alerts');
+    expect(screen.getByRole('button', { name: 'HANA Monitoring' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^Status/ })).toHaveTextContent('Resolved');
+    await user.click(screen.getByRole('button', { name: 'SAP Monitoring' }));
+    expect(screen.getByRole('button', { name: 'SAP Monitoring' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^Status/ })).toHaveTextContent('Resolved');
+  });
+
   it('filters by every alert type, including the ones that were missing', async () => {
     const user = userEvent.setup();
     renderPage();

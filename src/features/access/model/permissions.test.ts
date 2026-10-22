@@ -8,6 +8,7 @@ import {
   countGrants,
   defaultMatrix,
   diffMatrices,
+  firstGrantedModuleId,
   hasAnyView,
   isColumnFullyGranted,
   isRowFullyGranted,
@@ -246,5 +247,17 @@ describe('modules type', () => {
   it('keeps ModuleId assignable from registry ids', () => {
     const id: ModuleId = 'audit';
     expect(moduleById(id)?.label).toBe('Audit Trail');
+  });
+});
+
+describe('firstGrantedModuleId', () => {
+  it('opens on the first module the role holds any grant on', () => {
+    expect(firstGrantedModuleId({ budgets: ['VIEW'], 'sap.jobs': ['VIEW'] })).toBe('budgets');
+    expect(firstGrantedModuleId(byId('viewer').permissions)).toBe('dashboard');
+  });
+
+  it('falls back to the first module when the role holds nothing', () => {
+    expect(firstGrantedModuleId({})).toBe(MODULES[0].id);
+    expect(firstGrantedModuleId({ budgets: [] })).toBe(MODULES[0].id);
   });
 });

@@ -68,7 +68,8 @@ describe('ModuleNavigation', () => {
     // Reports and Billing live inside the Cloud Cost dropdown, not at the top level.
     expect(screen.queryByText('Reports')).not.toBeInTheDocument();
     expect(screen.queryByText('Billing')).not.toBeInTheDocument();
-    expect(screen.queryByText('AI Assistant')).not.toBeInTheDocument();
+    // The AI Assistant is one click away in the header (it was only a floating widget before).
+    expect(screen.getByRole('link', { name: 'AI Assistant' })).toHaveAttribute('href', '/ai-assistant');
     expect(screen.queryByText('Administration')).not.toBeInTheDocument();
   });
 

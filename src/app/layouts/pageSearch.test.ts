@@ -40,6 +40,25 @@ describe('page search', () => {
     expect(searchPages(memberIndex, 'user management')).toEqual([]);
   });
 
+  it('finds All Alerts, Invoices and the AI Assistant in the menus they now sit in, with where to find them', () => {
+    expect(searchPages(index, 'alerts').find((p) => p.path === '/alerts')).toMatchObject({ label: 'All Alerts', where: 'Cloud Cost › Governance' });
+    expect(searchPages(index, 'invoices').find((p) => p.path === '/invoices')).toMatchObject({ label: 'Invoices', where: 'Cloud Cost › Billing & reports' });
+    expect(searchPages(index, 'assistant').find((p) => p.path === '/ai-assistant')).toMatchObject({ label: 'AI Assistant', where: 'Across modules' });
+    expect(labels('copilot')).toContain('AI Assistant');
+    expect(labels('upload bill')).toContain('Invoices');
+  });
+
+  it('keeps All alerts and the AI Assistant searchable when Cloud Cost is not subscribed (they fall back to the extras)', () => {
+    const entries = resolveNav(derivePermissions(admin, ['azure'], false), {
+      features: { budgets: true, smartAlerts: true, syncLogs: true, recommendations: true, cloudManagement: true, invoices: true },
+      invoiceOnly: false,
+      modules: { cloudCost: false, sapMonitoring: true },
+    });
+    const noCloud = buildPageIndex(entries);
+    expect(searchPages(noCloud, 'alerts').map((p) => p.path)).toContain('/alerts');
+    expect(searchPages(noCloud, 'invoices').map((p) => p.path)).not.toContain('/invoices');
+  });
+
   it('returns nothing for an empty query', () => {
     expect(searchPages(index, '   ')).toEqual([]);
   });

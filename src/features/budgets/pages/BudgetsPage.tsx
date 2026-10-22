@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { budgetsRepository } from '../../../data-access';
 import { useAuth } from '../../auth';
@@ -13,6 +13,7 @@ import { useHashTab } from '../../../shared/lib/useHashTab';
 import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { AddChannelDialog, type NewChannelValues } from '../components/AddChannelDialog';
 import { channelsForNewBudget, channelsNotifiedFor, channelSummary, linkedBudgetNames, providerLabel } from '../model/budgetChannels';
+import { useBudgetSuggestion } from '../model/useBudgetSuggestion';
 import type { AlertChannel, Budget } from '../model/budgetsTypes';
 
 function formatCurrency(value: number): string {
@@ -42,6 +43,9 @@ export function BudgetsPage() {
   const [channels, setChannels] = useState<AlertChannel[]>(() => budgetsRepository.listChannels());
   const [cloudAccounts] = useState(() => budgetsRepository.listCloudAccounts());
   const [budgetForm, setBudgetForm] = useState(emptyBudgetForm);
+  // The name starts as a free suggestion; once the person types their own it is left alone.
+  const [nameEdited, setNameEdited] = useState(false);
+  const suggestion = useBudgetSuggestion(budgets.map((b) => b.name));
   const [alsoNotify, setAlsoNotify] = useState<string[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tab, showTab] = useHashTab(TABS);
@@ -49,6 +53,10 @@ export function BudgetsPage() {
   // Ctrl+K "Add budget" focuses the create form's name; "Add notification channel" opens the Add channel dialog.
   useOpenOnArrival('new', () => nameRef.current?.focus());
   useOpenOnArrival('add-channel', () => { if (canManageBudgets) setDialogOpen(true); });
+
+  useEffect(() => {
+    if (!nameEdited) setBudgetForm((form) => (form.name === suggestion.name ? form : { ...form, name: suggestion.name }));
+  }, [nameEdited, suggestion.name]);
 
   const refresh = () => {
     setBudgets(budgetsRepository.listBudgets());
@@ -72,6 +80,7 @@ export function BudgetsPage() {
     });
     fireToast({ type: 'success', message: willNotify.length > 0 ? `Budget created. Alerts will notify ${willNotify.length} channel${willNotify.length === 1 ? '' : 's'}.` : 'Budget created. No channel is set up to notify yet.' });
     setBudgetForm(emptyBudgetForm);
+    setNameEdited(false);
     setAlsoNotify([]);
     refresh();
   };
@@ -107,7 +116,9 @@ export function BudgetsPage() {
 
   return (
     <div>
-      <PageHeader title={<>Budgets & Alerts</>} subtitle="Manage your spending limits and the channels that carry their alerts." />
+      <PageHeader title={<>Budgets & Alerts</>} subtitle="Manage your spending limits and the channels that carry their alerts.">
+        {canManageBudgets && <button type="button" className="mv-primary-button" onClick={() => setDialogOpen(true)}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add channel</button>}
+      </PageHeader>
 
       <TabBar
         idPrefix="budgets"
@@ -130,7 +141,7 @@ export function BudgetsPage() {
             <div className="mv-panel-header"><h3 id="create-budget-title" className="mv-panel-title">Create New Budget</h3></div>
             {canManageBudgets ? (
               <form onSubmit={createBudget}>
-                <label className="mv-field">Budget Name<input ref={nameRef} required value={budgetForm.name} onChange={(e) => setBudgetForm({ ...budgetForm, name: e.target.value })} placeholder="e.g. Q3 Engineering" /></label>
+                <label className="mv-field">Budget Name<input ref={nameRef} data-tour="budget-name" required value={budgetForm.name} onFocus={(e) => { if (!nameEdited) e.currentTarget.select(); }} onChange={(e) => { setNameEdited(true); setBudgetForm({ ...budgetForm, name: e.target.value }); }} placeholder="e.g. Q3 Engineering" /></label>
                 <Select
                   label="Budget Scope"
                   style={{ height: '2.75rem' }}
@@ -151,7 +162,13 @@ export function BudgetsPage() {
                     options={[{ value: '', label: '-- Choose Account --' }, ...cloudAccounts.map((a) => ({ value: a.id, label: a.name }))]}
                   />
                 )}
-                <label className="mv-field">Target Amount ($)<input required type="number" step="0.01" min="0" value={budgetForm.target_amount} onChange={(e) => setBudgetForm({ ...budgetForm, target_amount: e.target.value })} placeholder="5000" /></label>
+                <label className="mv-field">Target Amount ($)<input data-tour="budget-amount" required type="number" step="0.01" min="0" value={budgetForm.target_amount} onChange={(e) => setBudgetForm({ ...budgetForm, target_amount: e.target.value })} placeholder={suggestion.amount !== null ? String(suggestion.amount) : '5000'} aria-describedby="budget-suggestion" /></label>
+                {suggestion.amount !== null && suggestion.basis && (
+                  <p id="budget-suggestion" className="mv-budget-suggestion">
+                    <button type="button" className="mv-secondary-button mv-budget-suggestion-use" onClick={() => setBudgetForm({ ...budgetForm, target_amount: String(suggestion.amount) })}>Use ${suggestion.amount.toLocaleString('en-US')}</button>
+                    <span className="mv-muted">{suggestion.basis}</span>
+                  </p>
+                )}
                 <label className="mv-field">Alert Threshold (%)<input required type="number" min={1} max={150} value={budgetForm.alert_threshold} onChange={(e) => setBudgetForm({ ...budgetForm, alert_threshold: e.target.value })} /></label>
 
                 <fieldset className="mv-fieldset" aria-describedby="notify-summary">
@@ -175,7 +192,7 @@ export function BudgetsPage() {
                   </p>
                 </fieldset>
 
-                <button className="mv-primary-button" type="submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Budget</button>
+                <button className="mv-primary-button" type="submit" data-tour="budget-submit" style={{ width: '100%' }}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add Budget</button>
               </form>
             ) : (
               <div className="mv-empty" style={{ margin: 0 }}>
@@ -226,9 +243,6 @@ export function BudgetsPage() {
             <h2 className="mv-section-title">Alert integrations</h2>
             <p className="mv-muted">Where budget alerts are sent. A global channel hears about every budget; a budget-based one only about the budgets it is tied to.</p>
           </div>
-          {canManageBudgets && channels.length > 0 && (
-            <button type="button" className="mv-primary-button" onClick={() => setDialogOpen(true)}><PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Add channel</button>
-          )}
         </div>
 
         {channels.length === 0 ? (
@@ -269,7 +283,7 @@ export function BudgetsPage() {
       </section>
       )}
 
-      {dialogOpen && <AddChannelDialog budgets={budgets} onAdd={addChannel} onClose={() => setDialogOpen(false)} />}
+      {dialogOpen && <AddChannelDialog budgets={budgets} defaultEmail={user?.email} onAdd={addChannel} onClose={() => setDialogOpen(false)} />}
     </div>
   );
 }

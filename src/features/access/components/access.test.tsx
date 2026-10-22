@@ -90,6 +90,17 @@ describe('PermissionExplorer', () => {
     expect(screen.getByRole('switch', { name: 'View: Budgets' })).toHaveAttribute('aria-checked', 'false');
   });
 
+  it('can be told which module to show, and reports the module the user picks', async () => {
+    const user = userEvent.setup();
+    const picked: string[] = [];
+    render(<PermissionExplorer roleId="role-x" roleName="Test role" value={{}} selectedModuleId="budgets" onSelectModule={(id) => picked.push(id)} />);
+    expect(screen.getByRole('heading', { level: 3, name: 'Budgets' })).toBeInTheDocument();
+    await user.click(within(screen.getByRole('navigation', { name: /Modules for the Test role role/ })).getByRole('button', { name: /^Smart Alerts/ }));
+    expect(picked).toEqual(['smartAlerts']);
+    // Controlled: the parent decides, so the heading stays until it passes a new module.
+    expect(screen.getByRole('heading', { level: 3, name: 'Budgets' })).toBeInTheDocument();
+  });
+
   it('is read-only for system roles: switches are disabled and no grant-all control appears', () => {
     render(<Harness roleId="viewer" readOnly initial={defaultMatrix('viewer')} />);
     expect(screen.getByRole('switch', { name: 'View: Dashboard' })).toBeDisabled();

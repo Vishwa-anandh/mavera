@@ -19,6 +19,16 @@ describe('invoicesRepository', () => {
     expect(repo.list()).toHaveLength(9);
   });
 
+  it('restores a deleted invoice to its old place, once', () => {
+    const before = repo.list();
+    const third = before[2];
+    repo.remove(third.id);
+    expect(repo.list().map((i) => i.id)).not.toContain(third.id);
+    repo.restore(third, 2);
+    repo.restore(third, 0);
+    expect(repo.list().map((i) => i.id)).toEqual(before.map((i) => i.id));
+  });
+
   it('keeps one CSP rate per provider, Google Cloud included', () => {
     expect(CSP_DISCOUNT_RATES).toEqual({ azure: 0.07, aws: 0.035, btp: 0.02, gcp: 0.035 });
   });

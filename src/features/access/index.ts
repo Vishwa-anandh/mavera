@@ -13,7 +13,7 @@ export type { ModuleDefinition, ModuleGroupId, ModuleId, PermissionAction } from
 export {
   OWNER_ROLE_ID, ROLE_DESCRIPTION_MAX, ROLE_NAME_MAX, SYSTEM_ROLE_IDS,
   can, cellState, cloneMatrix, cloneName, countGrants, customRoleToAccessRole, defaultMatrix, describeChange, describeModuleGrants,
-  diffMatrices, hasAnyView, isApplicable, isRestricted, isSystemRoleId, matricesEqual, normalizeMatrix, sanitizeMatrix,
+  diffMatrices, firstGrantedModuleId, hasAnyView, isApplicable, isRestricted, isSystemRoleId, matricesEqual, normalizeMatrix, sanitizeMatrix,
   summarizeDiff, systemRoles, toGrants, totalGrantable, validateRoleForm,
 } from './model/permissions';
 export type { AccessRole, CellState, PermissionChange, PermissionMatrix as PermissionMatrixValue, RoleFormErrors, RoleFormInput, SystemRoleId } from './model/permissions';

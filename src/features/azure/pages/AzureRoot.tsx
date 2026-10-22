@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
+import { useConnectOnArrival } from '../../workspace';
 import { AzureOverallDashboard } from './AzureOverallDashboard';
 import { AzureAccountManager } from './AzureAccountManager';
 import type { AzureAccount } from '../model/azureTypes';
@@ -18,8 +18,8 @@ type AzureView = 'dashboard' | 'accounts';
 export function AzureRoot() {
   const [view, setView] = useState<AzureView>('dashboard');
   const navigate = useNavigate();
-  // A "connect" request opens the account manager; the manager then opens the form (and clears the request).
-  useOpenOnArrival('connect', () => setView('accounts'), { consume: false });
+  // A "connect" request (Ctrl+K, a deep link) opens the shared connect dialog over whichever view is showing.
+  useConnectOnArrival('azure');
 
   if (view === 'accounts') {
     return (

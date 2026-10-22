@@ -12,7 +12,7 @@ export type {
 export type { HanaService, HanaSystem, HanaVitalPoint, SapAlertRecord, SapCondition, SapDiskMount, SapDump, SapJob, SapPerformanceSnapshot, SapSecurityNoteSummary, SapSystem } from './contracts/sap';
 export { resetSapAdminStore, sapAdminRepository, setSapAdminLatency } from './repositories/sapAdminRepository';
 export type {
-  AlertSettings, AlertThresholdConfig, AlertThresholds, NoteCheckResult, NoteDownloadStatus, NoteHistoryEntry, NoteHistoryKind, NoteUploadResult,
+  AlertSettings, AlertThresholdConfig, AlertThresholds, NoteCheckResult, NoteDownloadStatus, NoteHistoryEntry, NoteHistoryKind, NoteRemoval, NoteUploadResult,
   SapAlertSeverity, SapAlertSource, SapAlertState, SapAlertType, SapConnectionType, SapDestination, SapDestinationInput, SapSmartAlert, SapTransport,
   SecurityNote, SecurityNotePriority, SecurityNoteStatus, TransportActivity, TransportLogLevel, TransportLogType, TransportState, TransportStatus,
 } from './contracts/sapAdmin';
@@ -47,7 +47,7 @@ export type { RecommendationInputs } from './repositories/cloudSamplesRepository
 export { getWorkspaceProfile, isEmptyWorkspace, setWorkspaceProfile } from './repositories/workspaceProfile';
 export type {
   AwsAccountRecord, AzureAccountRecord, BtpAccountRecord, GcpAccountRecord, NewWorkspaceAccount, OnboardingState, OnboardingStep, OnboardingStepId,
-  WorkspaceAccountRecord, WorkspaceAccountsByProvider, WorkspaceProfile, WorkspaceProvider, WorkspaceSampleSpend,
+  WorkspaceAccountRecord, WorkspaceAccountsByProvider, WorkspaceProfile, WorkspaceProgressSignals, WorkspaceProvider, WorkspaceSampleSpend,
 } from './contracts/workspace';
 export { activityRepository } from './repositories/activityRepository';
 export type { BtpSecurityAssessment, BtpSecurityUser, GlobalAlertModule, GlobalAlertRow, GlobalAlertSeverity, SyncLogRecord } from './contracts/alerts';

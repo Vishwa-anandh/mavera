@@ -11,7 +11,10 @@ export interface PageResult {
   keywords: string;
 }
 
-/** Pages reachable outside the module menus (header utilities, profile, dashboard links). */
+/**
+ * Pages reachable outside the module menus (header utilities, profile, dashboard links). All alerts and the AI Assistant
+ * are in the menus too; they stay here for an organisation whose Cloud Cost module is off, which hides the menu entry.
+ */
 const EXTRA_PAGES: Array<PageResult & { module?: ModuleId }> = [
   { key: 'alerts', label: 'All alerts', path: '/alerts', where: 'Across modules', locked: false, keywords: 'alarms incidents critical warnings' },
   { key: 'ai-assistant', label: 'AI Assistant', path: '/ai-assistant', where: 'Across modules', locked: false, keywords: 'ask chat help copilot', module: 'assistant' },
@@ -27,7 +30,7 @@ export function buildPageIndex(entries: ResolvedNavEntry[], canView?: (module: M
   const pages: PageResult[] = [];
   for (const entry of entries) {
     if (entry.type === 'leaf') {
-      pages.push({ key: entry.key, label: entry.label, path: entry.path, where: 'Home', locked: entry.locked, keywords: '' });
+      pages.push({ key: entry.key, label: entry.label, path: entry.path, where: entry.path === '/' ? 'Home' : 'Across modules', locked: entry.locked, keywords: entry.keywords ?? '' });
       continue;
     }
     for (const leaf of entry.children) {

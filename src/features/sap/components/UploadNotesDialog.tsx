@@ -1,4 +1,5 @@
 import { useId, useRef, useState, type ChangeEvent } from 'react';
+import { useRememberedState } from '../../../shared/lib/useRememberedState';
 import { CloseIcon, UploadIcon } from '../../../shared/ui/icons';
 import { useModalOverlay } from '../../../shared/ui/useOverlay';
 import { NOTE_FILE_HELP, noteFileProblem, parseNoteFile, parseNoteNumbers } from '../model/securityNotes';
@@ -24,7 +25,8 @@ interface UploadNotesDialogProps {
   trackedNumbers: string[];
   busy: boolean;
   onClose: () => void;
-  onSubmit: (numbers: string[]) => void;
+  /** `checkAfter`: also run Check Status once the numbers are added. */
+  onSubmit: (numbers: string[], checkAfter: boolean) => void;
 }
 
 /** Add SAP note numbers to track: typed or pasted (commas, spaces or line breaks), or read from a .csv or .txt file on the device. */
@@ -37,6 +39,8 @@ export function UploadNotesDialog({ trackedNumbers, busy, onClose, onSubmit }: U
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
   const [fileOutcome, setFileOutcome] = useState<FileOutcome | null>(null);
+  // On by default and remembered: new numbers are Unknown until SAP is asked, so checking them is the usual next step.
+  const [checkAfter, setCheckAfter] = useRememberedState<boolean>('sap', 'security-notes-check-after-upload', true);
   const parsed = parseNoteNumbers(text, trackedNumbers);
   const usable = parsed.fresh.length + parsed.tracked.length;
   const invalidShown = parsed.invalid.slice(0, 4).join(', ') + (parsed.invalid.length > 4 ? `, and ${parsed.invalid.length - 4} more` : '');
@@ -79,7 +83,7 @@ export function UploadNotesDialog({ trackedNumbers, busy, onClose, onSubmit }: U
           <h2 className="mv-panel-title" id={titleId}>Upload security notes</h2>
           <button type="button" className="mv-icon-button" aria-label="Close" onClick={onClose}><CloseIcon size={18} /></button>
         </div>
-        <form onSubmit={(e) => { e.preventDefault(); if (usable > 0 && parsed.invalid.length === 0 && !busy) onSubmit([...parsed.fresh, ...parsed.tracked]); }}>
+        <form onSubmit={(e) => { e.preventDefault(); if (usable > 0 && parsed.invalid.length === 0 && !busy) onSubmit([...parsed.fresh, ...parsed.tracked], checkAfter); }}>
           <label className="mv-field">
             Note numbers
             <textarea
@@ -103,7 +107,11 @@ export function UploadNotesDialog({ trackedNumbers, busy, onClose, onSubmit }: U
           <p className={fileOutcome?.tone === 'error' ? 'mv-field-error' : 'mv-muted mv-upload-summary'} role={fileOutcome?.tone === 'error' ? 'alert' : 'status'} aria-live="polite" hidden={fileOutcome === null}>{fileOutcome?.message}</p>
           {parsed.invalid.length > 0 && <p className="mv-field-error" id={errorId} role="alert">Not a note number: {invalidShown}. Fix or remove {parsed.invalid.length === 1 ? 'it' : 'them'} to continue.</p>}
           <p className="mv-muted mv-upload-summary" aria-live="polite">{summary || 'Nothing to upload yet.'}</p>
-          <div className="mv-notice">Sample data: SAP is not contacted. New notes are added as Unknown with the SAP download pending until you run Check Status.</div>
+          <label className="mv-check-row mv-check-after">
+            <input type="checkbox" checked={checkAfter} onChange={(e) => setCheckAfter(e.target.checked)} />
+            <span>Check status after upload</span>
+          </label>
+          <div className="mv-notice">Sample data: SAP is not contacted. {checkAfter ? 'New notes are checked against SAP as soon as they are added.' : 'New notes are added as Unknown with the SAP download pending until you run Check Status.'}</div>
           <div className="mv-dialog-actions">
             <button type="button" className="mv-secondary-button" onClick={onClose}>Cancel</button>
             <button type="submit" className="mv-primary-button" disabled={usable === 0 || parsed.invalid.length > 0 || busy}>

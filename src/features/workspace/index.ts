@@ -1,10 +1,22 @@
-/* Public API of the workspace feature: live views of the organisation's connected accounts, and the shared "nothing connected yet" pieces. */
+/* Public API of the workspace feature: live views of the organisation's connected accounts, the shared "nothing connected yet" pieces and the one dialog that connects anything. */
 export { NothingConnected } from './components/NothingConnected';
 export { SampleDataBadge } from './components/SampleDataBadge';
-export { CONNECT_TARGETS, firstConnectTarget } from './model/connectTargets';
+export { ConnectAccountDialog, CONNECT_DELAY_MS } from './components/ConnectAccountDialog';
+export type { ConnectAccountDialogProps } from './components/ConnectAccountDialog';
+export { ConnectDialogHost } from './components/ConnectDialogHost';
+export { closeConnectDialog, openConnectDialog, useConnectDialog } from './model/connectDialogStore';
+export type { ConnectDialogOptions } from './model/connectDialogStore';
+export { useConnectOnArrival } from './model/useConnectOnArrival';
+export { accountPath, connectAccount } from './model/connectAccount';
+export type { ConnectedAccount } from './model/connectAccount';
+export { CONNECT_PROVIDERS, CONNECT_PROVIDER_ORDER, sampleCredentials, validateConnection, validateCredentials } from './model/connectProviders';
+export type { ConnectProvider } from './model/connectProviders';
+export { CONNECT_TARGETS, firstConnectTarget, openConnectTarget } from './model/connectTargets';
 export type { ConnectTargetKey } from './model/connectTargets';
 export { useConnectedAccountCount, useConnectedProviders, useHasSampleAccounts, useOnboarding, useWorkspaceAccounts, useWorkspaceVersion } from './model/useWorkspace';
 export { useCloudEmpty, useConnectionStatus } from './model/useConnectionStatus';
 export type { ConnectionStatus } from './model/useConnectionStatus';
-export { addAccountFromWizard } from './model/addAccountFromWizard';
-export type { WizardPayload } from './model/addAccountFromWizard';
+export { OnboardingCard } from './components/OnboardingCard';
+export { onboardingProgressOf } from './model/onboardingProgress';
+export type { OnboardingProgress } from './model/onboardingProgress';
+export { useOnboardingProgress, useShowChecklist } from './model/useOnboardingProgress';

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import {
@@ -24,7 +24,7 @@ import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { ServerIcon, CloudIcon } from '../../../shared/ui/icons';
-import { CONNECT_TARGETS, useConnectionStatus, useHasSampleAccounts } from '../../workspace';
+import { CONNECT_TARGETS, OnboardingCard, openConnectTarget, useConnectionStatus, useHasSampleAccounts } from '../../workspace';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -69,9 +69,8 @@ export function HomePage() {
 
   const sap = useSapFleetSnapshot();
   const cloud = useCloudAttentionSources();
-  const navigate = useNavigate();
   // A brand-new organisation has nothing connected: its modules show an empty state instead of sample figures.
-  const { cloudEmpty, sapEmpty, nothingConnected, firstStep } = useConnectionStatus();
+  const { cloudEmpty, sapEmpty, nothingConnected, firstStep, connectFirst } = useConnectionStatus();
   const hasSampleAccounts = useHasSampleAccounts();
   const sapCounts = sap.counts;
   const noCloudAccessAtAll = !permissions.azure.orgHasAccess && !permissions.aws.orgHasAccess && !permissions.btp.orgHasAccess && !permissions.gcp.orgHasAccess;
@@ -136,6 +135,7 @@ export function HomePage() {
         features={['Cost visibility across Azure, AWS, GCP and SAP BTP', 'Optimisation recommendations', 'Budgets and smart alerts']}
         actionLabel={cloudEmpty ? CONNECT_TARGETS.cloud.label : 'Open Cost Overview'}
         actionPath={cloudEmpty ? CONNECT_TARGETS.cloud.path : '/cloud/overview'}
+        onAction={cloudEmpty ? () => openConnectTarget('cloud') : undefined}
       />
     ),
     modules.sapMonitoring && (
@@ -152,6 +152,7 @@ export function HomePage() {
         ]}
         actionLabel={sapEmpty ? CONNECT_TARGETS.sap.label : 'Open SAP System Monitoring'}
         actionPath={sapEmpty ? CONNECT_TARGETS.sap.path : '/sap/systems'}
+        onAction={sapEmpty ? () => openConnectTarget('sap') : undefined}
       />
     ),
   ].filter(Boolean);
@@ -164,7 +165,7 @@ export function HomePage() {
           <Link className="mv-quiet-button" to="/sap/systems">View all</Link>
         </div>
         {sapEmpty ? (
-          <p className="mv-muted">No SAP system is connected yet. <Link to={CONNECT_TARGETS.sap.path}>{CONNECT_TARGETS.sap.label}</Link> to see its health here.</p>
+          <p className="mv-muted">No SAP system is connected yet. <Link to={CONNECT_TARGETS.sap.path} onClick={(event) => { event.preventDefault(); openConnectTarget('sap'); }}>{CONNECT_TARGETS.sap.label}</Link> to see its health here.</p>
         ) : (
           <SapSystemsPanel limit={5} showCounts={false} compact />
         )}
@@ -177,7 +178,7 @@ export function HomePage() {
           <Link className="mv-quiet-button" to="/cloud/overview">View all</Link>
         </div>
         {cloudEmpty ? (
-          <p className="mv-muted">No cloud account is connected yet. <Link to={CONNECT_TARGETS.cloud.path}>{CONNECT_TARGETS.cloud.label}</Link> to see spend by provider here.</p>
+          <p className="mv-muted">No cloud account is connected yet. <Link to={CONNECT_TARGETS.cloud.path} onClick={(event) => { event.preventDefault(); openConnectTarget('cloud'); }}>{CONNECT_TARGETS.cloud.label}</Link> to see spend by provider here.</p>
         ) : summary.data ? (
           <CostByProviderDonut totals={summary.data.totals ?? {}} />
         ) : (
@@ -199,6 +200,8 @@ export function HomePage() {
         </div>
         {summaryRows.length > 0 && <div className="mv-pulse-grid">{summaryRows}</div>}
       </section>
+
+      <OnboardingCard modules={modules} />
 
       <div className="mv-dashboard-layout">
         <DashboardSidebar />
@@ -254,7 +257,7 @@ export function HomePage() {
                 heading="Connect your first account"
                 explanation="Spend, alerts and system health from every module fill this dashboard as soon as one account or SAP system is connected."
                 actionLabel={firstStep.label}
-                onAction={() => navigate(firstStep.path)}
+                onAction={connectFirst}
               />
             </section>
           ) : (

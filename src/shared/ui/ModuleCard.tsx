@@ -26,6 +26,8 @@ export interface ModuleCardProps {
   features?: string[];
   actionLabel: string;
   actionPath: string;
+  /** Called on a plain click instead of following `actionPath` (e.g. to open a dialog in place); the link stays a real link, so a new-tab click still goes to `actionPath`. */
+  onAction?: () => void;
 }
 
 /**
@@ -33,7 +35,7 @@ export interface ModuleCardProps {
  * dashboard's operations pulse deck. Every module gets equal prominence and
  * the same colours; only status segments use red, amber or green.
  */
-export function ModuleCard({ title, icon: Icon, subscribed, metrics = [], meter, features = [], actionLabel, actionPath }: ModuleCardProps) {
+export function ModuleCard({ title, icon: Icon, subscribed, metrics = [], meter, features = [], actionLabel, actionPath, onAction }: ModuleCardProps) {
   return (
     <article className="mv-module-card">
       <div className="mv-module-card-header">
@@ -73,7 +75,7 @@ export function ModuleCard({ title, icon: Icon, subscribed, metrics = [], meter,
           ))}
         </ul>
       )}
-      <Link className="mv-module-card-action" to={actionPath}>
+      <Link className="mv-module-card-action" to={actionPath} onClick={onAction ? (event) => { event.preventDefault(); onAction(); } : undefined}>
         {actionLabel}
       </Link>
     </article>

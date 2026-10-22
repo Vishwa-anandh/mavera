@@ -1,6 +1,6 @@
 import { isEmptyWorkspace, sapRepository } from '../../../data-access';
 import { useAuth } from '../../auth';
-import { CONNECT_TARGETS, firstConnectTarget } from './connectTargets';
+import { CONNECT_TARGETS, firstConnectTarget, openConnectTarget } from './connectTargets';
 import { useConnectedAccountCount } from './useWorkspace';
 
 export interface ConnectionStatus {
@@ -12,6 +12,8 @@ export interface ConnectionStatus {
   nothingConnected: boolean;
   /** The one next step: connect the first account of the organisation's first subscribed module. */
   firstStep: (typeof CONNECT_TARGETS)[keyof typeof CONNECT_TARGETS];
+  /** Opens the shared connect dialog for that first step, in place. */
+  connectFirst: () => void;
 }
 
 /**
@@ -36,5 +38,5 @@ export function useConnectionStatus(): ConnectionStatus {
   const sapEmpty = brandNew && modules.sapMonitoring && !sapRepository.isConnected();
   const cloudHasData = modules.cloudCost && !cloudEmpty;
   const sapHasData = modules.sapMonitoring && !sapEmpty;
-  return { cloudEmpty, sapEmpty, nothingConnected: brandNew && !cloudHasData && !sapHasData, firstStep: firstConnectTarget(modules) };
+  return { cloudEmpty, sapEmpty, nothingConnected: brandNew && !cloudHasData && !sapHasData, firstStep: firstConnectTarget(modules), connectFirst: () => openConnectTarget(modules.cloudCost ? 'cloud' : 'sap') };
 }

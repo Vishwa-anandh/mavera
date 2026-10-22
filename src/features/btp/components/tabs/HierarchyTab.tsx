@@ -233,31 +233,31 @@ function DirectoryView({ dir, totalCost, currency, servicesBySubaccount, onOpenS
       <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Sub-Accounts</h2></div>
         <div className="mv-table-wrap">
-          <table className="mv-table">
+          <table className="mv-table mv-table--stack">
             <thead><tr><th>Subaccount</th><th>Region</th><th>State</th><th>Env Type</th><th className="mv-num">Services</th><th className="mv-num">MTD Cost</th><th aria-label="Open" /></tr></thead>
             <tbody>
               {dir.subaccounts.map((sub) => {
                 const svcCount = servicesBySubaccount.find((sa) => sa.subaccountGuid === sub.guid)?.services.length ?? 0;
                 return (
                   <tr key={sub.guid}>
-                    <td><strong>{sub.displayName}</strong><div className="mv-muted">{sub.subdomain}</div></td>
-                    <td>{btpRegionLabel(sub.region)}</td>
-                    <td><span className={`mv-status ${sub.state === 'OK' || sub.state === 'ACTIVE' ? 'mv-status--success' : 'mv-status--neutral'}`}>{sub.state}</span></td>
-                    <td>{sub.environmentType || sub.licenseType || '—'}</td>
-                    <td className="mv-num">{svcCount}</td>
-                    <td className="mv-num">
+                    <td data-label="Subaccount" className="mv-stack-title"><strong>{sub.displayName}</strong><div className="mv-muted">{sub.subdomain}</div></td>
+                    <td data-label="Region">{btpRegionLabel(sub.region)}</td>
+                    <td data-label="State"><span className={`mv-status ${sub.state === 'OK' || sub.state === 'ACTIVE' ? 'mv-status--success' : 'mv-status--neutral'}`}>{sub.state}</span></td>
+                    <td data-label="Env Type">{sub.environmentType || sub.licenseType || '—'}</td>
+                    <td data-label="Services" className="mv-num">{svcCount}</td>
+                    <td data-label="MTD Cost" className="mv-num">
                       {formatCurrency(sub.cost, currency)}
                       <div style={{ height: '0.25rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', marginTop: '0.25rem' }}>
                         <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${(sub.cost / maxCost) * 100}%`, background: 'var(--mv-primary)' }} />
                       </div>
                     </td>
-                    <td><button className="mv-quiet-button" onClick={() => onOpenSub(sub.guid)}>Open ›</button></td>
+                    <td data-label="Open"><button className="mv-quiet-button" onClick={() => onOpenSub(sub.guid)}>Open ›</button></td>
                   </tr>
                 );
               })}
             </tbody>
             <tfoot>
-              <tr><td colSpan={5} style={{ textAlign: 'right', fontWeight: 500 }}>Directory Total</td><td className="mv-num" style={{ fontWeight: 500 }}>{formatCurrency(dir.cost, currency)}</td><td /></tr>
+              <tr><td colSpan={5} className="mv-stack-title" style={{ textAlign: 'right', fontWeight: 500 }}>Directory Total</td><td data-label="MTD Cost" className="mv-num" style={{ fontWeight: 500 }}>{formatCurrency(dir.cost, currency)}</td><td /></tr>
             </tfoot>
           </table>
         </div>
@@ -328,31 +328,31 @@ function SubaccountView({ sub, dir, currency, servicesBySubaccount, globalServic
         <div className="mv-panel-header"><h2 className="mv-panel-title">Services / Instances</h2></div>
         {ownServices ? (
           <div className="mv-table-wrap">
-            <table className="mv-table">
+            <table className="mv-table mv-table--stack">
               <thead><tr><th>Service/Instance</th><th>Plan</th><th className="mv-num">Usage</th><th className="mv-num">MTD Cost</th><th className="mv-num">Share</th></tr></thead>
               <tbody>
                 {ownServices.services.map((svc) => (
                   <tr key={svc.name}>
-                    <td>{svc.name}</td>
-                    <td className="mv-code">{svc.planName ?? '—'}</td>
-                    <td className="mv-num">{svc.usage.toLocaleString()}{svc.unit ? ` ${svc.unit}` : ''}</td>
-                    <td className="mv-num">{formatCurrency(svc.cost, currency)}</td>
-                    <td className="mv-num">{ownServices.totalCost > 0 ? `${((svc.cost / ownServices.totalCost) * 100).toFixed(1)}%` : '—'}</td>
+                    <td data-label="Service/Instance" className="mv-stack-title">{svc.name}</td>
+                    <td data-label="Plan" className="mv-code">{svc.planName ?? '—'}</td>
+                    <td data-label="Usage" className="mv-num">{svc.usage.toLocaleString()}{svc.unit ? ` ${svc.unit}` : ''}</td>
+                    <td data-label="MTD Cost" className="mv-num">{formatCurrency(svc.cost, currency)}</td>
+                    <td data-label="Share" className="mv-num">{ownServices.totalCost > 0 ? `${((svc.cost / ownServices.totalCost) * 100).toFixed(1)}%` : '—'}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot><tr><td colSpan={3} style={{ textAlign: 'right', fontWeight: 500 }}>Subaccount Total</td><td className="mv-num" style={{ fontWeight: 500 }}>{formatCurrency(ownServices.totalCost, currency)}</td><td /></tr></tfoot>
+              <tfoot><tr><td colSpan={3} className="mv-stack-title" style={{ textAlign: 'right', fontWeight: 500 }}>Subaccount Total</td><td data-label="MTD Cost" className="mv-num" style={{ fontWeight: 500 }}>{formatCurrency(ownServices.totalCost, currency)}</td><td /></tr></tfoot>
             </table>
           </div>
         ) : (
           <>
             <div className="mv-notice" style={{ marginBottom: '0.75rem' }}>No per-subaccount service data in snapshot. Sync to reload — showing global services as reference.</div>
             <div className="mv-table-wrap">
-              <table className="mv-table">
+              <table className="mv-table mv-table--stack">
                 <thead><tr><th>Service</th><th className="mv-num">Cost</th><th className="mv-num">Share</th></tr></thead>
                 <tbody>
                   {[...globalServices].sort((a, b) => b.cost - a.cost).slice(0, 10).map((svc) => (
-                    <tr key={svc.name}><td>{svc.name}</td><td className="mv-num">{formatCurrency(svc.cost, currency)}</td><td className="mv-num">—</td></tr>
+                    <tr key={svc.name}><td data-label="Service" className="mv-stack-title">{svc.name}</td><td data-label="Cost" className="mv-num">{formatCurrency(svc.cost, currency)}</td><td data-label="Share" className="mv-num">—</td></tr>
                   ))}
                 </tbody>
               </table>
@@ -369,16 +369,16 @@ function SubaccountView({ sub, dir, currency, servicesBySubaccount, globalServic
           <p className="mv-muted">No instances found.</p>
         ) : (
           <div className="mv-table-wrap">
-            <table className="mv-table">
+            <table className="mv-table mv-table--stack">
               <thead><tr><th>Instance</th><th>Offering</th><th>Plan</th><th>Platform</th><th>Status</th></tr></thead>
               <tbody>
                 {instances.map((inst) => (
                   <tr key={inst.id}>
-                    <td>{inst.name}</td>
-                    <td>{inst.serviceOfferingName}</td>
-                    <td className="mv-code">{inst.servicePlanName}</td>
-                    <td><span className="mv-status mv-status--neutral">{inst.platformType}</span></td>
-                    <td><span className={`mv-status mv-status--${inst.status.includes('succeeded') ? 'success' : inst.status.includes('failed') ? 'danger' : 'warning'}`}>{inst.status}</span></td>
+                    <td data-label="Instance" className="mv-stack-title">{inst.name}</td>
+                    <td data-label="Offering">{inst.serviceOfferingName}</td>
+                    <td data-label="Plan" className="mv-code">{inst.servicePlanName}</td>
+                    <td data-label="Platform"><span className="mv-status mv-status--neutral">{inst.platformType}</span></td>
+                    <td data-label="Status"><span className={`mv-status mv-status--${inst.status.includes('succeeded') ? 'success' : inst.status.includes('failed') ? 'danger' : 'warning'}`}>{inst.status}</span></td>
                   </tr>
                 ))}
               </tbody>

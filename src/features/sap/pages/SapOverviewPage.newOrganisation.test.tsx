@@ -14,7 +14,15 @@ import { BtpSecurityPage } from './BtpSecurityPage';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import { ConfirmProvider } from '../../../shared/ui/ConfirmProvider';
 import { sapAdminRepository, workspaceRepository } from '../../../data-access';
+import { ConnectDialogHost, closeConnectDialog } from '../../workspace';
 
+vi.mock('../../auth/model/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../auth/model/AuthContext')>();
+  return {
+    ...actual,
+    useAuth: () => ({ user: { id: 'new', email: 'new@mavera.local', role: 'admin' }, cloudAccess: ['azure'], invoiceOnly: false, accountLimits: { azure: 3, aws: 3, btp: 3 }, modules: { cloudCost: true, sapMonitoring: true } }),
+  };
+});
 vi.mock('recharts', async (importOriginal) => {
   const actual = await importOriginal<typeof import('recharts')>();
   return { ...actual, ResponsiveContainer: ({ children }: { children: ReactNode }) => <div style={{ width: 400, height: 220 }}>{children}</div> };
@@ -24,13 +32,13 @@ function Where() {
   const { pathname, search } = useLocation();
   return <p data-testid="where">{pathname}{search}</p>;
 }
-const renderPage = (node: ReactNode) => render(<ThemeProvider><MemoryRouter><ConfirmProvider>{node}<Where /></ConfirmProvider></MemoryRouter></ThemeProvider>);
+const renderPage = (node: ReactNode) => render(<ThemeProvider><MemoryRouter><ConfirmProvider>{node}<Where /><ConnectDialogHost /></ConfirmProvider></MemoryRouter></ThemeProvider>);
 
 describe('SAP pages for a brand-new organisation', () => {
   beforeEach(() => workspaceRepository.setProfile('empty'));
-  afterEach(() => workspaceRepository.setProfile('populated'));
+  afterEach(() => { closeConnectDialog(); workspaceRepository.setProfile('populated'); });
 
-  it('SAP Overview offers one action: connect an SAP system, in System Configuration with the form open', async () => {
+  it('SAP Overview offers one action: connect an SAP system, in the shared connect dialog opened in place', async () => {
     const user = userEvent.setup();
     const { container } = renderPage(<SapOverviewPage />);
     expect(screen.getByRole('heading', { name: 'SAP Overview' })).toBeInTheDocument();
@@ -38,7 +46,8 @@ describe('SAP pages for a brand-new organisation', () => {
     expect(screen.getAllByRole('button')).toHaveLength(1);
     expect(container.textContent).not.toMatch(/NaN|undefined/);
     await user.click(screen.getByRole('button', { name: 'Connect an SAP system' }));
-    expect(screen.getByTestId('where')).toHaveTextContent('/sap/configuration?open=connect');
+    expect(screen.getByRole('dialog', { name: 'Connect SAP system' })).toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/);
   });
 
   it.each([

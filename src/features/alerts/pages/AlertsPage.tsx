@@ -9,7 +9,7 @@ import { useConnectionStatus } from '../../workspace';
 export function AlertsPage() {
   const rows = useGlobalAlerts();
   const navigate = useNavigate();
-  const { nothingConnected, firstStep } = useConnectionStatus();
+  const { nothingConnected, firstStep, connectFirst } = useConnectionStatus();
 
   return (
     <div>
@@ -23,7 +23,7 @@ export function AlertsPage() {
             heading="No alerts yet"
             explanation="Alerts appear here once an account or SAP system is connected and monitoring starts."
             actionLabel={firstStep.label}
-            onAction={() => navigate(firstStep.path)}
+            onAction={connectFirst}
           />
         ) : (
           <EmptyState

@@ -51,7 +51,7 @@ export function CustomerInvoiceDetail({ invoice, customer, allowPayment, onPay }
           <h2 className="mv-panel-title" style={{ marginTop: '0.375rem' }}>{invoice.invoiceNumber}</h2>
           <p className="mv-muted" style={{ margin: '2px 0 0', fontSize: '0.8125rem' }}>{customer?.name ?? 'Unknown customer'}{customer && customer.discountPct > 0 ? ` · ${customer.discountPct}% standard discount` : ''}</p>
         </div>
-        {canPay && <button className="mv-primary-button" onClick={() => onPay?.(invoice.id)}><CheckIcon size={16} style={{ marginRight: '0.375rem' }} />Pay Now</button>}
+        {canPay && <button className="mv-primary-button mv-invoice-pay" onClick={() => onPay?.(invoice.id)}><CheckIcon size={16} style={{ marginRight: '0.375rem' }} />Pay Now</button>}
       </div>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -73,7 +73,7 @@ export function CustomerInvoiceDetail({ invoice, customer, allowPayment, onPay }
       </div>
 
       <div className="mv-table-wrap">
-        <table className="mv-table">
+        <table className="mv-table mv-table--stack">
           <thead>
             <tr>
               <th>Description</th>
@@ -88,13 +88,13 @@ export function CustomerInvoiceDetail({ invoice, customer, allowPayment, onPay }
           <tbody>
             {invoice.lines.map((l) => (
               <tr key={l.id}>
-                <td>{l.description || '—'}</td>
-                <td className="mv-num">{formatCurrency(l.vendorLineTotal)}</td>
-                {showDiscountCol && <td className="mv-num">{l.discountPctApplied > 0 ? `${l.discountPctApplied}%` : '—'}</td>}
-                <td className="mv-num">{formatCurrency(l.netAmountAfterDiscount)}</td>
-                {showAdjustmentCol && <td className="mv-num">{l.maitsysAdjustmentPctApplied > 0 ? `${l.maitsysAdjustmentPctApplied}%` : '—'}</td>}
-                <td className="mv-num" style={{ fontWeight: 500 }}>{formatCurrency(l.finalLineAmount)}</td>
-                {invoice.columns.map((c) => <td key={c.id}>{l.extra[c.id] || '—'}</td>)}
+                <td className="mv-stack-title">{l.description || '—'}</td>
+                <td data-label="Vendor Total" className="mv-num">{formatCurrency(l.vendorLineTotal)}</td>
+                {showDiscountCol && <td data-label="Discount %" className="mv-num">{l.discountPctApplied > 0 ? `${l.discountPctApplied}%` : '—'}</td>}
+                <td data-label="Net" className="mv-num">{formatCurrency(l.netAmountAfterDiscount)}</td>
+                {showAdjustmentCol && <td data-label="Adj. %" className="mv-num">{l.maitsysAdjustmentPctApplied > 0 ? `${l.maitsysAdjustmentPctApplied}%` : '—'}</td>}
+                <td data-label="Final Amount" className="mv-num" style={{ fontWeight: 500 }}>{formatCurrency(l.finalLineAmount)}</td>
+                {invoice.columns.map((c) => <td key={c.id} data-label={c.label}>{l.extra[c.id] || '—'}</td>)}
               </tr>
             ))}
           </tbody>

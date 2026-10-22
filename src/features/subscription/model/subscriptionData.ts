@@ -94,3 +94,14 @@ export function planNameOf(planType: string): string {
   if (plan) return plan.name;
   return planType ? planType.charAt(0).toUpperCase() + planType.slice(1) : 'Free';
 }
+
+/**
+ * The plan to offer first when someone asks to change plan without choosing one (from the profile menu): the
+ * next one up from the current plan that has not been requested yet, otherwise any other plan not yet requested,
+ * otherwise none.
+ */
+export function suggestedPlan(planType: string, requestedPlanIds: readonly string[]): PlanDefinition | null {
+  const requestable = PLANS.filter((plan) => !isCurrentPlan(planType, plan.id) && !requestedPlanIds.includes(plan.id));
+  const currentIndex = PLANS.findIndex((plan) => isCurrentPlan(planType, plan.id));
+  return requestable.find((plan) => PLANS.indexOf(plan) > currentIndex) ?? requestable[0] ?? null;
+}

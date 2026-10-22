@@ -17,10 +17,11 @@ import {
   LockIcon,
   ServerIcon,
   } from '../../../shared/ui/icons';
-import { CLOUD_PROVIDER_INFO, MSP_BADGE, PLANS, isCurrentPlan, planNameOf, type PlanDefinition } from '../model/subscriptionData';
+import { CLOUD_PROVIDER_INFO, MSP_BADGE, PLANS, isCurrentPlan, planNameOf, suggestedPlan, type PlanDefinition } from '../model/subscriptionData';
 import { PageHeader } from '../../../shared/ui/PageHeader';
 import { TabBar, tabPanelProps } from '../../../shared/ui/TabBar';
 import { useHashTab } from '../../../shared/lib/useHashTab';
+import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { PlanRequestDialog } from '../components/PlanRequestDialog';
 
 const MODULE_LABELS = [
@@ -104,13 +105,15 @@ function ProviderToggleRow({ info, selected, onToggle }: { info: (typeof CLOUD_P
   );
 }
 
-type SubscriptionTab = 'plan' | 'plans';
-const TABS: SubscriptionTab[] = ['plan', 'plans'];
+type SubscriptionTab = 'plan' | 'access';
+const TABS: SubscriptionTab[] = ['plan', 'access'];
 
 /**
- * Two tabs (the owner asked for tabs here): "Your plan" (the current plan, what the organisation is
- * subscribed to, seats and Maitsys's note) and "Available plans" (the comparison and plan requests).
- * The active tab lives in the URL hash (#plan, #plans).
+ * Two tabs (the owner asked for tabs here): "Your plan" (the current plan, Maitsys's note and, right under
+ * them, the available plans with their request buttons, so a change of plan needs no extra tab) and
+ * "Modules and access" (what the organisation is subscribed to). The active tab lives in the URL hash
+ * (#plan, #access); the old #plans link opens "Your plan". `?open=request-plan` (the profile menu's "Request a
+ * plan") opens the request dialog on the next plan up.
  *
  * Ported from the reference CCM app's SubscriptionManagementPage.jsx, but entirely
  * read-only: an organisation's plan, modules, seats, cloud access and validity are set
@@ -121,8 +124,17 @@ export function SubscriptionPage() {
   const { user, cloudAccess, invoiceOnly, modules, planType, subscriptionStartsAt, subscriptionExpiresAt, subscriptionActive, subscriptionNotes, maxUsers } = useAuth();
   const aiEnabled = user?.aiEnabled ?? false;
   const [requests, setRequests] = useState(() => subscriptionRepository.listPlanRequests());
-  const [requesting, setRequesting] = useState<PlanDefinition | null>(null);
+  /** The plan being requested; `fromMenu` means it was opened without a choice, so the dialog lets you pick another. */
+  const [requesting, setRequesting] = useState<{ plan: PlanDefinition; fromMenu: boolean } | null>(null);
   const [tab, showTab] = useHashTab(TABS);
+  const requestedIds = requests.map((request) => request.planId);
+  const requestablePlans = PLANS.filter((plan) => !isCurrentPlan(planType, plan.id) && !requestedIds.includes(plan.id));
+
+  useOpenOnArrival('request-plan', () => {
+    const plan = suggestedPlan(planType, requestedIds);
+    if (plan) setRequesting({ plan, fromMenu: true });
+    else fireToast({ type: 'info', message: 'You have already asked Maitsys about every other plan.' });
+  });
 
   // Any member can ask; only Maitsys changes the plan, so nothing here touches modules or seats.
   const sendRequest = (plan: PlanDefinition, note: string) => {
@@ -150,7 +162,7 @@ export function SubscriptionPage() {
         label="Subscription sections"
         activeId={tab}
         onChange={(id) => showTab(id as SubscriptionTab)}
-        items={[{ id: 'plan', label: 'Your plan' }, { id: 'plans', label: 'Available plans' }]}
+        items={[{ id: 'plan', label: 'Your plan' }, { id: 'access', label: 'Modules and access' }]}
       />
 
       {tab === 'plan' && (
@@ -191,6 +203,66 @@ export function SubscriptionPage() {
         </div>
       </section>
 
+      {/* Admin Note */}
+      {subscriptionNotes && (
+        <div className="mv-notice" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+          <AlertTriangleIcon size={16} style={{ flex: 'none', marginTop: 2, color: 'var(--mv-warning)' }} />
+          <div>
+            <p style={{ margin: '0 0 2px', fontWeight: 500 }}>Note from Maitsys</p>
+            <p style={{ margin: 0 }}>{subscriptionNotes}</p>
+          </div>
+        </div>
+      )}
+
+      <section aria-labelledby="available-plans-title" className="mv-available-plans" style={{ marginBottom: '1rem' }}>
+        <div className="mv-section-head">
+          <div>
+            <h2 className="mv-section-title" id="available-plans-title">Available plans</h2>
+            <p className="mv-muted">Compare what each plan includes. Choosing a plan sends Maitsys a request; nothing changes until Maitsys confirms.</p>
+          </div>
+        </div>
+        <div className="mv-plan-grid">
+          {PLANS.map((plan) => {
+            const current = isCurrentPlan(planType, plan.id);
+            const request = requests.find((r) => r.planId === plan.id);
+            return (
+              <article key={plan.id} className={`mv-plan-card${current ? ' is-current' : ''}`} aria-labelledby={`plan-${plan.id}-name`}>
+                <div className="mv-plan-badges">
+                  {current && <span className="mv-status mv-status--success">Current</span>}
+                  {!current && plan.badge && <span className="mv-status mv-status--info">{plan.badge}</span>}
+                  {request && <span className="mv-status mv-status--neutral">Requested {new Date(request.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                </div>
+                <h3 id={`plan-${plan.id}-name`} className="mv-plan-name">{plan.name}</h3>
+                <p className="mv-muted">{plan.tagline}</p>
+                <p className="mv-plan-price">Pricing coming soon</p>
+                <ul className="mv-plan-features" aria-label={`${plan.name} plan features`}>
+                  {plan.features.map((f) => (
+                    <li key={f}><CheckIcon size={15} aria-hidden /><span>{f}</span></li>
+                  ))}
+                </ul>
+                {current ? (
+                  <button type="button" className="mv-secondary-button" disabled aria-label={`${plan.name} is your current plan`}>
+                    <CheckIcon size={16} style={{ marginRight: '0.375rem', color: 'var(--mv-success)' }} />Current plan
+                  </button>
+                ) : request ? (
+                  <button type="button" className="mv-secondary-button" disabled>Request sent</button>
+                ) : (
+                  <button type="button" className="mv-secondary-button" aria-label={`Choose plan ${plan.name}`} onClick={() => setRequesting({ plan, fromMenu: false })}>Choose plan</button>
+                )}
+              </article>
+            );
+          })}
+        </div>
+        <p className="mv-muted">
+          All plans include full access to multi-cloud monitoring, invoice upload, budgets, and alerts. Prefer to talk it through?{' '}
+          <a href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">Contact Maitsys</a>.
+        </p>
+      </section>
+      </div>
+      )}
+
+      {tab === 'access' && (
+      <div {...tabPanelProps('subscription', 'access')}>
       {/* Modules & cloud access — set by Maitsys from the Super Admin portal; read-only here. */}
       <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header">
@@ -226,68 +298,19 @@ export function SubscriptionPage() {
         </p>
       </section>
 
-      {/* Admin Note */}
-      {subscriptionNotes && (
-        <div className="mv-notice" style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-          <AlertTriangleIcon size={16} style={{ flex: 'none', marginTop: 2, color: 'var(--mv-warning)' }} />
-          <div>
-            <p style={{ margin: '0 0 2px', fontWeight: 500 }}>Note from Maitsys</p>
-            <p style={{ margin: 0 }}>{subscriptionNotes}</p>
-          </div>
-        </div>
-      )}
       </div>
       )}
 
-      {tab === 'plans' && (
-      /* Available Plans */
-      <section {...tabPanelProps('subscription', 'plans')} style={{ marginBottom: '1rem' }}>
-        <div className="mv-section-head">
-          <div>
-            <h2 className="mv-section-title">Available plans</h2>
-            <p className="mv-muted">Compare what each plan includes. Choosing a plan sends Maitsys a request; nothing changes until Maitsys confirms.</p>
-          </div>
-        </div>
-        <div className="mv-plan-grid">
-          {PLANS.map((plan) => {
-            const current = isCurrentPlan(planType, plan.id);
-            const request = requests.find((r) => r.planId === plan.id);
-            return (
-              <article key={plan.id} className={`mv-plan-card${current ? ' is-current' : ''}`} aria-labelledby={`plan-${plan.id}-name`}>
-                <div className="mv-plan-badges">
-                  {current && <span className="mv-status mv-status--success">Current</span>}
-                  {!current && plan.badge && <span className="mv-status mv-status--info">{plan.badge}</span>}
-                  {request && <span className="mv-status mv-status--neutral">Requested {new Date(request.requestedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
-                </div>
-                <h3 id={`plan-${plan.id}-name`} className="mv-plan-name">{plan.name}</h3>
-                <p className="mv-muted">{plan.tagline}</p>
-                <p className="mv-plan-price">Pricing coming soon</p>
-                <ul className="mv-plan-features" aria-label={`${plan.name} plan features`}>
-                  {plan.features.map((f) => (
-                    <li key={f}><CheckIcon size={15} aria-hidden /><span>{f}</span></li>
-                  ))}
-                </ul>
-                {current ? (
-                  <button type="button" className="mv-secondary-button" disabled aria-label={`${plan.name} is your current plan`}>
-                    <CheckIcon size={16} style={{ marginRight: '0.375rem', color: 'var(--mv-success)' }} />Current plan
-                  </button>
-                ) : request ? (
-                  <button type="button" className="mv-secondary-button" disabled>Request sent</button>
-                ) : (
-                  <button type="button" className="mv-secondary-button" aria-label={`Choose plan ${plan.name}`} onClick={() => setRequesting(plan)}>Choose plan</button>
-                )}
-              </article>
-            );
-          })}
-        </div>
-        <p className="mv-muted">
-          All plans include full access to multi-cloud monitoring, invoice upload, budgets, and alerts. Prefer to talk it through?{' '}
-          <a href="https://www.maitsys.com/contact-us" target="_blank" rel="noopener noreferrer">Contact Maitsys</a>.
-        </p>
-      </section>
+      {requesting && (
+        <PlanRequestDialog
+          plan={requesting.plan}
+          choices={requesting.fromMenu ? requestablePlans : undefined}
+          onChoose={(plan) => setRequesting({ plan, fromMenu: true })}
+          currentPlanName={planNameOf(planType)}
+          onSend={(note) => sendRequest(requesting.plan, note)}
+          onClose={() => setRequesting(null)}
+        />
       )}
-
-      {requesting && <PlanRequestDialog plan={requesting} currentPlanName={planNameOf(planType)} onSend={(note) => sendRequest(requesting, note)} onClose={() => setRequesting(null)} />}
     </div>
   );
 }

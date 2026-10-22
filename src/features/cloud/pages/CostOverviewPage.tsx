@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import {
@@ -35,7 +37,6 @@ import { DonutChart } from '../../../shared/ui/DonutChart';
 import { InsightList, type InsightItem } from '../../../shared/ui/InsightList';
 import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
 import { SpendTrendChart } from '../../../shared/ui/SpendTrendChart';
-import { ConnectCloudAccountWizard } from '../components/ConnectCloudAccountWizard';
 import { InvoicesSummaryView } from '../components/InvoicesSummaryView';
 import { invoiceItemsOf } from '../model/invoiceSavings';
 import {
@@ -54,8 +55,10 @@ import {
   PiggyBankIcon,
 } from '../../../shared/ui/icons';
 import { PageHeader } from '../../../shared/ui/PageHeader';
-import { CONNECT_TARGETS, SampleDataBadge, addAccountFromWizard, useConnectionStatus, useHasSampleAccounts } from '../../workspace';
-import { useNavigate } from 'react-router-dom';
+import { SampleDataBadge, openConnectDialog, useConnectionStatus, useHasSampleAccounts } from '../../workspace';
+
+const PERIOD_PARAM = 'period';
+const SPEND_PERIOD_VALUES: SpendPeriod[] = SPEND_PERIOD_OPTIONS.map((option) => option.value);
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -115,14 +118,21 @@ function KpiShell({ loading, error, icon, tone = 'info', children }: { loading: 
 /** CLOUD-01 — Cost Overview (MAVERA_DESIGN_SYSTEM.md §13). */
 export function CostOverviewPage() {
   const { user, cloudAccess, invoiceOnly } = useAuth();
-  const navigate = useNavigate();
   const permissions = derivePermissions(user, cloudAccess, invoiceOnly);
   const { summary, recommendations, smartAlerts, budgets, mspSavings, invoices, refetch } = useDashboardData();
-  const [wizardProvider, setWizardProvider] = useState<'azure' | 'aws' | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
-  const [view, setView] = useState<'cloud' | 'invoices'>('cloud');
-  const [period, setPeriod] = useState<SpendPeriod>(DEFAULT_SPEND_PERIOD);
+  // The Cloud / Invoices choice and the spend period are remembered for the session, so coming back to the page
+  // finds it as it was left. The period is also in the URL (?period=3M), so a link or a reload restores it.
+  const [view, setView] = useRememberedState<'cloud' | 'invoices'>('cloud', 'overview-view', 'cloud', oneOf(['cloud', 'invoices']));
+  const [rememberedPeriod, setRememberedPeriod] = useRememberedState<SpendPeriod>('cloud', 'overview-period', DEFAULT_SPEND_PERIOD, oneOf(SPEND_PERIOD_VALUES));
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlPeriod = searchParams.get(PERIOD_PARAM);
+  const period = SPEND_PERIOD_VALUES.includes(urlPeriod as SpendPeriod) ? (urlPeriod as SpendPeriod) : rememberedPeriod;
+  const setPeriod = (next: SpendPeriod) => {
+    setRememberedPeriod(next);
+    setSearchParams((current) => { const params = new URLSearchParams(current); params.set(PERIOD_PARAM, next); return params; }, { replace: true, preventScrollReset: true });
+  };
   const { cloudEmpty } = useConnectionStatus();
   const hasSampleAccounts = useHasSampleAccounts();
 
@@ -186,7 +196,7 @@ export function CostOverviewPage() {
           options={[{ value: 'cloud', label: 'Cloud', ariaLabel: 'Cloud costs' }, { value: 'invoices', label: 'Invoices', ariaLabel: 'Invoices summary' }]}
         />
         <button className="mv-secondary-button" disabled={refreshing} onClick={handleRefresh}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh'}</button>
-        {connectableProvider && !cloudEmpty && <button className="mv-primary-button" onClick={() => setWizardProvider(connectableProvider)}>Connect cloud account</button>}
+        {connectableProvider && !cloudEmpty && <button className="mv-primary-button" onClick={() => openConnectDialog(connectableProvider, { canSwitch: true })}>Connect cloud account</button>}
       </div>
     </PageHeader>
 
@@ -204,7 +214,7 @@ export function CostOverviewPage() {
         heading="Connect your first cloud account"
         explanation="Spend, trends, budgets and savings for Azure, AWS, Google Cloud and SAP BTP appear here once an account is connected."
         actionLabel="Connect your first account"
-        onAction={() => (connectableProvider ? setWizardProvider(connectableProvider) : navigate(CONNECT_TARGETS.cloud.path))}
+        onAction={() => openConnectDialog(connectableProvider ?? 'azure', { canSwitch: true })}
       />
     ) : view === 'invoices' ? (
       <InvoicesSummaryView summary={invoiceSummary} invoices={invoiceItemsOf(invoices.data)} loading={invoices.loading} error={invoices.error} />
@@ -241,7 +251,7 @@ export function CostOverviewPage() {
             </div>
             <p className="mv-muted" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>{formatCurrency(totalSpend)} of {formatCurrency(totalBudget)} used</p>
           </>
-        ) : <p className="mv-muted" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>No budgets configured — <a href="/budgets" style={{ color: 'var(--mv-primary)' }}>create one</a></p>}
+        ) : <p className="mv-muted" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>No budgets configured — <Link to="/budgets" style={{ color: 'var(--mv-primary)' }}>create one</Link></p>}
       </KpiShell>
 
       <KpiShell loading={mspSavings.loading} error={mspSavings.error} icon={<PiggyBankIcon size={22} />} tone="success">
@@ -253,7 +263,7 @@ export function CostOverviewPage() {
         {mspRows.length > 0 ? (
           <p className="mv-muted" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>{mspRows.map((r) => `${r.label} ${(r.rate * 100).toFixed(1)}%`).join(' · ')}</p>
         ) : <p className="mv-muted" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>No cloud spend data yet</p>}
-        {recsCount > 0 && <a href="/cloud/optimization" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>{recsCount} recommendations <ChevronRightIcon size={12} /></a>}
+        {recsCount > 0 && <Link to="/cloud/optimization" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>{recsCount} recommendations <ChevronRightIcon size={12} /></Link>}
       </KpiShell>
 
       <KpiShell loading={smartAlerts.loading} error={smartAlerts.error} icon={<BellIcon size={22} />} tone={criticalCount > 0 ? 'danger' : warningCount > 0 ? 'warning' : 'success'}>
@@ -264,7 +274,7 @@ export function CostOverviewPage() {
           {warningCount > 0 && <span style={{ color: 'var(--mv-warning)' }}>{warningCount} warning</span>}
           {activeAlerts.length === 0 && <span style={{ color: 'var(--mv-success)', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}><CheckIcon size={13} />All clear</span>}
         </div>
-        {activeAlerts.length > 0 && <a href="/smart-alerts" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>View alerts <ChevronRightIcon size={12} /></a>}
+        {activeAlerts.length > 0 && <Link to="/smart-alerts" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.375rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>View alerts <ChevronRightIcon size={12} /></Link>}
       </KpiShell>
     </div>
 
@@ -349,7 +359,7 @@ export function CostOverviewPage() {
             }))}
           />
         )}
-        {!loading && insights.length > 0 && <a href="/cloud/optimization" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.625rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>View all insights <ChevronRightIcon size={12} /></a>}
+        {!loading && insights.length > 0 && <Link to="/cloud/optimization" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.625rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>View all insights <ChevronRightIcon size={12} /></Link>}
       </section>
 
       <section className="mv-glance-col">
@@ -453,7 +463,7 @@ export function CostOverviewPage() {
           {(Object.keys(invoiceStats.byProvider) as ProviderKey[]).map((p) => (
             <span key={p} className="mv-status mv-status--neutral">{PROVIDER_META[p]?.label ?? p}: {invoiceStats.byProvider[p]}</span>
           ))}
-          <a href="/invoices" className="mv-secondary-button" style={{ textDecoration: 'none' }}>View Invoices</a>
+          <Link to="/invoices" className="mv-secondary-button" style={{ textDecoration: 'none' }}>View Invoices</Link>
         </div>
       </section>
     )}
@@ -465,7 +475,7 @@ export function CostOverviewPage() {
           Recent Alerts
           {activeAlerts.length > 0 && <span className="mv-status mv-status--danger" style={{ fontSize: '0.625rem' }}>{activeAlerts.length}</span>}
         </h2>
-        <a href="/smart-alerts" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>View all <ChevronRightIcon size={12} /></a>
+        <Link to="/smart-alerts" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', fontWeight: 500, color: 'var(--mv-primary)' }}>View all <ChevronRightIcon size={12} /></Link>
       </div>
       {loading ? <div className="mv-loading" /> : activeAlerts.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(16.25rem, 1fr))', gap: '0.75rem' }}>
@@ -498,18 +508,5 @@ export function CostOverviewPage() {
 
     </>}
 
-    {wizardProvider && (
-      <ConnectCloudAccountWizard
-        provider={wizardProvider}
-        open
-        onClose={() => setWizardProvider(null)}
-        onSave={async (payload) => {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          addAccountFromWizard(wizardProvider, payload);
-          // The overview's figures are built from the connected accounts, so reload them.
-          refetch();
-        }}
-      />
-    )}
   </div>;
 }

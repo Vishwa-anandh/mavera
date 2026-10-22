@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
-import { ConnectCloudAccountWizard } from '../../cloud';
-import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { CreditCardIcon, PencilIcon, EyeIcon, TrashIcon, CheckIcon, CloseIcon, LockIcon, ChevronLeftIcon, PlusIcon } from '../../../shared/ui/icons';
 import { workspaceRepository } from '../../../data-access';
-import { SampleDataBadge, addAccountFromWizard, useWorkspaceAccounts } from '../../workspace';
+import { SampleDataBadge, openConnectDialog, useWorkspaceAccounts } from '../../workspace';
 import type { AzureAccount } from '../model/azureTypes';
 
 function maskId(id: string): string {
@@ -24,9 +22,8 @@ interface AzureAccountManagerProps {
  * with the same read-only and account-limit gating logic
  * (`derivePermissions().azure`). No real backend exists for this prototype,
  * so accounts live in local state seeded from mock data rather than
- * `GET /azure/accounts` — the connect flow still runs through the real
- * `ConnectCloudAccountWizard` (same field names/validation as the
- * reference), just with a mocked save.
+ * `GET /azure/accounts` — the connect flow runs through the
+ * shared connect dialog (same field names/validation as the reference).
  */
 export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountManagerProps) {
   const { user, cloudAccess, invoiceOnly, accountLimits } = useAuth();
@@ -34,7 +31,6 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
   const confirm = useConfirm();
 
   const accounts = useWorkspaceAccounts('azure');
-  const [wizardOpen, setWizardOpen] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [detailsAccount, setDetailsAccount] = useState<AzureAccount | null>(null);
@@ -42,9 +38,6 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
   const isReadOnly = permissions.azure.readOnly && !permissions.isPrivileged;
   const maxAccounts = accountLimits.azure ?? 3;
   const atLimit = maxAccounts > 0 && accounts.length >= maxAccounts;
-
-  // Ctrl+K "Connect Azure subscription" lands here with the connect form already open.
-  useOpenOnArrival('connect', () => { if (!isReadOnly && !atLimit) setWizardOpen(true); });
 
   const startRename = (account: AzureAccount) => {
     setRenamingId(account.id);
@@ -159,24 +152,12 @@ export function AzureAccountManager({ onSelectAccount, onBack }: AzureAccountMan
         ) : (
           <>
             <div className="mv-notice">Azure cost data syncs automatically — once connected, subscription costs, resource groups, and service breakdown pull within a few minutes. Refreshes every hour.</div>
-            <button className="mv-primary-button" style={{ marginTop: '1rem' }} onClick={() => setWizardOpen(true)}>
+            <button className="mv-primary-button" style={{ marginTop: '1rem' }} onClick={() => openConnectDialog('azure')}>
               <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />Connect Account
             </button>
           </>
         )}
       </section>
-
-      {wizardOpen && (
-        <ConnectCloudAccountWizard
-          provider="azure"
-          open
-          onClose={() => setWizardOpen(false)}
-          onSave={async (payload) => {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            addAccountFromWizard('azure', payload);
-          }}
-        />
-      )}
 
       {detailsAccount && (
         <div className="mv-dialog-backdrop" onClick={() => setDetailsAccount(null)}>

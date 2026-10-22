@@ -1,8 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import { UploadNotesDialog } from './UploadNotesDialog';
+
+// "Check status after upload" is remembered for the session; every case starts from the default (on).
+beforeEach(() => sessionStorage.clear());
 
 const setup = (tracked: string[] = []) => {
   const onSubmit = vi.fn();
@@ -28,7 +31,7 @@ describe('UploadNotesDialog file input', () => {
     expect(screen.getByRole('status', { hidden: false })).toHaveTextContent('Read 3 note numbers from notes.csv (header row ignored); 2 entries skipped because they are not 7-digit numbers.');
     expect(screen.getByText('2 new notes to add · 1 already tracked')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Upload' }));
-    expect(onSubmit).toHaveBeenCalledWith(['3727078', '3763800', '3515598']);
+    expect(onSubmit).toHaveBeenCalledWith(['3727078', '3763800', '3515598'], true);
   });
 
   it('adds file numbers after what was already typed, and accepts a .txt file', async () => {
@@ -57,5 +60,16 @@ describe('UploadNotesDialog file input', () => {
     const { upload } = setup();
     await upload(file('3727078'.padEnd(1024 * 1024 + 1, ' '), 'big.csv'));
     expect(await screen.findByRole('alert')).toHaveTextContent('big.csv is larger than 1 MB');
+  });
+
+  it('checks the status after upload by default, and passes the choice on when it is switched off', async () => {
+    const { user, onSubmit } = setup();
+    const box = screen.getByRole('checkbox', { name: 'Check status after upload' });
+    expect(box).toBeChecked();
+    await user.click(box);
+    expect(screen.getByText(/added as Unknown with the SAP download pending until you run Check Status/)).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Note numbers' }), '3800001');
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    expect(onSubmit).toHaveBeenCalledWith(['3800001'], false);
   });
 });

@@ -558,17 +558,10 @@ html { scrollbar-width: thin; scrollbar-color: var(--mv-border) transparent; scr
 .mv-cost-header-title { display: flex; align-items: center; gap: 0.625rem; min-width: 0; }
 .mv-cost-header-title h1 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mv-cost-header-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem; }
-.mv-cost-tabs { display: flex; gap: 0.25rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--mv-divider); }
-.mv-cost-tab { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 0.625rem 1rem 0.75rem; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--mv-text-secondary); font-weight: 500; }
-.mv-cost-tab span:first-child { font-size: 0.875rem; color: var(--mv-text); }
-.mv-cost-tab span:last-child { font-size: 0.7188rem; color: var(--mv-text-muted); font-weight: 400; }
-.mv-cost-tab:hover { color: var(--mv-primary); }
-.mv-cost-tab.is-active { border-bottom-color: var(--mv-primary); }
-.mv-cost-tab.is-active span:first-child { color: var(--mv-primary); }
 @media (max-width: 720px) { .mv-cost-header-controls { width: 100%; } }
 
 /* Segmented pill control — a lighter-weight tab switcher than
-   .mv-cost-tabs (no sub-labels), first used by the Budgets & Alerts page's
+   the Cost view tabs (no sub-labels), first used by the Budgets & Alerts page's
    Budgets/Integrations toggle. */
 .mv-segmented { display: inline-flex; gap: 0.25rem; padding: 0.25rem; border-radius: 0.625rem; background: var(--mv-surface-subtle); width: fit-content; }
 .mv-segmented-btn { display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.25rem; padding: 0 0.875rem; border-radius: 0.5rem; font-size: 0.8125rem; font-weight: 500; color: var(--mv-text-secondary); background: transparent; border: 0; }
@@ -680,12 +673,6 @@ html { scrollbar-width: thin; scrollbar-color: var(--mv-border) transparent; scr
 }
 
 /* Consistent secondary patterns for provider views, billing, and admin. */
-.mv-cost-tabs { gap: 2px; margin-bottom: 1.125rem; padding: 0.25rem; border: 1px solid var(--mv-divider); border-radius: 0.625rem; background: var(--mv-surface); overflow-x: auto; }
-.mv-cost-tab { min-height: 3.375rem; padding: 0.5rem 0.8125rem; border: 0; border-radius: 0.4375rem; flex: none; }
-.mv-cost-tab span:first-child, .mv-cost-tab span:last-child { white-space: nowrap; }
-.mv-cost-tab:hover { background: var(--mv-surface-hover); }
-.mv-cost-tab.is-active { background: var(--mv-selected); }
-.mv-cost-tab.is-active span:first-child { color: var(--mv-primary); }
 .mv-select, .mv-field input, .mv-field textarea { border-color: var(--mv-border); }
 .mv-select:focus { outline: 0; border-color: var(--mv-primary); box-shadow: 0 0 0 0.1875rem color-mix(in srgb, var(--mv-focus) 15%, transparent); }
 .mv-field { gap: 0.375rem; margin-bottom: 1rem; }
@@ -1150,7 +1137,7 @@ html:has(.mv-login-page) { background: var(--mv-login-gradient) fixed; }
    scrolls with content, scroll stays fixed) — so a horizontally-scrollable
    table or tab bar actually looks scrollable instead of just cut off.
    ========================================================================== */
-.mv-table-wrap, .mv-cost-tabs {
+.mv-table-wrap {
   background-repeat: no-repeat;
   background-color: var(--mv-surface);
   background-image:
@@ -1889,11 +1876,9 @@ button.mv-bar-list-item:focus-visible { outline: none; box-shadow: inset 0 0 0 2
 .mv-content .mv-table th { white-space: nowrap; }
 .mv-content .mv-table td.mv-num, .mv-content .mv-table td.mv-date { white-space: nowrap; }
 
-/* Long tables scroll inside their container so the header row stays in view. */
+/* Tables grow with the page: no scrollbar inside a table's box (the page scrolls, long lists are paged). */
 @media (min-width: 681px) {
-  .mv-content .mv-table-wrap { max-height: min(72vh, 47.5rem); overflow: auto; }
-  .mv-content .mv-table-wrap > .mv-table > thead > tr > th { position: sticky; top: 0; z-index: 2; }
-  .mv-content .mv-table-wrap > .mv-table > thead > tr:nth-child(2) > th { top: 2.5rem; }
+  .mv-content .mv-table-wrap { max-height: none; overflow-y: visible; }
 }
 .mv-content .mv-table-wrap > .mv-table > thead > tr > th { background: var(--mv-surface-subtle); box-shadow: 0 1px 0 var(--mv-divider); }
 
@@ -3230,18 +3215,6 @@ strong, b, th { font-weight: 500; }
   .mv-svc-lines > li { grid-template-columns: minmax(0, 1fr) auto auto; gap: 0.5rem; }
 }
 
-/* ---- Cost page view switcher (Executive / Operations / Technical): one compact line, underline on the active view ---- */
-.mv-cost-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 1rem; padding: 0; border: 0; border-bottom: 1px solid var(--mv-divider); border-radius: 0; background: none; overflow: visible; }
-.mv-cost-tab { display: inline-flex; flex-direction: row; align-items: baseline; gap: 0.5rem; min-height: 2.5rem; padding: 0.5rem 0.875rem; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
-.mv-cost-tab:hover { background: transparent; }
-.mv-cost-tab.is-active { background: transparent; border-bottom-color: var(--mv-primary); }
-.mv-cost-tab span:first-child { font-size: 0.875rem; }
-.mv-cost-tab span:last-child { font-size: 0.75rem; }
-@media (max-width: 36rem) {
-  .mv-cost-tab span:last-child { display: none; }
-  .mv-cost-tab { padding-inline: 0.75rem; }
-}
-
 /* ---- Clickable table rows: the whole row opens the item ---- */
 .mv-table tbody tr.mv-row-link { cursor: pointer; }
 .mv-table tbody tr.mv-row-link:hover, .mv-table tbody tr.mv-row-link:focus-within { background: var(--mv-selected); }
@@ -3411,3 +3384,171 @@ ul.mv-chart-legend { margin: 0; padding: 0; list-style: none; }
 .mv-sample-badge { font-weight: 500; white-space: nowrap; }
 .mv-account-sample { margin-left: 0.5rem; vertical-align: 0.0625rem; }
 .mv-page-heading .mv-subtitle .mv-sample-badge, .mv-cost-header-title .mv-sample-badge { margin-left: 0.5rem; }
+
+/* Shared connect dialog (ConnectAccountDialog): provider picker, the sample-credentials bar, a two-column credentials form with a sticky Connect row, and the short "Syncing costs" state. */
+.mv-connect-dialog .mv-panel-title { margin: 0; }
+.mv-connect-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 0.625rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+.mv-connect-option { display: flex; align-items: flex-start; gap: 0.75rem; width: 100%; height: 100%; padding: 0.75rem; border: 1px solid var(--mv-border); border-radius: 0.5rem; background: var(--mv-surface); color: var(--mv-text); font: inherit; text-align: left; cursor: pointer; }
+.mv-connect-option:hover:not(:disabled) { border-color: var(--mv-primary); background: var(--mv-selected); }
+.mv-connect-option:disabled { opacity: 0.6; cursor: not-allowed; }
+.mv-connect-option-icon { display: grid; flex: none; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; background: var(--mv-selected); color: var(--mv-primary); }
+.mv-connect-option-text { display: grid; gap: 0.125rem; min-width: 0; font-size: 0.8125rem; }
+.mv-connect-option-text strong { font-size: 0.9375rem; font-weight: 500; }
+.mv-connect-back { margin: 0 0 0.5rem -0.5625rem; }
+.mv-connect-sample { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.625rem 1rem; margin: 0 0 1rem; padding: 0.75rem 0.875rem; border: 1px solid var(--mv-border); border-left: 0.1875rem solid var(--mv-primary); border-radius: 0.5rem; background: var(--mv-selected); }
+.mv-connect-sample > div { display: grid; flex: 1 1 14rem; gap: 0.125rem; min-width: 0; font-size: 0.8125rem; }
+.mv-connect-sample strong { font-weight: 500; }
+.mv-connect-hint { margin: 0 0 1rem; font-size: 0.8125rem; }
+.mv-connect-grid { gap: 0 1rem; }
+.mv-connect-field { display: grid; align-content: start; min-width: 0; margin-bottom: 1rem; }
+.mv-connect-field.is-wide { grid-column: 1 / -1; }
+.mv-connect-field > .mv-field { margin-bottom: 0; }
+.mv-connect-field > .mv-field-error, .mv-connect-field > .mv-field-help { margin: 0.375rem 0 0; }
+.mv-connect-field textarea { min-height: 7rem; font-family: var(--mv-font-mono, ui-monospace, monospace); font-size: 0.75rem; }
+.mv-connect-strategy { margin: 0 0 1rem; }
+.mv-connect-strategy .mv-field-help { margin: 0.375rem 0 0; }
+.mv-connect-label { margin: 0 0 0.4375rem; color: var(--mv-text-secondary); font-size: 0.8125rem; font-weight: 500; }
+.mv-connect-optional { margin: 0 0 1rem -0.5625rem; }
+.mv-connect-footer { position: sticky; bottom: -1.25rem; z-index: 1; margin: 0 -1.25rem -1.25rem; padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--mv-divider); background: var(--mv-elevated); }
+.mv-connect-footer .mv-dialog-actions { margin-top: 0.875rem; }
+.mv-connect-progress { margin: 0.625rem 0 0; color: var(--mv-text-secondary); font-size: 0.8125rem; text-align: right; }
+.mv-connect-everything { display: grid; justify-items: start; gap: 0.25rem; margin: 0 0 1rem; }
+.mv-connect-everything .mv-muted { margin: 0; font-size: 0.8125rem; }
+.mv-connect-picker + .mv-connect-everything, .mv-dialog-actions + .mv-connect-everything { margin: 0.75rem 0 0; }
+.mv-connect-spinner { width: 0.875rem; height: 0.875rem; margin-right: 0.5rem; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: mv-connect-spin 0.7s linear infinite; }
+@keyframes mv-connect-spin { to { transform: rotate(360deg); } }
+@media (max-width: 680px) {
+  .mv-connect-sample .mv-secondary-button { width: 100%; }
+  .mv-connect-footer .mv-dialog-actions > button { flex: 1 1 0; }
+  .mv-connect-progress { text-align: left; }
+}
+
+/* ---- Getting started checklist + live coach (onboarding wave) --------------------------------------------- */
+.mv-onboarding { display: grid; gap: 0.75rem; margin-bottom: 1rem; }
+.mv-onboarding-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+.mv-onboarding-heading { display: grid; gap: 0.125rem; min-width: 0; }
+.mv-onboarding-heading .mv-panel-title { margin: 0; }
+.mv-onboarding-heading p { margin: 0; font-size: 0.8125rem; }
+.mv-onboarding-tools { display: flex; flex: none; align-items: center; gap: 0.25rem; }
+.mv-onboarding-chevron { transition: transform 160ms ease; }
+.mv-onboarding-chevron.is-collapsed { transform: rotate(-90deg); }
+.mv-onboarding-bar { height: 0.375rem; overflow: hidden; border-radius: 62.4375rem; background: var(--mv-divider); }
+.mv-onboarding-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--mv-primary); transition: width 240ms ease; }
+.mv-onboarding-steps { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.mv-onboarding-step { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 0.25rem 0.875rem; padding: 0.75rem 0; border-top: 1px solid var(--mv-divider); }
+.mv-onboarding-step:first-child { border-top: 0; }
+.mv-onboarding-mark { display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border: 1.5px solid var(--mv-text-muted); border-radius: 50%; color: var(--mv-on-primary); }
+.mv-onboarding-step.is-done .mv-onboarding-mark { border-color: var(--mv-success); background: var(--mv-success); }
+.mv-onboarding-text { display: grid; gap: 0.125rem; min-width: 0; }
+.mv-onboarding-text strong { font-weight: 500; }
+.mv-onboarding-text .mv-muted { font-size: 0.8125rem; }
+.mv-onboarding-step.is-done .mv-onboarding-text strong { color: var(--mv-text-secondary); }
+.mv-onboarding-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.375rem; }
+.mv-onboarding-actions .mv-quiet-button { display: inline-flex; align-items: center; gap: 0.25rem; }
+@media (max-width: 640px) {
+  .mv-onboarding-step { grid-template-columns: auto minmax(0, 1fr); }
+  .mv-onboarding-actions { grid-column: 2; justify-content: flex-start; }
+}
+@media (prefers-reduced-motion: reduce) { .mv-onboarding-bar > span, .mv-onboarding-chevron { transition: none; } }
+
+/* The live coach: the page stays usable, the outline does the pointing, the card says what to do. */
+.mv-tour--coach .mv-tour-scrim { pointer-events: none; }
+.mv-tour--coach .mv-tour-card { width: min(21rem, calc(100vw - 2rem)); }
+.mv-tour--coach .mv-tour-spot { box-shadow: 0 0 0 0.3125rem color-mix(in srgb, var(--mv-primary) 28%, transparent); animation: mv-coach-pulse 1.8s ease-in-out infinite; }
+.mv-tour-action { margin: 0; padding: 0.625rem 0.75rem; border-left: 0.1875rem solid var(--mv-primary); border-radius: 0.375rem; background: var(--mv-selected); color: var(--mv-text); font-size: 0.9375rem; font-weight: 500; line-height: 1.375rem; }
+.mv-tour-hint { margin: 0; color: var(--mv-text-secondary); font-size: 0.8125rem; line-height: 1.25rem; }
+@keyframes mv-coach-pulse { 50% { box-shadow: 0 0 0 0.5rem color-mix(in srgb, var(--mv-primary) 14%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .mv-tour--coach .mv-tour-spot { animation: none; } }
+
+/* Assistant: first-visit welcome and the getting-started list in the tour picker. */
+.mv-assistant-welcome { display: grid; gap: 0.625rem; }
+.mv-assistant-welcome-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.mv-tour-picker-note { margin: -0.25rem 0 0.5rem; font-size: 0.8125rem; }
+.mv-tour-picker section + section { margin-top: 0.5rem; }
+
+/* Click reduction (users, billing, subscription): invoice rows with Pay Now, the Add user role chips, row actions that wrap, the plans under the current plan. */
+.mv-invoice-list { display: grid; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.mv-invoice-row { display: grid; gap: 0.625rem; padding: 0.75rem; border: 1px solid var(--mv-border); border-radius: 0.625rem; background: transparent; }
+.mv-invoice-row.is-active { border-color: var(--mv-primary); background: var(--mv-selected); }
+.mv-invoice-row-main { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.5rem 0.75rem; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.mv-invoice-row-main:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 0.25rem; border-radius: 0.375rem; }
+.mv-invoice-row-title { display: grid; gap: 0.1875rem; min-width: 0; }
+.mv-invoice-row-title strong { font-size: 0.8125rem; font-weight: 500; }
+.mv-invoice-row-title .mv-muted { font-size: 0.75rem; }
+.mv-invoice-row-amount { display: grid; justify-items: end; gap: 0.25rem; }
+.mv-invoice-row-amount strong { font-size: 0.875rem; font-weight: 500; }
+.mv-invoice-row-pay { justify-self: end; min-height: 2.125rem; padding-inline: 0.75rem; font-size: 0.8125rem; }
+.mv-roles-table .mv-row-actions { flex-wrap: wrap; justify-content: flex-end; }
+.mv-available-plans { margin-top: 1.5rem; }
+.mv-invoice-pay { flex: none; white-space: nowrap; }
+@media (max-width: 680px) { .mv-table.mv-table--stack.mv-roles-table td { height: auto; } .mv-roles-table .mv-role-desc { min-width: 0; max-width: none; } }
+
+/* Click reduction (invoices, security notes, budgets): the Undo button inside a toast, Cloud Invoices rows with their own trash button and the drop-anywhere hint, a checkbox column with a selected row, and the suggested budget limit. */
+.mv-toast-action { flex: none; margin-left: auto; padding: 0 0.25rem; border: 0; background: none; color: var(--mv-primary); font: inherit; font-weight: 500; text-decoration: underline; text-underline-offset: 0.1875rem; cursor: pointer; }
+.mv-toast-action:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: 0.125rem; border-radius: 0.25rem; }
+.mv-cinv-row { display: flex; align-items: center; gap: 0.25rem; border: 1px solid var(--mv-border); border-radius: 0.625rem; background: transparent; }
+.mv-cinv-row.is-selected { border-color: var(--mv-primary); background: var(--mv-selected); }
+.mv-cinv-row-main { flex: 1 1 auto; min-width: 0; padding: 0.75rem; border: 0; border-radius: 0.625rem; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.mv-cinv-row-main:focus-visible { outline: 2px solid var(--mv-focus); outline-offset: -2px; }
+.mv-cinv-row-delete { flex: none; margin-right: 0.5rem; }
+.mv-drop-overlay { position: fixed; inset: 0; z-index: 1300; display: grid; place-items: center; padding: 1.5rem; border: 0.1875rem dashed var(--mv-primary); background: color-mix(in srgb, var(--mv-elevated) 86%, transparent); color: var(--mv-primary); font-size: 1.125rem; font-weight: 500; text-align: center; pointer-events: none; }
+.mv-select-cell { width: 2.5rem; padding-right: 0; }
+.mv-select-cell input { width: 1rem; height: 1rem; accent-color: var(--mv-primary); cursor: pointer; }
+.mv-table tbody tr.is-selected td { background: var(--mv-selected); }
+.mv-check-after { margin: 0.25rem 0 0.75rem; }
+.mv-budget-suggestion { display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem 0.75rem; margin: -0.5rem 0 1rem; font-size: 0.75rem; }
+.mv-budget-suggestion-use { min-height: 1.75rem; padding-inline: 0.625rem; font-size: 0.75rem; }
+@media (max-width: 680px) {
+  .mv-table--stack .mv-select-cell { width: 100%; padding: 0.5rem 0; justify-content: flex-start; text-align: left; }
+}
+
+/* ==========================================================================
+   Click-reduction wave 3 (cost views, SAP systems, HANA backups, launcher, stacked tables, dashboard search)
+   ========================================================================== */
+
+/* Cost view tabs (Executive / Operations / Technical): shared TabBar with who each view is for beside its name. */
+.mv-cost-view-tabs .mv-tabbar { margin-bottom: 1rem; }
+.mv-tabbar-hint { color: var(--mv-text-muted); font-size: 0.75rem; font-weight: 400; }
+.mv-tabbar-tab.is-active .mv-tabbar-hint { color: var(--mv-text-secondary); }
+.mv-cost-view-tabs .mv-tabbar-list { flex-wrap: wrap; }
+@media (max-width: 48rem) {
+  .mv-tabbar-hint { display: none; }
+}
+
+/* The floating assistant launcher stays under any open drawer or dialog, so it can never cover a drawer's primary button. */
+body:has(.mv-drawer-backdrop, .mv-dialog-backdrop) .mv-ai-assistant { z-index: 1090; }
+
+/* HANA backup timeline: markers are real buttons (a bigger hit area than the dot) and the chosen backup's details sit under the chart. */
+.mv-backup-dot { cursor: pointer; }
+.mv-backup-dot--static { cursor: default; }
+.mv-backup-dot:not(.mv-backup-dot--static)::before { content: ''; position: absolute; inset: -0.5rem; }
+.mv-backup-dot:focus-visible { outline: 0.1875rem solid color-mix(in srgb, var(--mv-focus) 55%, transparent); outline-offset: 0.1875rem; }
+.mv-backup-detail { min-height: 5.5rem; }
+.mv-backup-detail .mv-detail-list { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); column-gap: 1.25rem; }
+.mv-backup-detail .mv-detail-list > div { grid-template-columns: 1fr; gap: 0.125rem; border-bottom: 0; }
+
+/* Dashboard search: a button that opens the command palette, shaped like the search box it replaces. */
+.mv-search-launcher { cursor: pointer; text-align: left; font: inherit; }
+.mv-search-launcher:hover { border-color: var(--mv-primary); color: var(--mv-text-secondary); }
+.mv-search-launcher:focus-visible { outline: 0.1875rem solid color-mix(in srgb, var(--mv-focus) 40%, transparent); outline-offset: 0.125rem; }
+.mv-search-launcher-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mv-search-launcher-keys { display: inline-flex; gap: 0.125rem; flex: none; }
+@media (max-width: 680px) { .mv-search-launcher-keys { display: none; } }
+
+/* Stacked tables (cards on phones, see .mv-table--stack above): row-open chevron and the Total footer row. */
+@media (max-width: 680px) {
+  .mv-table--stack tfoot, .mv-table--stack tfoot tr { display: block; width: 100%; }
+  .mv-table--stack tfoot tr { margin-bottom: 0.625rem; padding: 0.375rem 0.875rem; border: 1px solid var(--mv-divider); border-radius: 0.5rem; background: var(--mv-surface-subtle); }
+  .mv-table.mv-table--stack tfoot th[scope="row"] { display: block; width: 100%; padding: 0.5rem 0; border-bottom: 1px solid var(--mv-divider); text-align: left; }
+  .mv-table.mv-table--stack td.mv-row-chevron, .mv-table.mv-table--stack th.mv-row-chevron { display: none; }
+  .mv-table.mv-table--stack td.mv-stack-title { padding-top: 0.625rem; font-weight: 500; }
+  .mv-table.mv-table--stack td.mv-stack-title .mv-link-button, .mv-table.mv-table--stack td.mv-stack-title .mv-row-open { font-weight: 500; }
+  /* The page-wide '.mv-content .mv-table td' height and side padding would otherwise win over the card layout above. */
+  .mv-content .mv-table.mv-table--stack td { height: auto; padding-inline: 0; }
+  .mv-table.mv-table--stack td:has(+ td.mv-row-chevron) { border-bottom: 0; }
+  .mv-table--stack tbody tr.mv-row-link:hover { background: var(--mv-surface); }
+  .mv-table--stack .mv-row-open { text-align: left; }
+  .mv-members-table.mv-table--stack td.mv-cell-divided { border-left: 0; }
+  .mv-members-table.mv-table--stack td.mv-member-role .mv-field, .mv-members-table.mv-table--stack td.mv-member-role .mv-select-wrap { max-width: 12rem; }
+  .mv-table--stack td > .mv-row-actions { opacity: 1; }
+}

@@ -7,13 +7,17 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
  * Escape closes it, Tab stays inside it, the page behind doesn't scroll, focus moves in on
  * open (to `[data-autofocus]` or the first focusable element) and returns to whatever opened
  * it on close.
+ *
+ * `modal: false` keeps the ref but none of the behaviour: a floating card that must leave the page (and any
+ * dialog on it) usable, such as the live coach, still gets a stable ref without taking focus or scroll.
  */
-export function useModalOverlay<T extends HTMLElement>(onClose: () => void): RefObject<T | null> {
+export function useModalOverlay<T extends HTMLElement>(onClose: () => void, { modal = true }: { modal?: boolean } = {}): RefObject<T | null> {
   const containerRef = useRef<T>(null);
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
+    if (!modal) return;
     const container = containerRef.current;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const initial = container?.querySelector<HTMLElement>('[data-autofocus]') ?? container?.querySelector<HTMLElement>(FOCUSABLE);
@@ -47,7 +51,7 @@ export function useModalOverlay<T extends HTMLElement>(onClose: () => void): Ref
       document.body.style.overflow = previousOverflow;
       if (opener?.isConnected) opener.focus();
     };
-  }, []);
+  }, [modal]);
 
   return containerRef;
 }

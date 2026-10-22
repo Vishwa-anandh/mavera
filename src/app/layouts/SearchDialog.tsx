@@ -4,6 +4,7 @@ import { FileTextIcon, LockIcon, SearchIcon } from '../../shared/ui/icons';
 import { useAccess } from '../../features/access';
 import { useAuth } from '../../features/auth';
 import { hasPageTour, requestOpenAssistant, requestPageTour } from '../../features/assistant';
+import { openConnectDialog } from '../../features/workspace';
 import { derivePermissions } from '../../shared/lib/permissions';
 import { useMaveraTheme } from '../../shared/theme/ThemeProvider';
 import { useResolvedNav } from '../router/useResolvedNav';
@@ -125,6 +126,8 @@ export function SearchDialog({ onClose }: { onClose: () => void }) {
     if (!command) return;
     if (command.kind === 'navigate') navigate(command.to);
     else if (command.kind === 'theme') toggleMode();
+    // Connect commands open the shared dialog where the user already is, once the palette has handed focus back.
+    else if (command.kind === 'connect') window.setTimeout(() => openConnectDialog(command.provider), 0);
     // Let the palette finish closing (and hand focus back) before the assistant takes over.
     else if (command.kind === 'assistant') window.setTimeout(requestOpenAssistant, 0);
     else window.setTimeout(requestPageTour, 0);

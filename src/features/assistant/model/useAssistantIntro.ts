@@ -15,14 +15,18 @@ export const INTRO_MAX_MS = 5000;
 /**
  * The assistant's welcome: for a person who has never seen it, the launcher appears in the middle of the screen
  * with a greeting and then glides to its corner. It plays once per person (remembered in the browser), never
- * for someone who prefers reduced motion, and any click on the launcher ends it at once.
+ * for someone who prefers reduced motion, and any click on the launcher ends it at once. `first` says this is
+ * that person's first visit (even when the animation is skipped), which is when the assistant also welcomes a
+ * new organisation and offers the setup checklist.
  */
-export function useAssistantIntro(userId: string | undefined): { playing: boolean; finish: () => void } {
+export function useAssistantIntro(userId: string | undefined): { playing: boolean; first: boolean; finish: () => void } {
   const [playing, setPlaying] = useState(false);
+  const [first, setFirst] = useState(false);
 
   useEffect(() => {
     if (!userId || read(userId)) return;
     remember(userId);
+    setFirst(true);
     const reduced = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduced) return;
     setPlaying(true);
@@ -31,5 +35,5 @@ export function useAssistantIntro(userId: string | undefined): { playing: boolea
   }, [userId]);
 
   const finish = useCallback(() => setPlaying(false), []);
-  return { playing, finish };
+  return { playing, first, finish };
 }

@@ -1,4 +1,5 @@
 import { cloudInsightsRepository, isEmptyWorkspace, sapRepository, workspaceRepository, type CloudProviderId } from '../../../data-access';
+import { checklistFor, flowAvailable, nextCoachFlow, setupIntentFor, type SetupIntent } from './setupIntents';
 
 export interface AnswerModules {
   cloudCost: boolean;
@@ -167,6 +168,29 @@ function performanceAnswer(): string {
   ].join('\n') + SAMPLE_NOTE;
 }
 
+// ───────────────────────────────────────────────────────────── setting up
+/** The assistant's words for a setup request; the widget starts the live guide or opens the checklist alongside. */
+function setupAnswer(intent: SetupIntent, modules: AnswerModules): string {
+  if (intent.kind === 'coach') {
+    const { flow } = intent;
+    if (!flowAvailable(flow, modules)) return needs(flow.module === 'sapMonitoring' ? 'sap' : 'cloud', modules) ?? '';
+    return [
+      `Starting the live guide: ${flow.label}.`,
+      'I will point at what to click, wait until you have done it and move on by myself. Choose Skip this step on the card if you would rather do something yourself, or close the guide any time.',
+    ].join('\n');
+  }
+  const list = checklistFor(modules);
+  const remaining = list.steps.filter((step) => !step.done);
+  if (remaining.length === 0) return `Everything on your getting started checklist is done (${list.doneCount} of ${list.steps.length}). Nicely set up.`;
+  const next = remaining[0];
+  const progress = `${list.doneCount} of ${list.steps.length} steps are done. Next: ${next.label.charAt(0).toLowerCase()}${next.label.slice(1)}.`;
+  if (intent.kind === 'checklist') return `Here is your getting started checklist (on the dashboard). ${progress}`;
+  const flow = nextCoachFlow(modules);
+  return flow
+    ? `Let us get you set up. ${progress} I will open the checklist and guide you through it, one step at a time.`
+    : `Here is your getting started checklist. ${progress}`;
+}
+
 // ───────────────────────────────────────────────────────────── routing
 interface Intent {
   pattern: RegExp;
@@ -220,6 +244,8 @@ export function answerFromDemoData(question: string, modules: AnswerModules): st
     const topics = answerableTopics(modules).join('; ');
     return `Hello! I can answer from the sample data about: ${topics || 'your workspace'}. Try “What is our cloud spend this month?” or open the help button on any page for a guided tour.`;
   }
+  const setup = setupIntentFor(text);
+  if (setup) return setupAnswer(setup, modules);
   if (REPORT.test(text)) {
     return modules.cloudCost
       ? 'To export a report, open Cost Analytics (Cloud Cost menu), choose the providers, range and grouping you want, and click Export report — you get a CSV of exactly what is on screen. Resource Inventory and Security Notes have their own exports too.'

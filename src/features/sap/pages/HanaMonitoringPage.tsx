@@ -34,10 +34,10 @@ function tone(condition: string): string {
  * Single-system HANA deep dive — host vitals, 24h CPU/memory timeline, core services, disk partitions and
  * the backup timeline. Distinct from /sap/systems (the fleet-wide list):
  * this is what you land on after picking one system to inspect. The host line, KPI strip and destination switcher stay
- * above three tabs (`#vitals`, `#storage`, `#backups`).
+ * above three tabs (`#vitals`, `#storage`, `#backups`); the tab last used is reopened when the page is visited again.
  */
 function HanaMonitoringPageContent() {
-  const [tab, setTab] = useHashTab(TABS);
+  const [tab, setTab] = useHashTab(TABS, TABS[0], { remember: 'sap-hana' });
   const { system: HANA_SYSTEM, timeline: HANA_VITALS_TIMELINE, services: HANA_SERVICES } = useMemo(() => sapRepository.getHana(), []);
   const partitions = useMemo(() => sapRepository.listHanaDiskPartitions(), []);
   const backups = useMemo(() => sapRepository.listHanaBackups(), []);

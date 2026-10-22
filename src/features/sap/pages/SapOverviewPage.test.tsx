@@ -38,6 +38,42 @@ describe('SapOverviewPage', () => {
   });
 });
 
+describe('SapOverviewPage systems table', () => {
+  const systemsPanel = () => screen.getByRole('heading', { name: 'Systems' }).closest('.mv-panel') as HTMLElement;
+
+  it('filters the systems with condition chips that carry the counts', async () => {
+    renderPage(<SapOverviewPage />);
+    const chips = within(systemsPanel()).getByRole('group', { name: 'Filter systems by condition' });
+    expect(within(chips).getByRole('button', { name: /^All\s*5$/ })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(within(chips).getByRole('button', { name: /^Critical\s*1$/ }));
+    const rows = within(systemsPanel()).getAllByRole('row').slice(1);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveTextContent('HANA-PRD');
+    await userEvent.click(within(chips).getByRole('button', { name: /^All/ }));
+    expect(within(systemsPanel()).getAllByRole('row').length).toBe(6);
+  });
+
+  it('opens a system from anywhere in its row, or from its name with the keyboard, and links on to HANA monitoring', async () => {
+    renderPage(<SapOverviewPage />);
+    const row = within(systemsPanel()).getByRole('button', { name: 'HANA-PRD' }).closest('tr') as HTMLElement;
+    await userEvent.click(within(row).getByText('Production'));
+    const drawer = screen.getByRole('dialog', { name: 'HANA-PRD' });
+    expect(drawer).toHaveTextContent('92%');
+    expect(drawer).toHaveTextContent('CPU and memory are at or above');
+    expect(within(drawer).getByRole('link', { name: 'Open HANA monitoring' })).toHaveAttribute('href', '/sap/databases');
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    const qa = within(systemsPanel()).getByRole('button', { name: 'S4H-QA' });
+    qa.focus();
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByRole('dialog', { name: 'S4H-QA' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Open HANA monitoring' })).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(qa).toHaveFocus();
+  });
+});
+
 describe('HanaMonitoringPage', () => {
   it('opens with the last-24-hours findings and the vitals tab, with the per-service memory chart one tab over', async () => {
     renderPage(<HanaMonitoringPage />);

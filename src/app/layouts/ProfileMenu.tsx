@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth';
+import { useOnboardingProgress, useShowChecklist } from '../../features/workspace';
+import { openOnArrivalTarget } from '../../shared/lib/useOpenOnArrival';
 import { useMaveraTheme } from '../../shared/theme/ThemeProvider';
 import { useConfirm } from '../../shared/ui/ConfirmProvider';
 import { handleMenuKeys, useDismiss } from '../../shared/ui/useOverlay';
@@ -8,7 +10,9 @@ import maitsysLogo from '../../../assets/brand/maitsys.png';
 
 /** MAVERA_DESIGN_SYSTEM.md §6.1 profile menu: Account · Subscription (read-only) · Billing · Appearance · Help · Sign out. */
 export function ProfileMenu() {
-  const { user, logout } = useAuth();
+  const { user, logout, modules } = useAuth();
+  const checklist = useOnboardingProgress(modules);
+  const showChecklist = useShowChecklist();
   const { mode, toggleMode } = useMaveraTheme();
   const confirm = useConfirm();
   const navigate = useNavigate();
@@ -67,8 +71,18 @@ export function ProfileMenu() {
             </span>
           </div>
           <div className="mv-menu-divider" role="separator" />
+          {checklist.relevant && (
+            <button type="button" role="menuitem" className="mv-menu-item" onClick={() => { close(false); showChecklist(); }}>
+              Getting started
+              <span className="mv-menu-item-hint">{checklist.doneCount} of {checklist.total} done</span>
+            </button>
+          )}
           <Link role="menuitem" className="mv-menu-item" to="/account">Account</Link>
           <Link role="menuitem" className="mv-menu-item" to="/subscription">Subscription</Link>
+          <Link role="menuitem" className="mv-menu-item" to={openOnArrivalTarget('/subscription', 'request-plan')} onClick={() => close(false)}>
+            Request a plan
+            <span className="mv-menu-item-hint">Ask Maitsys to change plan</span>
+          </Link>
           <Link role="menuitem" className="mv-menu-item" to="/billing">Billing &amp; invoices</Link>
           <button type="button" role="menuitemcheckbox" aria-checked={mode === 'dark'} className="mv-menu-item" onClick={toggleMode}>
             Dark appearance

@@ -116,17 +116,17 @@ export function BtpOverallDashboard() {
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Services Breakdown ({topServices.length})</h2></div>
           <div className="mv-table-wrap">
-            <table className="mv-table">
+            <table className="mv-table mv-table--stack">
               <thead><tr><th>#</th><th>Service Name</th><th className="mv-num">MTD Cost</th><th>Share</th></tr></thead>
               <tbody>
                 {topServices.map((svc, i) => {
                   const pct = totalCost > 0 ? (svc.cost / totalCost) * 100 : 0;
                   return (
                     <tr key={svc.name}>
-                      <td className="mv-muted">{i + 1}</td>
-                      <td>{svc.name}</td>
-                      <td className="mv-num">{formatCurrency(svc.cost)}</td>
-                      <td>
+                      <td data-label="#" className="mv-muted">{i + 1}</td>
+                      <td data-label="Service Name">{svc.name}</td>
+                      <td data-label="MTD Cost" className="mv-num">{formatCurrency(svc.cost)}</td>
+                      <td data-label="Share">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <div style={{ flex: 1, height: '0.375rem', borderRadius: '62.4375rem', background: 'var(--mv-divider)', overflow: 'hidden', minWidth: '3.75rem' }}>
                             <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${pct}%`, background: 'var(--mv-primary)' }} />

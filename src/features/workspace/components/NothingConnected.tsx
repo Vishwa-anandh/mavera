@@ -1,7 +1,6 @@
-import { useNavigate } from 'react-router-dom';
 import { EmptyState } from '../../../shared/ui/EmptyState';
 import { CloudIcon, ServerIcon } from '../../../shared/ui/icons';
-import { CONNECT_TARGETS, type ConnectTargetKey } from '../model/connectTargets';
+import { CONNECT_TARGETS, openConnectTarget, type ConnectTargetKey } from '../model/connectTargets';
 
 interface NothingConnectedProps {
   /** Which connect flow the one primary action opens. */
@@ -14,10 +13,9 @@ interface NothingConnectedProps {
 
 /**
  * The empty state of a page whose data comes from a connection the organisation has not made yet: one sentence
- * on what will appear, and ONE primary action to the connect flow.
+ * on what will appear, and ONE primary action that opens the shared connect dialog in place.
  */
 export function NothingConnected({ target, heading, explanation, actionLabel }: NothingConnectedProps) {
-  const navigate = useNavigate();
   const connect = CONNECT_TARGETS[target];
   return (
     <EmptyState
@@ -25,7 +23,7 @@ export function NothingConnected({ target, heading, explanation, actionLabel }: 
       heading={heading}
       explanation={explanation}
       actionLabel={actionLabel ?? connect.label}
-      onAction={() => navigate(connect.path)}
+      onAction={() => openConnectTarget(target)}
     />
   );
 }

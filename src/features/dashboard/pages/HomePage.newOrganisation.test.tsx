@@ -7,6 +7,7 @@ import { HomePage } from './HomePage';
 import { ThemeProvider } from '../../../shared/theme/ThemeProvider';
 import type { AuthContextValue } from '../../auth';
 import { workspaceRepository } from '../../../data-access';
+import { ConnectDialogHost, closeConnectDialog } from '../../workspace';
 import { newOrganisationData } from '../model/newOrganisationData';
 import type { DashboardData } from '../model/useDashboardData';
 
@@ -31,7 +32,7 @@ function Where() {
   return <p data-testid="where">{pathname}{search}</p>;
 }
 
-const renderDashboard = () => render(<ThemeProvider><MemoryRouter><HomePage /><Where /></MemoryRouter></ThemeProvider>);
+const renderDashboard = () => render(<ThemeProvider><MemoryRouter><HomePage /><Where /><ConnectDialogHost /></MemoryRouter></ThemeProvider>);
 
 describe('HomePage for a brand-new organisation', () => {
   beforeEach(() => {
@@ -42,7 +43,7 @@ describe('HomePage for a brand-new organisation', () => {
     });
     useDashboardDataMock.mockImplementation(() => ({ ...newOrganisationData([]), refetch: vi.fn() }));
   });
-  afterEach(() => workspaceRepository.setProfile('populated'));
+  afterEach(() => { closeConnectDialog(); workspaceRepository.setProfile('populated'); });
 
   it('shows zeros, an empty state for each module and ONE primary action to connect the first account', async () => {
     const user = userEvent.setup();
@@ -60,12 +61,21 @@ describe('HomePage for a brand-new organisation', () => {
     expect(within(strip).getByText('0/0')).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/NaN|undefined/);
 
-    // Exactly one primary call to action (a button), and it goes to the connect flow.
+    // Exactly one primary call to action (a button), and it opens the shared connect dialog in place.
     expect(screen.getByRole('heading', { name: 'Connect your first account' })).toBeInTheDocument();
     const primary = screen.getAllByRole('button', { name: 'Connect your first account' });
     expect(primary).toHaveLength(1);
     await user.click(primary[0]);
-    expect(screen.getByTestId('where')).toHaveTextContent('/azure?open=connect');
+    expect(screen.getByRole('dialog', { name: 'Connect Azure account' })).toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/);
+  });
+
+  it('the pulse deck and the empty panels open the same dialog in place on a plain click', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await user.click(screen.getAllByRole('link', { name: 'Connect an SAP system' })[0]);
+    expect(screen.getByRole('dialog', { name: 'Connect SAP system' })).toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/);
   });
 
   it('shows the figures, not the empty state, once an account is connected', () => {

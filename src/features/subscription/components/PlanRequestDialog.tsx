@@ -1,10 +1,14 @@
 import { useId, useState, type FormEvent } from 'react';
 import { CloseIcon } from '../../../shared/ui/icons';
 import { useModalOverlay } from '../../../shared/ui/useOverlay';
+import { Select } from '../../../shared/ui/Select';
 import type { PlanDefinition } from '../model/subscriptionData';
 
 interface PlanRequestDialogProps {
   plan: PlanDefinition;
+  /** Other plans that can be requested instead; when given (and more than one), the dialog lets you switch between them. */
+  choices?: PlanDefinition[];
+  onChoose?: (plan: PlanDefinition) => void;
   currentPlanName: string;
   onSend: (note: string) => void;
   onClose: () => void;
@@ -14,7 +18,7 @@ interface PlanRequestDialogProps {
  * Asks Maitsys to move the organisation to another plan. Sending only records the request: the plan,
  * modules and seat limits stay as they are until Maitsys changes them in the Super Admin portal.
  */
-export function PlanRequestDialog({ plan, currentPlanName, onSend, onClose }: PlanRequestDialogProps) {
+export function PlanRequestDialog({ plan, choices, onChoose, currentPlanName, onSend, onClose }: PlanRequestDialogProps) {
   const ref = useModalOverlay<HTMLElement>(onClose);
   const titleId = useId();
   const noteId = useId();
@@ -35,6 +39,14 @@ export function PlanRequestDialog({ plan, currentPlanName, onSend, onClose }: Pl
         <p>Maitsys will get in touch about moving from {currentPlanName} to {plan.name}. Pricing is shared in that conversation.</p>
         <p className="mv-muted">Sending this does not change your plan, modules or team size. Maitsys makes those changes once you have agreed.</p>
         <form onSubmit={submit}>
+          {choices && choices.length > 1 && onChoose && (
+            <Select
+              label="Plan"
+              value={plan.id}
+              onChange={(id) => { const next = choices.find((choice) => choice.id === id); if (next) onChoose(next); }}
+              options={choices.map((choice) => ({ value: choice.id, label: choice.name }))}
+            />
+          )}
           <div className="mv-field">
             <label htmlFor={noteId}>Anything Maitsys should know? <span className="mv-muted">(optional)</span></label>
             <textarea id={noteId} rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="For example: we need GCP and SAP BTP monitoring from next month." data-autofocus />

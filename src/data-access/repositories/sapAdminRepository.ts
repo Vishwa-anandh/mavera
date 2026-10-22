@@ -1,5 +1,5 @@
 import type {
-  AlertSettings, AlertThresholdConfig, AlertThresholds, NoteCheckResult, NoteHistoryEntry, NoteUploadResult, SapAlertSource,
+  AlertSettings, AlertThresholdConfig, AlertThresholds, NoteCheckResult, NoteHistoryEntry, NoteRemoval, NoteUploadResult, SapAlertSource,
   SapDestination, SapDestinationInput, SapSmartAlert, SecurityNote, TransportActivity, TransportLogLevel, TransportLogType, TransportState,
 } from '../contracts/sapAdmin';
 import { SEED_SECURITY_NOTES, SEED_NOTE_HISTORY, simulateNoteCheck } from '../../demo/sap/mockSecurityNotes';
@@ -159,6 +159,32 @@ const securityNotes = {
       notes = notes.filter((n) => n.noteNumber !== noteNumber);
       logNote('delete', actor, `Deleted note ${noteNumber}`, [{ label: 'Deleted', value: 1 }]);
       return true;
+    });
+  },
+  /**
+   * Deletes several notes at once (one history entry). Returns the notes taken out, in list order, with the
+   * numbers in the list before the delete and the history entry's id, which `restore` needs to undo it.
+   */
+  removeMany(noteNumbers: string[], actor: string): Promise<NoteRemoval> {
+    return simulate(() => {
+      const wanted = new Set(noteNumbers);
+      const order = notes.map((n) => n.noteNumber);
+      const removed = notes.filter((n) => wanted.has(n.noteNumber));
+      if (removed.length === 0) return { removed: [], order, entryId: null };
+      notes = notes.filter((n) => !wanted.has(n.noteNumber));
+      logNote('delete', actor, removed.length === 1 ? `Deleted note ${removed[0].noteNumber}` : `Deleted ${removed.length} notes`, [{ label: 'Deleted', value: removed.length }]);
+      return { removed: structuredClone(removed), order, entryId: noteHistory[0].id };
+    });
+  },
+  /** Undoes `removeMany`: the notes return to their old places and the delete entry leaves the history. */
+  restore(removal: NoteRemoval): Promise<number> {
+    return simulate(() => {
+      const known = new Set(notes.map((n) => n.noteNumber));
+      const back = removal.removed.filter((n) => !known.has(n.noteNumber));
+      const position = (n: SecurityNote) => { const at = removal.order.indexOf(n.noteNumber); return at === -1 ? Number.MAX_SAFE_INTEGER : at; };
+      notes = [...notes, ...structuredClone(back)].sort((a, b) => position(a) - position(b));
+      noteHistory = noteHistory.filter((entry) => entry.id !== removal.entryId);
+      return back.length;
     });
   },
 };

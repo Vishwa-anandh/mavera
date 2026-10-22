@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Select } from '../../../shared/ui/Select';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import {
@@ -7,21 +7,33 @@ import {
   countGrants,
   describeChange,
   diffMatrices,
+  firstGrantedModuleId,
   summarizeDiff,
   totalGrantable,
   usePermission,
   type AccessRole,
+  type ModuleId,
   type PermissionMatrixValue,
 } from '../../access';
 import { directoryActions } from '../model/directoryActions';
+
+/** Edits to one role's matrix that have not been saved yet. Kept by the page so they survive a switch of tab. */
+export interface PermissionsDraft {
+  roleId: string;
+  matrix: PermissionMatrixValue;
+}
 
 interface PermissionsSectionProps {
   roles: AccessRole[];
   selectedRoleId: string;
   /** Asks the page to switch roles (it confirms first when there are unsaved changes). */
   onSelectRole: (roleId: string) => void;
-  /** Tells the page whether there are unsaved changes, so it can guard role switches. */
-  onDirtyChange: (dirty: boolean) => void;
+  /** The unsaved edits, if any, and how to change or drop them. */
+  draft: PermissionsDraft | null;
+  onDraftChange: (draft: PermissionsDraft | null) => void;
+  /** The module shown, or null to open on the first module the role has any grant on. */
+  moduleId: ModuleId | null;
+  onModuleChange: (id: ModuleId) => void;
   onDuplicate: (roleId: string) => void;
 }
 
@@ -30,11 +42,10 @@ interface PermissionsSectionProps {
  * way to make an editable copy); custom roles collect edits into a draft that is saved or
  * discarded from a bar that appears as soon as something changes.
  */
-export function PermissionsSection({ roles, selectedRoleId, onSelectRole, onDirtyChange, onDuplicate }: PermissionsSectionProps) {
+export function PermissionsSection({ roles, selectedRoleId, onSelectRole, draft, onDraftChange, moduleId, onModuleChange, onDuplicate }: PermissionsSectionProps) {
   const canEditRoles = usePermission('roles', 'EDIT');
   const canCreateRoles = usePermission('roles', 'CREATE');
   const role = roles.find((item) => item.id === selectedRoleId) ?? roles[0];
-  const [draft, setDraft] = useState<{ roleId: string; matrix: PermissionMatrixValue } | null>(null);
 
   const activeDraft = draft && draft.roleId === role.id ? draft.matrix : null;
   const value = activeDraft ?? role.permissions;
@@ -42,10 +53,6 @@ export function PermissionsSection({ roles, selectedRoleId, onSelectRole, onDirt
   const dirty = changes.length > 0;
   const editable = role.kind === 'custom' && canEditRoles;
   const { grants } = countGrants(value);
-
-  useEffect(() => {
-    onDirtyChange(dirty);
-  }, [dirty, onDirtyChange]);
 
   const readOnlyReason =
     role.id === 'owner'
@@ -59,7 +66,7 @@ export function PermissionsSection({ roles, selectedRoleId, onSelectRole, onDirt
   const save = () => {
     if (!activeDraft) return;
     const count = directoryActions.saveRolePermissions(role.id, activeDraft);
-    setDraft(null);
+    onDraftChange(null);
     fireToast({ type: 'success', message: `Permissions saved for ${role.name}: ${count} change${count === 1 ? '' : 's'}.` });
   };
 
@@ -89,7 +96,9 @@ export function PermissionsSection({ roles, selectedRoleId, onSelectRole, onDirt
         roleName={role.name}
         value={value}
         readOnly={!editable}
-        onChange={(matrix) => setDraft({ roleId: role.id, matrix })}
+        onChange={(matrix) => onDraftChange({ roleId: role.id, matrix })}
+        selectedModuleId={moduleId ?? firstGrantedModuleId(role.permissions)}
+        onSelectModule={onModuleChange}
       />
 
       {dirty && (
@@ -99,7 +108,7 @@ export function PermissionsSection({ roles, selectedRoleId, onSelectRole, onDirt
             <span className="mv-muted"> · {summarizeDiff(changes)} · {describeChange(changes[0])}{changes.length > 1 ? ` and ${changes.length - 1} more` : ''}</span>
           </p>
           <div className="mv-unsaved-actions">
-            <button type="button" className="mv-secondary-button" onClick={() => setDraft(null)}>Discard</button>
+            <button type="button" className="mv-secondary-button" onClick={() => onDraftChange(null)}>Discard</button>
             <button type="button" className="mv-primary-button" onClick={save}>Save changes</button>
           </div>
         </div>

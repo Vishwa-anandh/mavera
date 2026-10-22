@@ -5,6 +5,8 @@ export interface TabBarItem {
   label: string;
   /** Small count shown after the label, e.g. the number of members. */
   count?: number;
+  /** Quiet second line of text after the label (who the tab is for); hidden on narrow screens. */
+  hint?: string;
 }
 
 interface TabBarProps {
@@ -63,6 +65,7 @@ export function TabBar({ items, activeId, onChange, label, idPrefix, children }:
               onClick={() => onChange(item.id)}
             >
               {item.label}
+              {item.hint && <span className="mv-tabbar-hint">{item.hint}</span>}
               {item.count !== undefined && <span className="mv-tabbar-count">{item.count}</span>}
             </button>
           );

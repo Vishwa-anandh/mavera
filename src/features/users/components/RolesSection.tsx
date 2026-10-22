@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { PlusIcon } from '../../../shared/ui/icons';
 import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { relativeTime } from '../../../shared/lib/relativeTime';
 import { fireToast } from '../../../shared/lib/toastEvents';
@@ -14,17 +13,15 @@ interface RolesSectionProps {
   members: OrgMember[];
   /** Points the Permissions section at a role and brings it into view. */
   onEditPermissions: (roleId: string) => void;
-  /** The "Add role" button lives in the section header so it is next to the title. */
-  adding: boolean;
-  onCloseAdd: () => void;
 }
 
 /**
  * The roles table: name, description, system or custom, how many members hold it, how much it
- * grants and when it was last edited, with Add, Edit, Duplicate and Delete. Deleting a role that
+ * grants and when it was last edited, with Permissions, Edit, Duplicate and Delete (adding a role is the
+ * page's job, so it can be done from the Permissions tab too). Deleting a role that
  * members still hold is refused with the reason.
  */
-export function RolesSection({ roles, members, onEditPermissions, adding, onCloseAdd }: RolesSectionProps) {
+export function RolesSection({ roles, members, onEditPermissions }: RolesSectionProps) {
   const confirm = useConfirm();
   const canCreate = usePermission('roles', 'CREATE');
   const canEdit = usePermission('roles', 'EDIT');
@@ -35,14 +32,6 @@ export function RolesSection({ roles, members, onEditPermissions, adding, onClos
   const counts = countMembersByRole(members);
   const editing = roles.find((role) => role.id === editingId);
   const details = roles.find((role) => role.id === detailsId);
-
-  const create = (value: RoleDialogValue) => {
-    const source = roles.find((role) => role.id === value.copyFrom);
-    const id = directoryActions.createRole({ name: value.name, description: value.description, permissions: source?.permissions });
-    onCloseAdd();
-    fireToast({ type: 'success', message: `Role “${value.name}” was added. Set its permissions in the matrix below.` });
-    onEditPermissions(id);
-  };
 
   const saveDetails = (value: RoleDialogValue) => {
     if (!editing) return;
@@ -55,7 +44,7 @@ export function RolesSection({ roles, members, onEditPermissions, adding, onClos
     const id = directoryActions.duplicateRole(role.id);
     if (!id) return;
     setDetailsId(null);
-    fireToast({ type: 'success', message: `${role.name} was duplicated. Set its permissions in the matrix below.` });
+    fireToast({ type: 'success', message: `${role.name} was duplicated. Its permissions are open in the matrix.` });
     onEditPermissions(id);
   };
 
@@ -76,7 +65,7 @@ export function RolesSection({ roles, members, onEditPermissions, adding, onClos
   return (
     <>
       <div className="mv-table-wrap">
-        <table className="mv-table mv-roles-table">
+        <table className="mv-table mv-table--stack mv-roles-table">
           <caption className="mv-sr-only">Roles, who holds them and what they grant</caption>
           <thead>
             <tr>
@@ -94,16 +83,19 @@ export function RolesSection({ roles, members, onEditPermissions, adding, onClos
               const { grants } = countGrants(role.permissions);
               return (
                 <tr key={role.id}>
-                  <td>
+                  <td className="mv-stack-title">
                     <button type="button" className="mv-link-button" onClick={() => setDetailsId(role.id)} aria-label={`View role details: ${role.name}`}>{role.name}</button>
                     <span className={`mv-status mv-role-kind ${role.kind === 'system' ? 'mv-status--info' : 'mv-status--neutral'}`}>{role.kind === 'system' ? 'System' : 'Custom'}</span>
                   </td>
-                  <td className="mv-muted mv-role-desc">{role.description || '—'}</td>
-                  <td className="mv-num">{held}</td>
-                  <td className="mv-num">{grants} <span className="mv-muted">of {totalGrantable(role.id)}</span></td>
-                  <td className="mv-muted mv-cell-nowrap">{role.updatedAt ? relativeTime(new Date(role.updatedAt)) : 'Built in'}</td>
-                  <td>
+                  <td data-label="Description" className="mv-muted mv-role-desc"><span>{role.description || '—'}</span></td>
+                  <td data-label="Members" className="mv-num">{held}</td>
+                  <td data-label="Permissions" className="mv-num"><span>{grants} <span className="mv-muted">of {totalGrantable(role.id)}</span></span></td>
+                  <td data-label="Last edited" className="mv-muted mv-cell-nowrap">{role.updatedAt ? relativeTime(new Date(role.updatedAt)) : 'Built in'}</td>
+                  <td className="mv-stack-actions">
                     <div className="mv-row-actions">
+                      <button type="button" className="mv-quiet-button" aria-label={`${role.kind === 'custom' && canEdit ? 'Edit' : 'View'} permissions of ${role.name}`} onClick={() => onEditPermissions(role.id)}>
+                        Permissions
+                      </button>
                       {canEdit && role.kind === 'custom' && (
                         <button type="button" className="mv-quiet-button" aria-label={`Edit role ${role.name}`} onClick={() => setEditingId(role.id)}>Edit</button>
                       )}
@@ -131,7 +123,6 @@ export function RolesSection({ roles, members, onEditPermissions, adding, onClos
         </table>
       </div>
 
-      {adding && <RoleDialog roles={roles} onCancel={onCloseAdd} onSave={create} />}
       {editing && <RoleDialog role={editing} roles={roles} onCancel={() => setEditingId(null)} onSave={saveDetails} />}
       {details && (
         <RoleDetailsDrawer
@@ -154,16 +145,6 @@ export function RolesSection({ roles, members, onEditPermissions, adding, onClos
           onDelete={() => void remove(details)}
         />
       )}
-    </>
-  );
-}
-
-/** Used by the section header; kept here so the label and icon stay with the section. */
-export function AddRoleButtonContent() {
-  return (
-    <>
-      <PlusIcon size={16} style={{ marginRight: '0.375rem' }} />
-      Add role
     </>
   );
 }

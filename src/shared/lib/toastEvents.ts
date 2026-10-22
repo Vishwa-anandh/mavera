@@ -1,8 +1,17 @@
 export type ToastType = 'error' | 'warning' | 'success' | 'info';
 
+export interface ToastAction {
+  /** Short verb for the button, e.g. "Undo". */
+  label: string;
+  /** Runs once when the button is pressed; the toast then closes. */
+  onClick: () => void;
+}
+
 export interface ToastDetail {
   type: ToastType;
   message: string;
+  /** An action offered inside the toast (Undo after a delete). A toast with an action stays a little longer. */
+  action?: ToastAction;
 }
 
 export const CCM_TOAST_EVENT = 'ccm:toast';

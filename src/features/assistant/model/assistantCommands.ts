@@ -1,19 +1,14 @@
 import { flowGuideForPath } from './flowGuides';
 
 /**
- * Tiny window events that let other parts of the app (the command palette) drive the assistant without
- * importing its components: open the chat, or start the guided tour of the page being viewed.
+ * The window events that let other parts of the app (the command palette, the getting-started card) drive the
+ * assistant live in shared/lib/assistantEvents so features need not import each other; they are re-exported here
+ * because the assistant is their owner.
  */
-export const OPEN_ASSISTANT_EVENT = 'mavera:assistant-open';
-export const START_PAGE_TOUR_EVENT = 'mavera:assistant-page-tour';
-
-export function requestOpenAssistant(): void {
-  window.dispatchEvent(new CustomEvent(OPEN_ASSISTANT_EVENT));
-}
-
-export function requestPageTour(): void {
-  window.dispatchEvent(new CustomEvent(START_PAGE_TOUR_EVENT));
-}
+export {
+  OPEN_ASSISTANT_EVENT, SHOW_CHECKLIST_EVENT, START_COACH_EVENT, START_PAGE_TOUR_EVENT,
+  requestCoachFlow, requestOpenAssistant, requestPageTour, requestShowChecklist,
+} from '../../../shared/lib/assistantEvents';
 
 /** Does this page have a guided tour to start? */
 export function hasPageTour(pathname: string): boolean {

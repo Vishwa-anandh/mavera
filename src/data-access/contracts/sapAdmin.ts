@@ -47,6 +47,14 @@ export interface NoteUploadResult {
   updated: string[];
 }
 
+/** What a delete took out, kept so it can be undone: the notes, their places in the list and the history entry the delete wrote. */
+export interface NoteRemoval {
+  removed: SecurityNote[];
+  /** Every note number in list order before the delete. */
+  order: string[];
+  entryId: string | null;
+}
+
 export interface NoteCheckResult {
   checked: number;
   resolved: number;

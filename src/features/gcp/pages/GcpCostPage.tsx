@@ -4,6 +4,8 @@ import { useMaveraTheme } from '../../../shared/theme/ThemeProvider';
 import { chartColors } from '../../../shared/theme/tokens';
 import { ChevronLeftIcon, RefreshIcon, SparkleIcon } from '../../../shared/ui/icons';
 import { Tooltip } from '../../../shared/ui/Tooltip';
+import { CostViewTabs } from '../../../shared/ui/CostViewTabs';
+import { costViewPanelProps, useCostView } from '../../../shared/lib/useCostView';
 import { useGcpAccounts } from '../model/GcpAccountContext';
 import { cloudSamplesRepository } from '../../../data-access';
 import { SampleDataBadge } from '../../workspace';
@@ -21,12 +23,8 @@ function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 }
 
-type TabKey = 'executive' | 'operations' | 'technical';
-const TABS: Array<{ key: TabKey; label: string; sub: string }> = [
-  { key: 'executive', label: 'Executive', sub: 'CEO / Leadership' },
-  { key: 'operations', label: 'Operations', sub: 'Manager / Dept. Head' },
-  { key: 'technical', label: 'Technical', sub: 'Engineer / In-depth' },
-];
+
+const COST_VIEWS = ['executive', 'operations', 'technical'] as const;
 
 function useOutsideClose(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null);
@@ -56,7 +54,7 @@ export function GcpCostPage() {
   // The provider's sample dataset; a connected project's own id is shown as its top project.
   const data = useMemo(() => cloudSamplesRepository.gcp.costs(account), [account]);
 
-  const [activeTab, setActiveTab] = useState<TabKey>('executive');
+  const [activeTab, setActiveTab] = useCostView('gcp', accountId, COST_VIEWS);
   const [syncing, setSyncing] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const aiRef = useOutsideClose(aiOpen, () => setAiOpen(false));
@@ -124,14 +122,7 @@ export function GcpCostPage() {
         </div>
       </div>
 
-      <nav className="mv-cost-tabs" aria-label="Cost view">
-        {TABS.map((tab) => (
-          <button key={tab.key} className={`mv-cost-tab${activeTab === tab.key ? ' is-active' : ''}`} onClick={() => setActiveTab(tab.key)} aria-current={activeTab === tab.key ? 'page' : undefined}>
-            <span>{tab.label}</span>
-            <span className="mv-muted">{tab.sub}</span>
-          </button>
-        ))}
-      </nav>
+      <CostViewTabs views={COST_VIEWS} active={activeTab} onChange={setActiveTab} />
 
       <div className="mv-kpi-row-5">
         <article className="mv-kpi"><span className="mv-kpi-label">Month-to-Date Spend</span><strong className="mv-kpi-value">{formatCurrency(data.totalCost)}</strong><span className="mv-muted">Total GCP cost this month</span></article>
@@ -144,11 +135,11 @@ export function GcpCostPage() {
       {!hasData ? (
         <div className="mv-empty"><h2>No data available yet.</h2><p>Cost data will appear once this project syncs.</p></div>
       ) : (
-        <>
+        <div {...costViewPanelProps(activeTab)}>
           {activeTab === 'executive' && <ExecutiveTab {...tabProps} aiInsights={aiInsights} />}
           {activeTab === 'operations' && <OperationsTab {...tabProps} />}
           {activeTab === 'technical' && <TechnicalTab {...tabProps} />}
-        </>
+        </div>
       )}
     </div>
   );

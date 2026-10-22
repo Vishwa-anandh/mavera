@@ -72,6 +72,15 @@ export interface OnboardingState {
   tourDone: boolean;
 }
 
+/** The counts the live coach compares to notice that a step was done; each one only ever changes through its own page. */
+export interface WorkspaceProgressSignals {
+  accounts: number;
+  destinations: number;
+  budgets: number;
+  recipients: number;
+  members: number;
+}
+
 /** Per-provider current-month sample spend for the connected accounts, as the dashboard shows it. */
 export interface WorkspaceSampleSpend {
   provider: WorkspaceProvider;

@@ -74,3 +74,40 @@ describe('AssistantConversation', () => {
     expect(screen.getByRole('button', { name: 'Deactivate or reactivate a user' })).toBeInTheDocument();
   });
 });
+
+describe('AssistantConversation welcome', () => {
+  it('greets a new organisation first and offers to start the checklist or put it off', async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    const onDismiss = vi.fn();
+    render(
+      <AssistantConversation
+        messages={[]}
+        draft=""
+        onDraftChange={() => {}}
+        onSend={() => {}}
+        welcome={{ text: 'Welcome to Mavera, Nora.', actionLabel: 'Start the checklist', onAction, onDismiss }}
+      />,
+    );
+    expect(screen.getByText('Welcome to Mavera, Nora.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Start the checklist' }));
+    expect(onAction).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows no welcome unless one is given, and not once a conversation has started', () => {
+    const { rerender } = render(<AssistantConversation messages={[]} draft="" onDraftChange={() => {}} onSend={() => {}} />);
+    expect(screen.queryByRole('button', { name: 'Not now' })).not.toBeInTheDocument();
+    rerender(
+      <AssistantConversation
+        messages={[{ id: 'u-0', role: 'user', text: 'hi' }]}
+        draft=""
+        onDraftChange={() => {}}
+        onSend={() => {}}
+        welcome={{ text: 'Welcome', actionLabel: 'Go', onAction: () => {}, onDismiss: () => {} }}
+      />,
+    );
+    expect(screen.queryByText('Welcome')).not.toBeInTheDocument();
+  });
+});

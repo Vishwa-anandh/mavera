@@ -32,7 +32,7 @@ export function ServiceCategoryTable({ services, currency }: { services: Service
 
   return (
     <div className="mv-table-wrap">
-      <table className="mv-table" aria-describedby={captionId}>
+      <table className="mv-table mv-table--stack" aria-describedby={captionId}>
         <caption id={captionId} className="mv-sr-only">Service cost grouped by category. Use the Total cost heading to change the sort order.</caption>
         <thead>
           <tr>
@@ -50,21 +50,21 @@ export function ServiceCategoryTable({ services, currency }: { services: Service
         <tbody>
           {summary.rows.map((row) => (
             <tr key={row.category}>
-              <td>{row.category}</td>
-              <td className="mv-num">{row.serviceCount}</td>
-              <td className="mv-num">{formatMoney(row.cost, currency)}</td>
-              <td className="mv-num">{row.sharePct.toFixed(1)}%</td>
-              <td><Trend pct={row.trendPct} /></td>
+              <td data-label="Category" className="mv-stack-title">{row.category}</td>
+              <td data-label="Services" className="mv-num">{row.serviceCount}</td>
+              <td data-label="Total cost" className="mv-num">{formatMoney(row.cost, currency)}</td>
+              <td data-label="Share" className="mv-num">{row.sharePct.toFixed(1)}%</td>
+              <td data-label="Trend"><Trend pct={row.trendPct} /></td>
             </tr>
           ))}
         </tbody>
         <tfoot>
           <tr>
-            <th scope="row">Total</th>
-            <td className="mv-num">{summary.total.serviceCount}</td>
-            <td className="mv-num">{formatMoney(summary.total.cost, currency)}</td>
-            <td className="mv-num">{summary.total.sharePct.toFixed(1)}%</td>
-            <td><Trend pct={summary.total.trendPct} /></td>
+            <th scope="row" className="mv-stack-title">Total</th>
+            <td data-label="Services" className="mv-num">{summary.total.serviceCount}</td>
+            <td data-label="Total cost" className="mv-num">{formatMoney(summary.total.cost, currency)}</td>
+            <td data-label="Share" className="mv-num">{summary.total.sharePct.toFixed(1)}%</td>
+            <td data-label="Trend"><Trend pct={summary.total.trendPct} /></td>
           </tr>
         </tfoot>
       </table>

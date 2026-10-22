@@ -97,17 +97,17 @@ export function AzureOverallDashboard({ onSelectAccount, onManageAccounts }: Azu
       <section className="mv-panel" style={{ marginBottom: '1rem' }}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Environments</h2></div>
         <div className="mv-table-wrap">
-          <table className="mv-table">
+          <table className="mv-table mv-table--stack">
             <thead>
               <tr><th>Subscription</th><th>Name</th><th className="mv-num">Current Spend</th><th>Budget Status</th><th>Tag Coverage</th><th>Status</th><th className="mv-row-chevron"><span className="mv-sr-only">Open</span></th></tr>
             </thead>
             <tbody>
               {accounts.map((account) => (
                 <ClickableRow key={account.id} onOpen={() => onSelectAccount(account.id)}>
-                  <td className="mv-code">{account.subscriptionId.slice(0, 8)}…{account.subscriptionId.slice(-4)}</td>
-                  <td><RowOpenButton onOpen={() => onSelectAccount(account.id)}>{account.name}</RowOpenButton></td>
-                  <td className="mv-num">{formatCurrency(account.totalCost)}</td>
-                  <td>
+                  <td data-label="Subscription" className="mv-code">{account.subscriptionId.slice(0, 8)}…{account.subscriptionId.slice(-4)}</td>
+                  <td data-label="Name"><RowOpenButton onOpen={() => onSelectAccount(account.id)}>{account.name}</RowOpenButton></td>
+                  <td data-label="Current Spend" className="mv-num">{formatCurrency(account.totalCost)}</td>
+                  <td data-label="Budget Status">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Sparkline values={account.sparkline} />
                       <span className={`mv-status mv-status--${budgetTone(account.budgetStatus?.pct ?? null)}`}>
@@ -115,8 +115,8 @@ export function AzureOverallDashboard({ onSelectAccount, onManageAccounts }: Azu
                       </span>
                     </div>
                   </td>
-                  <td><span className="mv-status mv-status--neutral">N/A</span></td>
-                  <td><span className="mv-status mv-status--success">Active</span></td>
+                  <td data-label="Tag Coverage"><span className="mv-status mv-status--neutral">N/A</span></td>
+                  <td data-label="Status"><span className="mv-status mv-status--success">Active</span></td>
                   <RowChevronCell />
                 </ClickableRow>
               ))}

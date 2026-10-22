@@ -26,6 +26,10 @@ interface PermissionExplorerProps {
   onChange?: (next: Matrix) => void;
   /** Shows the grants without letting them change (system roles, or no permission to edit roles). */
   readOnly?: boolean;
+  /** The module shown. Omit to let the explorer keep its own choice, starting on the first module. */
+  selectedModuleId?: ModuleId;
+  /** Called when a different module or product area is chosen (use it with `selectedModuleId`). */
+  onSelectModule?: (id: ModuleId) => void;
 }
 
 const ACTION_HINTS: Record<PermissionAction, string> = {
@@ -54,9 +58,14 @@ export function PermissionLegend() {
  * module or only the Owner may hold it. Areas and modules show how many grants the role holds. On narrow screens
  * the columns stack and choosing a module brings its switches into view.
  */
-export function PermissionExplorer({ roleId, roleName, value, onChange, readOnly = false }: PermissionExplorerProps) {
+export function PermissionExplorer({ roleId, roleName, value, onChange, readOnly = false, selectedModuleId, onSelectModule }: PermissionExplorerProps) {
   const editable = !readOnly && Boolean(onChange);
-  const [selectedId, setSelectedId] = useState<ModuleId>(MODULES[0].id as ModuleId);
+  const [ownSelectedId, setOwnSelectedId] = useState<ModuleId>(MODULES[0].id as ModuleId);
+  const selectedId = selectedModuleId ?? ownSelectedId;
+  const setSelectedId = (id: ModuleId) => {
+    setOwnSelectedId(id);
+    onSelectModule?.(id);
+  };
   const detailRef = useRef<HTMLDivElement>(null);
   const selected = MODULES.find((module) => module.id === selectedId) ?? MODULES[0];
   const groupId = selected.group;

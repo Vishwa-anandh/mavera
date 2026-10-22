@@ -41,4 +41,12 @@ export const invoicesRepository = {
     invoices = invoices.filter((inv) => inv.id !== id);
     return invoices.length < before;
   },
+  /** Puts a deleted invoice back (Undo) at its old place in the list; does nothing if it is already there. */
+  restore(invoice: Invoice, index = 0): Invoice[] {
+    if (!invoices.some((inv) => inv.id === invoice.id)) {
+      const at = Math.min(Math.max(index, 0), invoices.length);
+      invoices = [...invoices.slice(0, at), structuredClone(invoice), ...invoices.slice(at)];
+    }
+    return structuredClone(invoices);
+  },
 };

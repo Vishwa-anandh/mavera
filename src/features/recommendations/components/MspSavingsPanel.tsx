@@ -21,21 +21,21 @@ export function MspSavingsPanel({ rows, annualisedPct }: { rows: MspRow[]; annua
         <strong className="mv-saving-total">{money(total)}</strong>
       </div>
       <div className="mv-table-wrap">
-        <table className="mv-table">
+        <table className="mv-table mv-table--stack">
           <caption className="mv-sr-only">Maitsys discount rate, monthly spend and monthly saving per provider</caption>
           <thead><tr><th>Provider</th><th className="mv-num">Discount rate</th><th className="mv-num">Monthly spend</th><th className="mv-num">Monthly saving</th></tr></thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.provider}>
-                <td>{row.label}</td>
-                <td className="mv-num">{(row.rate * 100).toFixed(1)}%</td>
-                <td className="mv-num">{money(row.spend)}</td>
-                <td className="mv-num">{money(row.saving)}</td>
+                <td data-label="Provider" className="mv-stack-title">{row.label}</td>
+                <td data-label="Discount rate" className="mv-num">{(row.rate * 100).toFixed(1)}%</td>
+                <td data-label="Monthly spend" className="mv-num">{money(row.spend)}</td>
+                <td data-label="Monthly saving" className="mv-num">{money(row.saving)}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr><th scope="row">Total</th><td className="mv-num">{spend > 0 ? `${((total / spend) * 100).toFixed(2)}%` : '—'}</td><td className="mv-num">{money(spend)}</td><td className="mv-num">{money(total)}</td></tr>
+            <tr><th scope="row" className="mv-stack-title">Total</th><td data-label="Discount rate" className="mv-num">{spend > 0 ? `${((total / spend) * 100).toFixed(2)}%` : '—'}</td><td data-label="Monthly spend" className="mv-num">{money(spend)}</td><td data-label="Monthly saving" className="mv-num">{money(total)}</td></tr>
           </tfoot>
         </table>
       </div>

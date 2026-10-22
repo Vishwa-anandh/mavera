@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { oneOf, useRememberedState } from '../../../shared/lib/useRememberedState';
 import { useAuth } from '../../auth';
 import { derivePermissions } from '../../../shared/lib/permissions';
@@ -6,10 +6,10 @@ import { cssVars } from '../../../shared/lib/cssVars';
 import { fireToast } from '../../../shared/lib/toastEvents';
 import { useOpenOnArrival } from '../../../shared/lib/useOpenOnArrival';
 import { invoicesRepository } from '../../../data-access';
-import { useConfirm } from '../../../shared/ui/ConfirmProvider';
 import { SegmentedToggle } from '../../../shared/ui/SegmentedToggle';
 import { Select } from '../../../shared/ui/Select';
 import { Pagination } from '../../../shared/ui/Pagination';
+import { useModalOverlay } from '../../../shared/ui/useOverlay';
 import {
   CheckIcon,
   CloseIcon,
@@ -24,6 +24,7 @@ import {
   PROVIDER_LABELS,
   buildFakeParsedInvoice,
   cspBreakdownOf,
+  detectInvoiceUpload,
   filterByProvider,
   formatCurrency,
   formatDate,
@@ -162,41 +163,66 @@ function InvoiceDetail({ invoice, onDelete, onClose }: { invoice: Invoice; onDel
   );
 }
 
-function UploadModal({ allowedProviders, onClose, onCreated }: { allowedProviders: CloudProvider[]; onClose: () => void; onCreated: (invoice: Invoice) => void }) {
-  const [provider, setProvider] = useState<CloudProvider | ''>(allowedProviders[0] ?? '');
+/** What the page already knows when it opens the dialog: a file it was handed and the provider it guessed for it. */
+interface UploadStart {
+  fileName: string;
+  provider: CloudProvider;
+  /** The file name settled the provider, so parsing starts at once instead of waiting for a click. */
+  confident: boolean;
+}
+
+function UploadModal({ allowedProviders, start, onClose, onCreated }: { allowedProviders: CloudProvider[]; start: UploadStart | null; onClose: () => void; onCreated: (invoice: Invoice) => void }) {
+  const panelRef = useModalOverlay<HTMLElement>(onClose);
+  const [provider, setProvider] = useState<CloudProvider | ''>(start?.provider ?? allowedProviders[0] ?? '');
   const [billingName, setBillingName] = useState('');
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(start?.fileName ?? null);
+  const [guess, setGuess] = useState<string | null>(start && !start.confident ? `We could not tell the provider from the file name, so we chose ${PROVIDER_LABELS[start.provider]}. Change it if that is wrong.` : null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'parsing' | 'done'>('idle');
+  const timers = useRef<number[]>([]);
+  const onCreatedRef = useRef(onCreated);
+  useEffect(() => { onCreatedRef.current = onCreated; });
 
   const expectedExt = provider === 'btp' ? '.xlsx' : '.pdf';
 
   const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.name.toLowerCase().endsWith(expectedExt)) {
-      setError(`${PROVIDER_LABELS[provider as CloudProvider] ?? 'This provider'} invoices must be a ${expectedExt} file.`);
+    const found = detectInvoiceUpload(file.name, allowedProviders);
+    if (found.problem || !found.provider) {
+      setError(found.problem);
       setFileName(null);
       return;
     }
     setError(null);
     setFileName(file.name);
+    setProvider(found.provider);
+    setGuess(found.confident ? `Provider detected from the file name: ${PROVIDER_LABELS[found.provider]}.` : `We could not tell the provider from the file name, so we chose ${PROVIDER_LABELS[found.provider]}. Change it if that is wrong.`);
   };
 
-  const submit = () => {
-    if (!provider || !fileName) return;
+  const submit = useCallback((chosen: CloudProvider | '', file: string | null, name: string) => {
+    if (!chosen || !file) return;
     setStatus('parsing');
-    window.setTimeout(() => {
-      const invoice = buildFakeParsedInvoice(provider as CloudProvider, fileName, billingName || undefined, new Date());
+    const parse = window.setTimeout(() => {
+      const invoice = buildFakeParsedInvoice(chosen, file, name || undefined, new Date());
       setStatus('done');
-      window.setTimeout(() => onCreated(invoice), 900);
+      timers.current.push(window.setTimeout(() => onCreatedRef.current(invoice), 900));
     }, 1200);
-  };
+    timers.current.push(parse);
+  }, []);
+
+  // A file whose name settles the provider needs no further click: parsing starts as the dialog opens. Closing the
+  // dialog mid-parse (or React re-running this effect) cancels the pending parse, so an upload nobody is looking at
+  // never adds an invoice, and the re-run starts it again.
+  useEffect(() => {
+    if (start?.confident) submit(start.provider, start.fileName, '');
+    return () => { timers.current.forEach((id) => window.clearTimeout(id)); timers.current = []; };
+  }, [start, submit]);
 
   if (allowedProviders.length === 0) {
     return (
       <div className="mv-dialog-backdrop" onClick={onClose}>
-        <section className="mv-dialog" role="dialog" aria-modal="true" aria-label="Upload invoice" onClick={(e) => e.stopPropagation()}>
+        <section ref={panelRef} className="mv-dialog" role="dialog" aria-modal="true" aria-label="Upload invoice" onClick={(e) => e.stopPropagation()}>
           <div className="mv-panel-header"><h2 className="mv-panel-title">Upload Invoice</h2><button className="mv-icon-button" aria-label="Close" onClick={onClose}><CloseIcon size={16} /></button></div>
           <div className="mv-inline-error" role="alert">No cloud access — contact your administrator.</div>
         </section>
@@ -206,7 +232,7 @@ function UploadModal({ allowedProviders, onClose, onCreated }: { allowedProvider
 
   return (
     <div className="mv-dialog-backdrop" onClick={onClose}>
-      <section className="mv-dialog" role="dialog" aria-modal="true" aria-label="Upload invoice" onClick={(e) => e.stopPropagation()}>
+      <section ref={panelRef} className="mv-dialog" role="dialog" aria-modal="true" aria-label="Upload invoice" onClick={(e) => e.stopPropagation()}>
         <div className="mv-panel-header"><h2 className="mv-panel-title">Upload Invoice</h2><button className="mv-icon-button" aria-label="Close" onClick={onClose}><CloseIcon size={16} /></button></div>
         <p className="mv-subtitle" style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>PDF or XLSX — Azure/AWS/BTP/GCP</p>
 
@@ -216,34 +242,35 @@ function UploadModal({ allowedProviders, onClose, onCreated }: { allowedProvider
             <h3>{fileName} parsed and saved.</h3>
           </div>
         ) : status === 'parsing' ? (
-          <div className="mv-success">
+          <div className="mv-success" role="status">
             <div className="mv-loading" />
-            <p style={{ marginTop: '0.75rem' }}>Parsing invoice… This may take a few seconds.</p>
+            <p style={{ marginTop: '0.75rem' }}>Parsing {fileName}… This may take a few seconds.</p>
           </div>
         ) : (
-          <>
+          <form onSubmit={(e) => { e.preventDefault(); if (fileName && !error) submit(provider, fileName, billingName); }}>
+            <label className="mv-field">
+              Invoice File ({expectedExt})
+              <input type="file" accept=".pdf,.xlsx" onChange={handleFile} data-autofocus />
+            </label>
+            {error && <p className="mv-field-error" role="alert">{error}</p>}
+            {fileName && !error && <p className="mv-field-help" style={{ color: 'var(--mv-success)' }}>Selected: {fileName}</p>}
+            {guess && !error && <p className="mv-field-help">{guess}</p>}
             <Select
               label="Provider"
               style={{ height: '2.75rem' }}
               value={provider}
-              onChange={(p) => { setProvider(p); setFileName(null); setError(null); }}
+              onChange={(p) => { setProvider(p); setError(null); setGuess(null); if (fileName && !fileName.toLowerCase().endsWith(p === 'btp' ? '.xlsx' : '.pdf')) { setFileName(null); } }}
               options={allowedProviders.map((p) => ({ value: p, label: PROVIDER_LABELS[p] }))}
             />
             <label className="mv-field">
               Billing Name <span className="mv-field-help" style={{ margin: 0 }}>(optional — used when not found in file)</span>
               <input maxLength={120} value={billingName} onChange={(e) => setBillingName(e.target.value)} placeholder="e.g. Production Subscription" />
             </label>
-            <label className="mv-field">
-              Invoice File ({expectedExt})
-              <input type="file" accept={expectedExt} onChange={handleFile} />
-            </label>
-            {error && <p className="mv-field-error">{error}</p>}
-            {fileName && !error && <p className="mv-field-help" style={{ color: 'var(--mv-success)' }}>Selected: {fileName}</p>}
             <div className="mv-dialog-actions">
-              <button className="mv-secondary-button" onClick={onClose}>Cancel</button>
-              <button className="mv-primary-button" disabled={!fileName || !!error} onClick={submit}><UploadIcon size={16} style={{ marginRight: '0.375rem' }} />Upload Invoice</button>
+              <button type="button" className="mv-secondary-button" onClick={onClose}>Cancel</button>
+              <button type="submit" className="mv-primary-button" disabled={!fileName || !!error}><UploadIcon size={16} style={{ marginRight: '0.375rem' }} />Upload Invoice</button>
             </div>
-          </>
+          </form>
         )}
       </section>
     </div>
@@ -261,15 +288,15 @@ function UploadModal({ allowedProviders, onClose, onCreated }: { allowedProvider
 export function InvoicesPage() {
   const { user, cloudAccess, invoiceOnly } = useAuth();
   const permissions = derivePermissions(user, cloudAccess, invoiceOnly);
-  const confirm = useConfirm();
   const [invoices, setInvoices] = useState<Invoice[]>(() => invoicesRepository.list());
   const [providerFilter, setProviderFilter] = useRememberedState<ProviderFilter>('cloud', 'invoices-provider', 'all', oneOf(PROVIDER_FILTERS));
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadStart, setUploadStart] = useState<UploadStart | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  // Ctrl+K "Upload invoice" lands here with the upload dialog already open.
-  useOpenOnArrival('upload', () => setUploadOpen(true));
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const kpis = invoiceKpisOf(invoices);
   const providerCounts = providerCountsOf(invoices);
@@ -282,20 +309,91 @@ export function InvoicesPage() {
 
   const changeFilter = (f: ProviderFilter) => { setProviderFilter(f); setPage(1); };
 
-  const handleDelete = async (invoice: Invoice) => {
+  /** Deletes at once and offers Undo: the invoice goes back where it was, and is selected again if it was open. */
+  const handleDelete = (invoice: Invoice) => {
     const name = invoice.raw_summary.invoiceNumber ?? invoice.file_name;
-    const ok = await confirm({
-      title: `Delete invoice ${name}?`,
-      description: `${PROVIDER_LABELS[invoice.provider]} ${monthLabel(invoice.month, invoice.year)}, ${formatCurrency(invoice.total_cost, invoice.currency)}. It leaves this list, the savings totals and the Cost Overview invoices view. Sample data: it comes back when you reload.`,
-      variant: 'delete',
-      okText: 'Delete invoice',
-    });
-    if (!ok) return;
-    invoicesRepository.remove(invoice.id);
+    const index = invoicesRepository.list().findIndex((inv) => inv.id === invoice.id);
+    if (!invoicesRepository.remove(invoice.id)) return;
     setInvoices(invoicesRepository.list());
-    if (selectedId === invoice.id) setSelectedId(null);
-    fireToast({ type: 'success', message: `Invoice ${name} deleted.` });
+    const wasSelected = selectedId === invoice.id;
+    if (wasSelected) setSelectedId(null);
+    fireToast({
+      type: 'success',
+      message: `Invoice ${name} deleted.`,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          invoicesRepository.restore(invoice, Math.max(index, 0));
+          setInvoices(invoicesRepository.list());
+          if (wasSelected) setSelectedId(invoice.id);
+        },
+      },
+    });
   };
+
+  /** A file arrived from the chooser or a drop: start under the provider its name points to, or ask when the name does not say. */
+  const receiveFile = (file: File) => {
+    if (uploadOpen) return; // the open dialog has its own file picker
+    const found = detectInvoiceUpload(file.name, allowedProviders);
+    if (found.problem || !found.provider) {
+      fireToast({ type: 'error', message: `${file.name}: ${found.problem ?? 'this file cannot be uploaded.'}` });
+      return;
+    }
+    setUploadStart({ fileName: file.name, provider: found.provider, confident: found.confident });
+    setUploadOpen(true);
+  };
+
+  const chooseFile = () => {
+    if (allowedProviders.length === 0) { setUploadStart(null); setUploadOpen(true); return; }
+    fileInputRef.current?.click();
+  };
+
+  const openUploadDialog = () => { setUploadStart(null); setUploadOpen(true); };
+
+  const onFileChosen = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) receiveFile(file);
+  };
+
+  // Ctrl+K "Upload invoice" lands here and goes straight to the file chooser; without a fresh click or key press the
+  // browser would refuse the chooser, so the dialog (which has its own) opens instead.
+  useOpenOnArrival('upload', () => {
+    const activation = (navigator as Navigator & { userActivation?: { isActive: boolean } }).userActivation;
+    if (activation?.isActive) chooseFile();
+    else openUploadDialog();
+  });
+
+  // A file dropped anywhere on the page starts an upload; without these handlers the browser would open the file instead.
+  const receiveRef = useRef(receiveFile);
+  useEffect(() => { receiveRef.current = receiveFile; });
+  useEffect(() => {
+    let depth = 0;
+    const hasFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes('Files');
+    const enter = (event: DragEvent) => { if (!hasFiles(event)) return; event.preventDefault(); depth += 1; setDragging(true); };
+    const over = (event: DragEvent) => { if (hasFiles(event)) event.preventDefault(); };
+    const leave = (event: DragEvent) => { if (!hasFiles(event)) return; depth = Math.max(0, depth - 1); if (depth === 0) setDragging(false); };
+    const drop = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault();
+      depth = 0;
+      setDragging(false);
+      const files = Array.from(event.dataTransfer?.files ?? []);
+      if (files.length === 0) return;
+      if (files.length > 1) fireToast({ type: 'info', message: `Uploading ${files[0].name}. Drop the other files one at a time.` });
+      receiveRef.current(files[0]);
+    };
+    window.addEventListener('dragenter', enter);
+    window.addEventListener('dragover', over);
+    window.addEventListener('dragleave', leave);
+    window.addEventListener('drop', drop);
+    return () => {
+      window.removeEventListener('dragenter', enter);
+      window.removeEventListener('dragover', over);
+      window.removeEventListener('dragleave', leave);
+      window.removeEventListener('drop', drop);
+    };
+  }, []);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -305,10 +403,12 @@ export function InvoicesPage() {
 
   return (
     <div>
-      <PageHeader title="Cloud Invoices" subtitle={<>Upload Azure, AWS, SAP BTP & GCP invoices · instant visual breakdown.</>}>
+      <input ref={fileInputRef} type="file" className="mv-sr-only" accept=".pdf,.xlsx" aria-label="Invoice file (PDF, or XLSX for SAP BTP)" tabIndex={-1} onChange={onFileChosen} />
+      {dragging && !uploadOpen && <div className="mv-drop-overlay" role="status">Drop your invoice anywhere to upload it</div>}
+      <PageHeader title="Cloud Invoices" subtitle={<>Upload Azure, AWS, SAP BTP & GCP invoices · instant visual breakdown. Drop a PDF or XLSX anywhere on this page.</>}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="mv-secondary-button" disabled={refreshing} onClick={handleRefresh}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh'}</button>
-          <button className="mv-primary-button" onClick={() => setUploadOpen(true)}><UploadIcon size={16} style={{ marginRight: '0.375rem' }} />Upload Invoice</button>
+          <button className="mv-primary-button" onClick={chooseFile}><UploadIcon size={16} style={{ marginRight: '0.375rem' }} />Upload Invoice</button>
         </div>
       </PageHeader>
 
@@ -343,37 +443,40 @@ export function InvoicesPage() {
                 <div className="mv-empty-icon" aria-hidden><FileTextIcon size={28} /></div>
                 <h2>No invoices yet</h2>
                 <p>Upload your first invoice to start tracking spend.</p>
-                <button className="mv-primary-button" onClick={() => setUploadOpen(true)}>Upload Invoice</button>
+                <button className="mv-primary-button" onClick={chooseFile}>Upload Invoice</button>
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '0.5rem' }}>
-                {pageItems.map((inv) => (
-                  <button
-                    key={inv.id}
-                    type="button"
-                    aria-pressed={selectedId === inv.id}
-                    onClick={() => setSelectedId(selectedId === inv.id ? null : inv.id)}
-                    style={{
-                      textAlign: 'left', border: `1px solid ${selectedId === inv.id ? 'var(--mv-primary)' : 'var(--mv-border)'}`,
-                      borderRadius: '0.625rem', padding: '0.75rem', background: selectedId === inv.id ? 'var(--mv-selected)' : 'transparent', cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
-                          <span className="mv-status mv-status--neutral" style={{ fontSize: '0.625rem' }}>{PROVIDER_LABELS[inv.provider]}</span>
-                          <strong style={{ fontSize: '0.8125rem' }}>{monthLabel(inv.month, inv.year)}</strong>
+                {pageItems.map((inv) => {
+                  const invName = inv.raw_summary.invoiceNumber ?? inv.file_name;
+                  const isSelected = selectedId === inv.id;
+                  return (
+                    <div key={inv.id} className={`mv-cinv-row${isSelected ? ' is-selected' : ''}`}>
+                      <button
+                        type="button"
+                        className="mv-cinv-row-main"
+                        aria-pressed={isSelected}
+                        onClick={() => setSelectedId(isSelected ? null : inv.id)}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+                              <span className="mv-status mv-status--neutral" style={{ fontSize: '0.625rem' }}>{PROVIDER_LABELS[inv.provider]}</span>
+                              <strong style={{ fontSize: '0.8125rem' }}>{monthLabel(inv.month, inv.year)}</strong>
+                            </div>
+                            <p className="mv-muted" style={{ margin: '0.1875rem 0 0', fontSize: '0.6875rem' }}>{invName}</p>
+                            {inv.raw_summary.billingProfile && <p className="mv-muted" style={{ margin: '2px 0 0', fontSize: '0.6875rem' }}>{inv.raw_summary.billingProfile}</p>}
+                          </div>
+                          <div style={{ textAlign: 'right', flex: 'none' }}>
+                            <strong style={{ fontSize: '0.875rem' }}>{formatCurrency(inv.total_cost, inv.currency)}</strong>
+                            {inv.raw_summary.dueDate && <p className="mv-muted" style={{ margin: '0.1875rem 0 0', fontSize: '0.625rem' }}>Due {formatDate(inv.raw_summary.dueDate)}</p>}
+                          </div>
                         </div>
-                        <p className="mv-muted" style={{ margin: '0.1875rem 0 0', fontSize: '0.6875rem' }}>{inv.raw_summary.invoiceNumber ?? inv.file_name}</p>
-                        {inv.raw_summary.billingProfile && <p className="mv-muted" style={{ margin: '2px 0 0', fontSize: '0.6875rem' }}>{inv.raw_summary.billingProfile}</p>}
-                      </div>
-                      <div style={{ textAlign: 'right', flex: 'none' }}>
-                        <strong style={{ fontSize: '0.875rem' }}>{formatCurrency(inv.total_cost, inv.currency)}</strong>
-                        {inv.raw_summary.dueDate && <p className="mv-muted" style={{ margin: '0.1875rem 0 0', fontSize: '0.625rem' }}>Due {formatDate(inv.raw_summary.dueDate)}</p>}
-                      </div>
+                      </button>
+                      <button type="button" className="mv-icon-button mv-cinv-row-delete" aria-label={`Delete invoice ${invName}`} onClick={() => handleDelete(inv)}><TrashIcon size={16} /></button>
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
@@ -382,7 +485,7 @@ export function InvoicesPage() {
         </div>
 
         {selected ? (
-          <InvoiceDetail invoice={selected} onDelete={(inv) => { void handleDelete(inv); }} onClose={() => setSelectedId(null)} />
+          <InvoiceDetail invoice={selected} onDelete={handleDelete} onClose={() => setSelectedId(null)} />
         ) : (
           <section className="mv-panel">
             <div className="mv-empty" style={{ margin: 0 }}>
@@ -396,13 +499,16 @@ export function InvoicesPage() {
 
       {uploadOpen && (
         <UploadModal
+          key={uploadStart?.fileName ?? 'manual'}
           allowedProviders={allowedProviders}
-          onClose={() => setUploadOpen(false)}
+          start={uploadStart}
+          onClose={() => { setUploadOpen(false); setUploadStart(null); }}
           onCreated={(invoice) => {
             invoicesRepository.add(invoice);
             setInvoices(invoicesRepository.list());
             fireToast({ type: 'success', message: `${invoice.file_name} uploaded and added to your invoices.` });
             setUploadOpen(false);
+            setUploadStart(null);
             setSelectedId(invoice.id);
             setProviderFilter('all');
             setPage(1);

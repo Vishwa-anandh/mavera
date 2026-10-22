@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { ChartDataDialog } from './ChartDataDialog';
 import { useMaveraTheme } from '../theme/ThemeProvider';
 import { chartColors } from '../theme/tokens';
 
@@ -73,29 +74,21 @@ export function BarSeriesChart({ title, data, series, stacked = false, threshold
       </div>
       <button type="button" className="mv-quiet-button" onClick={() => setTableOpen(true)}>View data</button>
       {tableOpen && (
-        <div className="mv-dialog-backdrop" onClick={() => setTableOpen(false)}>
-          <section className="mv-dialog mv-dialog--wide" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
-            <div className="mv-panel-header">
-              <h2 className="mv-panel-title">{title}</h2>
-              <button type="button" className="mv-icon-button" aria-label="Close data table" onClick={() => setTableOpen(false)}>×</button>
-            </div>
-            <div className="mv-table-wrap">
-              <table className="mv-table">
-                <thead>
-                  <tr><th>Category</th>{series.map((s) => <th key={s.key} className="mv-num">{s.label}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {data.map((row) => (
-                    <tr key={String(row.name)}>
-                      <td>{String(row.name)}</td>
-                      {series.map((s) => <td key={s.key} className="mv-num">{format(Number(row[s.key] ?? 0))}</td>)}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </div>
+        <ChartDataDialog label={title} onClose={() => setTableOpen(false)} wide>
+          <table className="mv-table">
+            <thead>
+              <tr><th>Category</th>{series.map((s) => <th key={s.key} className="mv-num">{s.label}</th>)}</tr>
+            </thead>
+            <tbody>
+              {data.map((row) => (
+                <tr key={String(row.name)}>
+                  <td>{String(row.name)}</td>
+                  {series.map((s) => <td key={s.key} className="mv-num">{format(Number(row[s.key] ?? 0))}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ChartDataDialog>
       )}
     </div>
   );

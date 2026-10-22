@@ -108,8 +108,10 @@ describe('command palette', () => {
     expect(within(palette()).getAllByRole('group').map((group) => group.getAttribute('aria-labelledby'))).toEqual(['mv-search-group-actions', 'mv-search-group-pages']);
     expect(within(palette()).getAllByRole('option')[0]).toHaveAttribute('aria-selected', 'true');
     await user.keyboard('{Enter}');
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByTestId('where')).toHaveTextContent('/azure?open=connect');
+    // The palette closes and the shared connect dialog opens in place, on the Azure credentials.
+    expect(await screen.findByRole('dialog', { name: 'Connect Azure account' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Search or run a command' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/$/);
   });
 
   it('shows commands for "budget" and runs Add budget', async () => {
@@ -132,11 +134,22 @@ describe('command palette', () => {
   });
 
   it.each([
-    ['connect azure', '/azure?open=connect'],
-    ['connect aws', '/aws/accounts?open=connect'],
-    ['connect google', '/gcp/accounts?open=connect'],
-    ['connect btp', '/btp/accounts?open=connect'],
-    ['connect sap system', '/sap/configuration?open=connect'],
+    ['connect azure', 'Connect Azure account'],
+    ['connect aws', 'Connect AWS account'],
+    ['connect google', 'Connect Google Cloud project'],
+    ['connect btp', 'Connect SAP BTP account'],
+    ['connect sap system', 'Connect SAP system'],
+  ])('"%s" opens the connect dialog "%s" in place, without leaving the page', async (typed, title) => {
+    const user = userEvent.setup();
+    renderShell('/budgets');
+    const box = await open(user);
+    await user.type(box, typed);
+    await user.keyboard('{Enter}');
+    expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument();
+    expect(screen.getByTestId('where')).toHaveTextContent(/^\/budgets$/);
+  });
+
+  it.each([
     ['add budget', '/budgets?open=new'],
     ['notification channel', '/budgets?open=add-channel#integrations'],
     ['upload invoice', '/invoices?open=upload'],

@@ -17,7 +17,7 @@ export function NotificationsDrawer({ onClose, notifications }: { onClose: () =>
   const { items, unreadCount, markRead, markAllRead } = notifications;
   const visible = tab === 'unread' ? items.filter((item) => !item.read) : items;
   // A brand-new organisation has nothing to be notified about yet: the one next step is its first connection.
-  const { nothingConnected, firstStep } = useConnectionStatus();
+  const { nothingConnected, firstStep, connectFirst } = useConnectionStatus();
 
   return (
     <div className="mv-drawer-backdrop" onClick={onClose}>
@@ -47,7 +47,7 @@ export function NotificationsDrawer({ onClose, notifications }: { onClose: () =>
               <p className="mv-drawer-empty-title">{tab === 'unread' ? 'No unread notifications' : 'No notifications yet'}</p>
               <p className="mv-muted">{tab === 'unread' ? 'You’re all caught up. Switch to All to see earlier notifications.' : nothingConnected ? 'Nothing is connected yet. Alerts from your subscribed modules appear here once an account or SAP system is connected.' : 'Alerts from your subscribed modules will appear here.'}</p>
               {tab === 'all' && nothingConnected && (
-                <button type="button" className="mv-primary-button" onClick={() => { onClose(); navigate(firstStep.path); }}>{firstStep.label}</button>
+                <button type="button" className="mv-primary-button" onClick={() => { onClose(); connectFirst(); }}>{firstStep.label}</button>
               )}
             </div>
           ) : (

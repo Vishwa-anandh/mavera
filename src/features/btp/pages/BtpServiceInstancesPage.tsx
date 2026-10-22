@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { fireToast } from '../../../shared/lib/toastEvents';
 import { ChevronLeftIcon, RefreshIcon } from '../../../shared/ui/icons';
 import { useBtpAccounts } from '../model/BtpAccountContext';
 import { cloudSamplesRepository } from '../../../data-access';
@@ -18,7 +20,24 @@ export function BtpServiceInstancesPage() {
   const account = getAccount(accountId ?? '');
   const subaccount = cloudSamplesRepository.btp.subaccounts().find((s) => s.guid === subaccountId);
   const config = subaccountId ? cloudSamplesRepository.btp.smConfig(subaccountId) : undefined;
-  const instances = subaccountId ? cloudSamplesRepository.btp.serviceInstances(subaccountId) : [];
+  const [instances, setInstances] = useState(() => (subaccountId ? cloudSamplesRepository.btp.serviceInstances(subaccountId) : []));
+  const [syncedAt, setSyncedAt] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  /** Asks Service Manager for the subaccount's instances again, then says what came back. */
+  const refresh = () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    timer.current = window.setTimeout(() => {
+      const next = subaccountId ? cloudSamplesRepository.btp.serviceInstances(subaccountId) : [];
+      setInstances(next);
+      setSyncedAt(new Date().toISOString());
+      setRefreshing(false);
+      fireToast({ type: 'success', message: `Service instances refreshed: ${next.length} found.` });
+    }, 600);
+  };
 
   return (
     <div>
@@ -30,11 +49,11 @@ export function BtpServiceInstancesPage() {
             <p className="mv-subtitle">{subaccount?.displayName ?? subaccountId} · {account?.name}</p>
           </div>
         </div>
-        <button className="mv-secondary-button"><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />Refresh</button>
+        <button type="button" className="mv-secondary-button" onClick={refresh} disabled={refreshing} aria-busy={refreshing}><RefreshIcon size={16} style={{ marginRight: '0.375rem' }} />{refreshing ? 'Refreshing…' : 'Refresh'}</button>
       </div>
 
       <p className="mv-muted" style={{ marginBottom: '1rem' }}>
-        {config?.lastSyncedAt ? `Last synced ${new Date(config.lastSyncedAt).toLocaleString()}` : 'Not yet synced — click Refresh to discover instances.'}
+        {syncedAt || config?.lastSyncedAt ? `Last synced ${new Date(syncedAt ?? config!.lastSyncedAt!).toLocaleString()}` : 'Not yet synced — click Refresh to discover instances.'}
       </p>
 
       {!config ? (
@@ -47,20 +66,20 @@ export function BtpServiceInstancesPage() {
       ) : (
         <section className="mv-panel">
           <div className="mv-table-wrap">
-            <table className="mv-table">
+            <table className="mv-table mv-table--stack">
               <thead>
                 <tr><th>Instance Name</th><th>Service Offering</th><th>Service Plan</th><th>Platform</th><th>Status</th><th>Created</th><th>Last Synced</th></tr>
               </thead>
               <tbody>
                 {instances.map((inst) => (
                   <tr key={inst.id}>
-                    <td>{inst.name}</td>
-                    <td>{inst.serviceOfferingName}</td>
-                    <td className="mv-code">{inst.servicePlanName}</td>
-                    <td><span className="mv-status mv-status--neutral">{inst.platformType}</span></td>
-                    <td><span className={`mv-status mv-status--${inst.status.includes('succeeded') ? 'success' : inst.status.includes('failed') ? 'danger' : 'warning'}`}>{inst.status}</span></td>
-                    <td>{new Date(inst.createdAtSm).toLocaleDateString()}</td>
-                    <td>{new Date(inst.lastSyncedAt).toLocaleDateString()}</td>
+                    <td data-label="Instance Name">{inst.name}</td>
+                    <td data-label="Service Offering">{inst.serviceOfferingName}</td>
+                    <td data-label="Service Plan" className="mv-code">{inst.servicePlanName}</td>
+                    <td data-label="Platform"><span className="mv-status mv-status--neutral">{inst.platformType}</span></td>
+                    <td data-label="Status"><span className={`mv-status mv-status--${inst.status.includes('succeeded') ? 'success' : inst.status.includes('failed') ? 'danger' : 'warning'}`}>{inst.status}</span></td>
+                    <td data-label="Created">{new Date(inst.createdAtSm).toLocaleDateString()}</td>
+                    <td data-label="Last Synced">{new Date(inst.lastSyncedAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>

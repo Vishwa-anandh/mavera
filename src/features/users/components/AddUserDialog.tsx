@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { useModalOverlay } from '../../../shared/ui/useOverlay';
-import { Select } from '../../../shared/ui/Select';
+import { FilterChips } from '../../../shared/ui/FilterChips';
+import { useRememberedState } from '../../../shared/lib/useRememberedState';
 import type { CloudProvider } from '../../../shared/types/auth';
-import { roleIdToLegacyRole, systemRoles, type AccessRole } from '../../access';
+import { can, roleIdToLegacyRole, systemRoles, type AccessRole } from '../../access';
 import {
+  nameFromEmail,
   validateNewMember,
   type NewMemberErrors,
   type OrgMember,
@@ -18,33 +20,53 @@ export interface AddUserDialogProps {
   /** Roles the new member can hold; defaults to the built-in roles. The Owner role is never offered. */
   roles?: AccessRole[];
   onCancel: () => void;
-  onAdd: (member: OrgMember) => void;
+  /** Called with the new member. `addAnother` is true when the dialog should stay open for the next person. */
+  onAdd: (member: OrgMember, options: { addAnother: boolean }) => void;
 }
 
+/** The least-privileged built-in role: what a new member gets until someone picks another. */
 const DEFAULT_ROLE_ID = 'viewer';
 
+/** The providers whose cost data a role may view: the starting point for a new member's "Can view" ticks. */
+function providersViewableBy(role: AccessRole | undefined, providers: AddUserDialogProps['providers']): Set<CloudProvider> {
+  return new Set(providers.filter((provider) => can(role, `provider.${provider.id}`, 'VIEW')).map((provider) => provider.id));
+}
+
 /**
- * Adds a member to the organisation while a seat is free. New members start
- * Active; a member's cloud access is view-only until changed in the table.
+ * Adds a member to the organisation while a seat is free. New members start Active. The e-mail address is
+ * the only thing that has to be typed: the name is taken from it when left blank, the role is one click on a
+ * chip (the last one used is remembered for the session), the "Can view" ticks start from what the role may
+ * see, and "Add another user" keeps the dialog open for the next person.
  */
 export function AddUserDialog({ members, seats, providers, roles, onCancel, onAdd }: AddUserDialogProps) {
   const panelRef = useModalOverlay<HTMLElement>(onCancel);
+  const emailRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const assignable = (roles ?? systemRoles()).filter((item) => item.id !== 'owner');
-  const [roleId, setRoleId] = useState<string>(DEFAULT_ROLE_ID);
-  const selectedRole = assignable.find((item) => item.id === roleId);
+  const [rememberedRoleId, setRoleId] = useRememberedState<string>('users', 'add-user-role', DEFAULT_ROLE_ID, (value) => assignable.some((item) => item.id === value));
+  const selectedRole = assignable.find((item) => item.id === rememberedRoleId) ?? assignable.find((item) => item.id === DEFAULT_ROLE_ID) ?? assignable[0];
+  const roleId = selectedRole?.id ?? DEFAULT_ROLE_ID;
   const privilegedRole = roleIdToLegacyRole(roleId) !== 'member';
-  const [access, setAccess] = useState<Set<CloudProvider>>(() => new Set());
+  // Until the person changes a tick, access follows the role; choosing another role starts over from that role.
+  const [manualAccess, setManualAccess] = useState<Set<CloudProvider> | null>(null);
+  const access = manualAccess ?? providersViewableBy(selectedRole, providers);
+  const [addAnother, setAddAnother] = useState(false);
   const [errors, setErrors] = useState<NewMemberErrors>({});
 
-  const toggleProvider = (id: CloudProvider) =>
-    setAccess((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const chooseRole = (id: string) => {
+    setRoleId(id);
+    setManualAccess(null);
+  };
+
+  const toggleProvider = (id: CloudProvider) => {
+    const next = new Set(access);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setManualAccess(next);
+  };
+
+  const derivedName = nameFromEmail(email);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -55,8 +77,8 @@ export function AddUserDialog({ members, seats, providers, roles, onCancel, onAd
 
     const canView = (id: CloudProvider) => privilegedRole || access.has(id);
     const member: OrgMember = {
-      userId: `user-${Date.now().toString(36)}`,
-      fullName: fullName.trim(),
+      userId: `user-${Date.now().toString(36)}-${members.length}`,
+      fullName: fullName.trim() || derivedName,
       email: email.trim().toLowerCase(),
       role: roleIdToLegacyRole(roleId),
       roleId,
@@ -67,7 +89,13 @@ export function AddUserDialog({ members, seats, providers, roles, onCancel, onAd
       canViewBtp: canView('btp'),
       canViewGcp: canView('gcp'),
     };
-    onAdd(member);
+    onAdd(member, { addAnother });
+    if (addAnother) {
+      setFullName('');
+      setEmail('');
+      setErrors({});
+      emailRef.current?.focus();
+    }
   };
 
   return (
@@ -89,37 +117,44 @@ export function AddUserDialog({ members, seats, providers, roles, onCancel, onAd
 
         <form className="mv-form-stack" onSubmit={submit} noValidate>
           <label className="mv-field">
-            Full name
-            <input
-              type="text"
-              value={fullName}
-              autoComplete="off"
-              data-autofocus
-              aria-invalid={errors.fullName ? true : undefined}
-              onChange={(e) => setFullName(e.target.value)}
-            />
-            {errors.fullName && <span className="mv-field-error" role="alert">{errors.fullName}</span>}
-          </label>
-
-          <label className="mv-field">
             Work email
             <input
+              ref={emailRef}
               type="email"
               value={email}
               autoComplete="off"
+              data-autofocus
+              data-tour="add-user-email"
               aria-invalid={errors.email ? true : undefined}
               onChange={(e) => setEmail(e.target.value)}
             />
             {errors.email && <span className="mv-field-error" role="alert">{errors.email}</span>}
           </label>
 
-          <Select
-            label="Role"
-            value={roleId}
-            onChange={setRoleId}
-            options={assignable.map((item) => ({ value: item.id, label: item.kind === 'custom' ? `${item.name} (custom)` : item.name }))}
-            helpText={selectedRole?.description}
-          />
+          <label className="mv-field">
+            <span>Full name <span className="mv-muted">(optional)</span></span>
+            <input
+              type="text"
+              value={fullName}
+              autoComplete="off"
+              placeholder={derivedName || 'Taken from the e-mail address'}
+              data-tour="add-user-name"
+              aria-invalid={errors.fullName ? true : undefined}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+            {errors.fullName && <span className="mv-field-error" role="alert">{errors.fullName}</span>}
+          </label>
+
+          <div className="mv-field">
+            <span>Role</span>
+            <FilterChips
+              label="Role"
+              chips={assignable.map((item) => ({ value: item.id, label: item.kind === 'custom' ? `${item.name} (custom)` : item.name }))}
+              value={roleId}
+              onChange={chooseRole}
+            />
+            {selectedRole?.description && <span className="mv-field-help">{selectedRole.description}</span>}
+          </div>
 
           {!privilegedRole && providers.length > 0 && (
             <fieldset className="mv-checkbox-group">
@@ -133,9 +168,14 @@ export function AddUserDialog({ members, seats, providers, roles, onCancel, onAd
             </fieldset>
           )}
 
+          <label className="mv-checkbox">
+            <input type="checkbox" checked={addAnother} onChange={(e) => setAddAnother(e.target.checked)} />
+            Add another user after this one
+          </label>
+
           <div className="mv-dialog-actions">
-            <button type="button" className="mv-secondary-button" onClick={onCancel}>Cancel</button>
-            <button type="submit" className="mv-primary-button" disabled={seats.full}>Add user</button>
+            <button type="button" className="mv-secondary-button" onClick={onCancel}>{addAnother ? 'Done' : 'Cancel'}</button>
+            <button type="submit" className="mv-primary-button" data-tour="add-user-submit" disabled={seats.full}>Add user</button>
           </div>
         </form>
       </section>

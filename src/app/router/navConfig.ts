@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import type { PermissionSet } from '../../shared/lib/permissions';
 import type { AuthContextValue } from '../../features/auth';
 import type { ModuleId } from '../../features/access';
-import { ServerIcon, CloudIcon, HomeIcon } from '../../shared/ui/icons';
+import { ServerIcon, CloudIcon, HomeIcon, SparkleIcon } from '../../shared/ui/icons';
 
 export type NavFeatures = AuthContextValue['features'];
 
@@ -66,6 +66,7 @@ export const NAV_MODULES: Record<string, ModuleId> = {
   'smart-alerts': 'smartAlerts',
   invoices: 'invoices',
   billing: 'billing',
+  'ai-assistant': 'assistant',
   users: 'users',
   'audit-trail': 'audit',
   'sync-logs': 'syncLogs',
@@ -182,11 +183,16 @@ const NAV_TREE: NavNodeDef[] = [
         locked: (p, c) => !c.features.budgets || !(p.isPrivileged || p.azure.canView || p.aws.canView || p.btp.canView),
       },
       { key: 'smart-alerts', section: 'Governance', label: 'Smart Alerts', path: '/smart-alerts', locked: (_p, c) => !c.features.smartAlerts, keywords: 'anomalies' },
+      // The cross-module alert list used to be reachable only from a Dashboard link. Its route is open to every member, so the
+      // menu entry follows the Smart Alerts permission only to keep a role that cannot see alerts from being offered it.
+      { key: 'alerts', section: 'Governance', label: 'All Alerts', path: '/alerts', visible: (_p, c) => (c.canView ? c.canView('smartAlerts') : true), keywords: 'alarms incidents critical warnings notifications' },
       // Billing and Reports moved here from the top level at the product owner's request
       // (a deliberate deviation from MAVERA_DESIGN_SYSTEM.md §6.1). Both stay visible to
       // invoice-only orgs, but are hidden with the rest of Cloud Cost when the org isn't
       // subscribed to that module (the profile menu keeps a Billing link for those orgs).
-      { key: 'invoices', section: 'Billing & reports', label: 'Invoices', path: '/invoices', visible: (p, c) => c.invoiceOnly || p.isHybridOrg },
+      // Invoices is for every organisation that has the module: uploading one is the quickest way to see
+      // CSP savings, and hiding the page from cloud-account orgs cost four clicks to reach it.
+      { key: 'invoices', section: 'Billing & reports', label: 'Invoices', path: '/invoices', keywords: 'upload bill pdf spend csp savings' },
       { key: 'billing', section: 'Billing & reports', label: 'Billing', path: '/billing', keywords: 'invoices payment pay' },
     ],
   },
@@ -201,6 +207,8 @@ const NAV_TREE: NavNodeDef[] = [
       { key: 'sync-logs', label: 'Sync Logs', path: '/sync-logs', visible: adminPage, locked: (_p, c) => !c.features.syncLogs, keywords: 'data import history' },
     ],
   },
+  // Across every module, so it sits at the top level rather than inside one module's menu: one click from anywhere.
+  { type: 'leaf', key: 'ai-assistant', label: 'AI Assistant', path: '/ai-assistant', icon: SparkleIcon, keywords: 'ask chat help copilot questions' },
 ];
 
 export interface ResolvedNavLeaf {
@@ -231,11 +239,11 @@ export function navSections(children: ResolvedNavLeaf[]): NavSection[] {
   return sections;
 }
 
-/** How many columns a module dropdown needs: roughly six rows per column, never more columns
+/** How many columns a module dropdown needs: roughly seven rows per column, never more columns
  * than sections, so a short or partly-hidden menu stays a single list. */
 export function navMenuColumns(children: ResolvedNavLeaf[]): number {
   const sections = navSections(children).length;
-  return Math.max(1, Math.min(3, sections, Math.ceil(children.length / 6)));
+  return Math.max(1, Math.min(3, sections, Math.ceil(children.length / 7)));
 }
 
 /**

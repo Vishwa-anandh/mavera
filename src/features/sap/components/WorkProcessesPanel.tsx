@@ -29,18 +29,18 @@ export function WorkProcessesPanel({ processes, system }: { processes: SapWorkPr
         />
       </div>
       <div className="mv-table-wrap">
-        <table className="mv-table">
+        <table className="mv-table mv-table--stack">
           <thead><tr><th className="mv-num">#</th><th>Type</th><th className="mv-num">PID</th><th>Status</th><th>Restart</th><th>Report</th><th>User</th></tr></thead>
           <tbody>
             {rows.map((p) => (
               <tr key={p.no}>
-                <td className="mv-num">{p.no}</td>
-                <td className="mv-mono">{p.type}</td>
-                <td className="mv-num">{p.pid}</td>
-                <td><span className={`mv-status mv-status--${STATUS_TONE[p.status]}`}>{p.status}</span></td>
-                <td>{p.restart ? 'Yes' : 'No'}</td>
-                <td className="mv-mono">{p.report ?? '—'}</td>
-                <td>{p.user ?? '—'}</td>
+                <td data-label="#" className="mv-num">{p.no}</td>
+                <td data-label="Type" className="mv-mono">{p.type}</td>
+                <td data-label="PID" className="mv-num">{p.pid}</td>
+                <td data-label="Status"><span className={`mv-status mv-status--${STATUS_TONE[p.status]}`}>{p.status}</span></td>
+                <td data-label="Restart">{p.restart ? 'Yes' : 'No'}</td>
+                <td data-label="Report" className="mv-mono">{p.report ?? '—'}</td>
+                <td data-label="User">{p.user ?? '—'}</td>
               </tr>
             ))}
           </tbody>

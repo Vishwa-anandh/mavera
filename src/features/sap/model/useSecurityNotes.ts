@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
-import { sapAdminRepository, type NoteCheckResult, type NoteUploadResult, type SecurityNote } from '../../../data-access';
+import { sapAdminRepository, type NoteCheckResult, type NoteRemoval, type NoteUploadResult, type SecurityNote } from '../../../data-access';
 import { useAuth } from '../../auth';
 
 const repo = sapAdminRepository.securityNotes;
 
-export type NotesBusy = { kind: 'upload' } | { kind: 'check' } | { kind: 'recheck' | 'remove'; noteNumber: string } | null;
+export type NotesBusy = { kind: 'upload' } | { kind: 'check' } | { kind: 'remove' | 'restore' } | { kind: 'recheck'; noteNumber: string } | null;
 
 /** The signed-in person's name for history entries; falls back so the log never shows a blank actor. */
 export function useActor(): string {
@@ -44,6 +44,8 @@ export function useSecurityNotes() {
     upload: (numbers: string[]): Promise<NoteUploadResult> => run({ kind: 'upload' }, () => repo.upload(numbers, actor)),
     checkStatus: (): Promise<NoteCheckResult> => run({ kind: 'check' }, () => repo.checkStatus(actor)),
     recheck: (noteNumber: string): Promise<SecurityNote | null> => run({ kind: 'recheck', noteNumber }, () => repo.recheck(noteNumber, actor)),
-    remove: (noteNumber: string): Promise<boolean> => run({ kind: 'remove', noteNumber }, () => repo.remove(noteNumber, actor)),
+    /** Deletes the notes in one step; keep the result to `restore` them (Undo). */
+    remove: (noteNumbers: string[]): Promise<NoteRemoval> => run({ kind: 'remove' }, () => repo.removeMany(noteNumbers, actor)),
+    restore: (removal: NoteRemoval): Promise<number> => run({ kind: 'restore' }, () => repo.restore(removal)),
   };
 }

@@ -38,8 +38,8 @@ export function TechnicalTab(props: BtpCostTabProps) {
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">All Services ({sortedServices.length})</h2></div>
           {sortedServices.length === 0 ? <p className="mv-muted">No service data available.</p> : (
-            <div className="mv-table-wrap" style={{ maxHeight: '20rem', overflowY: 'auto' }}>
-              <table className="mv-table">
+            <div className="mv-table-wrap">
+              <table className="mv-table mv-table--stack">
                 <thead><tr><th>#</th><th>Service</th><th className="mv-num">Cost</th><th className="mv-num">Share</th></tr></thead>
                 <tbody>
                   {sortedServices.map((svc, i) => {
@@ -47,10 +47,10 @@ export function TechnicalTab(props: BtpCostTabProps) {
                     const subCount = serviceSubaccountCounts.get(svc.name) ?? 0;
                     return (
                       <tr key={svc.name}>
-                        <td className="mv-muted">{i + 1}</td>
-                        <td>{svc.name}{subCount > 0 && <div className="mv-muted">{subCount} subaccount{subCount === 1 ? '' : 's'}</div>}</td>
-                        <td className="mv-num">{formatCurrency(svc.cost, currency)}</td>
-                        <td className="mv-num"><span className={pct > 30 ? 'mv-status mv-status--warning' : undefined}>{pct.toFixed(1)}%</span></td>
+                        <td data-label="#" className="mv-muted">{i + 1}</td>
+                        <td data-label="Service">{svc.name}{subCount > 0 && <div className="mv-muted">{subCount} subaccount{subCount === 1 ? '' : 's'}</div>}</td>
+                        <td data-label="Cost" className="mv-num">{formatCurrency(svc.cost, currency)}</td>
+                        <td data-label="Share" className="mv-num"><span className={pct > 30 ? 'mv-status mv-status--warning' : undefined}>{pct.toFixed(1)}%</span></td>
                       </tr>
                     );
                   })}
@@ -101,7 +101,7 @@ export function TechnicalTab(props: BtpCostTabProps) {
         <section className="mv-panel">
           <div className="mv-panel-header"><h2 className="mv-panel-title">Cost by Subaccount × Service ({data.servicesBySubaccount.length} subaccounts)</h2></div>
           <p className="mv-muted" style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>COST_API service rows grouped per subaccount — plan names and usage included.</p>
-          <div style={{ display: 'grid', gap: '0.875rem', maxHeight: '37.5rem', overflowY: 'auto' }}>
+          <div style={{ display: 'grid', gap: '0.875rem' }}>
             {data.servicesBySubaccount.map((sa) => {
               const pct = grandTotal > 0 ? (sa.totalCost / grandTotal) * 100 : 0;
               const visible = sa.services.slice(0, 6);
@@ -118,15 +118,15 @@ export function TechnicalTab(props: BtpCostTabProps) {
                     <div style={{ height: '100%', borderRadius: '62.4375rem', width: `${pct}%`, background: 'var(--mv-primary)' }} />
                   </div>
                   <div className="mv-table-wrap">
-                    <table className="mv-table">
+                    <table className="mv-table mv-table--stack">
                       <thead><tr><th>Service</th><th>Usage</th><th className="mv-num">Cost</th><th className="mv-num">Share</th></tr></thead>
                       <tbody>
                         {visible.map((svc) => (
                           <tr key={svc.name}>
-                            <td>{svc.name}{svc.planName && <span className="mv-code mv-muted" style={{ marginLeft: '0.5rem' }}>{svc.planName}</span>}</td>
-                            <td className="mv-muted">{svc.usage.toLocaleString()}{svc.unit ? ` ${svc.unit}` : ''}</td>
-                            <td className="mv-num">{formatCurrency(svc.cost, currency)}</td>
-                            <td className="mv-num">{sa.totalCost > 0 ? `${((svc.cost / sa.totalCost) * 100).toFixed(1)}%` : '—'}</td>
+                            <td data-label="Service" className="mv-stack-title">{svc.name}{svc.planName && <span className="mv-code mv-muted" style={{ marginLeft: '0.5rem' }}>{svc.planName}</span>}</td>
+                            <td data-label="Usage" className="mv-muted">{svc.usage.toLocaleString()}{svc.unit ? ` ${svc.unit}` : ''}</td>
+                            <td data-label="Cost" className="mv-num">{formatCurrency(svc.cost, currency)}</td>
+                            <td data-label="Share" className="mv-num">{sa.totalCost > 0 ? `${((svc.cost / sa.totalCost) * 100).toFixed(1)}%` : '—'}</td>
                           </tr>
                         ))}
                         {sa.services.length > 6 && (

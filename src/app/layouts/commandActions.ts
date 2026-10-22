@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import type { ModuleId, PermissionAction } from '../../features/access';
 import type { PermissionSet } from '../../shared/lib/permissions';
+import type { ConnectProvider } from '../../features/workspace';
 import { openOnArrivalTarget } from '../../shared/lib/useOpenOnArrival';
 import {
   CloudIcon, FileTextIcon, MailIcon, ReportIcon, ServerIcon, SettingsIcon, ShieldIcon,
@@ -10,9 +11,10 @@ import type { PageResult, Searchable } from './pageSearch';
 
 type Icon = ComponentType<{ size?: number; className?: string }>;
 
-/** What running a command does. Most commands navigate to a page that opens the matching form on arrival. */
+/** What running a command does. Connect commands open the shared connect dialog in place; most others navigate to a page that opens the matching form on arrival. */
 export type CommandRun =
   | { kind: 'navigate'; to: { pathname: string; search: string; hash: string } }
+  | { kind: 'connect'; provider: ConnectProvider }
   | { kind: 'assistant' }
   | { kind: 'tour' }
   | { kind: 'theme' };
@@ -53,20 +55,22 @@ interface CommandDefinition {
   allow?: (permissions: PermissionSet) => boolean;
 }
 
+const connect = (provider: ConnectProvider): CommandRun => ({ kind: 'connect', provider });
 const go = (pathname: string, token: string, hash = ''): CommandRun => ({ kind: 'navigate', to: openOnArrivalTarget(pathname, token, hash) });
 const canManageBudgets = (p: PermissionSet) => p.isPrivileged || p.azure.canWrite || p.aws.canWrite || p.btp.canWrite || p.gcp.canWrite;
 
 /**
  * The command registry. Each command lists what it needs: the menu page that carries its module (so an
  * unsubscribed module never shows its commands) and the role permission for the action. `?open=<token>`
- * is read by the destination page through useOpenOnArrival, so the form is already open on arrival.
+ * is read by the destination page through useOpenOnArrival, so the form is already open on arrival; the connect
+ * commands skip the page change and open the shared connect dialog where the user already is.
  */
 const DEFINITIONS: CommandDefinition[] = [
-  { id: 'connect-azure', label: 'Connect Azure subscription', where: 'Cloud Cost › Azure', keywords: 'add link microsoft cloud account tenant', icon: CloudIcon, run: go('/azure', 'connect'), page: 'azure', need: ['provider.azure', 'CREATE'], allow: (p) => p.azure.allowConnect },
-  { id: 'connect-aws', label: 'Connect AWS account', where: 'Cloud Cost › AWS', keywords: 'add link amazon web services cloud', icon: CloudIcon, run: go('/aws/accounts', 'connect'), page: 'aws', need: ['provider.aws', 'CREATE'], allow: (p) => p.aws.allowConnect },
-  { id: 'connect-gcp', label: 'Connect Google Cloud project', where: 'Cloud Cost › Google Cloud', keywords: 'add link gcp cloud account', icon: CloudIcon, run: go('/gcp/accounts', 'connect'), page: 'gcp', need: ['provider.gcp', 'CREATE'], allow: (p) => p.gcp.allowConnect },
-  { id: 'connect-btp', label: 'Connect SAP BTP account', where: 'Cloud Cost › SAP BTP', keywords: 'add link business technology platform global account cloud', icon: CloudIcon, run: go('/btp/accounts', 'connect'), page: 'btp', need: ['provider.btp', 'CREATE'], allow: (p) => p.btp.allowConnect },
-  { id: 'connect-sap', label: 'Connect SAP system', where: 'SAP Monitoring › System Configuration', keywords: 'add link destination rfc landscape sid', icon: ServerIcon, run: go('/sap/configuration', 'connect'), page: 'sap-config', need: ['sap.configuration', 'CREATE'] },
+  { id: 'connect-azure', label: 'Connect Azure subscription', where: 'Cloud Cost › Azure', keywords: 'add link microsoft cloud account tenant', icon: CloudIcon, run: connect('azure'), page: 'azure', need: ['provider.azure', 'CREATE'], allow: (p) => p.azure.allowConnect },
+  { id: 'connect-aws', label: 'Connect AWS account', where: 'Cloud Cost › AWS', keywords: 'add link amazon web services cloud', icon: CloudIcon, run: connect('aws'), page: 'aws', need: ['provider.aws', 'CREATE'], allow: (p) => p.aws.allowConnect },
+  { id: 'connect-gcp', label: 'Connect Google Cloud project', where: 'Cloud Cost › Google Cloud', keywords: 'add link gcp cloud account', icon: CloudIcon, run: connect('gcp'), page: 'gcp', need: ['provider.gcp', 'CREATE'], allow: (p) => p.gcp.allowConnect },
+  { id: 'connect-btp', label: 'Connect SAP BTP account', where: 'Cloud Cost › SAP BTP', keywords: 'add link business technology platform global account cloud', icon: CloudIcon, run: connect('btp'), page: 'btp', need: ['provider.btp', 'CREATE'], allow: (p) => p.btp.allowConnect },
+  { id: 'connect-sap', label: 'Connect SAP system', where: 'SAP Monitoring › System Configuration', keywords: 'add link destination rfc landscape sid', icon: ServerIcon, run: connect('sap'), page: 'sap-config', need: ['sap.configuration', 'CREATE'] },
   { id: 'add-budget', label: 'Add budget', where: 'Cloud Cost › Budgets & Alerts', keywords: 'create new spending limit threshold', icon: TargetIcon, run: go('/budgets', 'new'), page: 'budgets', need: ['budgets', 'CREATE'], allow: canManageBudgets },
   { id: 'add-channel', label: 'Add notification channel', where: 'Cloud Cost › Budgets & Alerts', keywords: 'create new alert integration email teams notify budget', icon: MailIcon, run: go('/budgets', 'add-channel', '#integrations'), page: 'budgets', need: ['budgets', 'CREATE'], allow: canManageBudgets },
   // Invoices is not a menu item for most organisations (it opens from Cost Overview), so Cloud Cost itself is the gate.

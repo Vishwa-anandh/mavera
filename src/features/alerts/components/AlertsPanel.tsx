@@ -1,4 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import type { GlobalAlertRow, GlobalAlertSeverity } from '../../../data-access';
+import { ClickableRow, RowChevronCell, RowOpenButton } from '../../../shared/ui/ClickableRow';
+import { alertTarget } from '../model/alertTarget';
 import { useGlobalAlerts } from '../model/useGlobalAlerts';
 
 const SEVERITY_LABEL: Record<GlobalAlertSeverity, string> = { critical: 'Critical', warning: 'Warning', info: 'Info' };
@@ -16,6 +19,7 @@ interface AlertsPanelProps {
 
 export function AlertsPanel({ limit, compact = false, rows: given }: AlertsPanelProps) {
   const all = useGlobalAlerts();
+  const navigate = useNavigate();
   const source = given ?? all;
   const rows = limit ? source.slice(0, limit) : source;
 
@@ -41,7 +45,7 @@ export function AlertsPanel({ limit, compact = false, rows: given }: AlertsPanel
 
   return (
     <div className="mv-table-wrap">
-      <table className="mv-table">
+      <table className="mv-table mv-table--stack">
         <colgroup>
           <col style={{ width: '9%' }} />
           <col style={{ width: '11%' }} />
@@ -49,20 +53,22 @@ export function AlertsPanel({ limit, compact = false, rows: given }: AlertsPanel
           <col style={{ width: '39%' }} />
           <col style={{ width: '12%' }} />
           <col style={{ width: '12%' }} />
+          <col style={{ width: '2.5rem' }} />
         </colgroup>
         <thead>
-          <tr><th>Time</th><th>Module</th><th>Source</th><th>Alert</th><th>Severity</th><th>Status</th></tr>
+          <tr><th>Time</th><th>Module</th><th>Source</th><th>Alert</th><th>Severity</th><th>Status</th><th className="mv-row-chevron"><span className="mv-sr-only">Open</span></th></tr>
         </thead>
         <tbody>
           {rows.map((alert) => (
-            <tr key={alert.id}>
-              <td className="mv-muted">{alert.timestamp}</td>
-              <td>{alert.module}</td>
-              <td>{alert.source}</td>
-              <td>{alert.summary}</td>
-              <td><span className={`mv-status mv-status--${SEVERITY_TONE[alert.severity]}`}>{SEVERITY_LABEL[alert.severity]}</span></td>
-              <td>{alert.status}</td>
-            </tr>
+            <ClickableRow key={alert.id} onOpen={() => navigate(alertTarget(alert))}>
+              <td data-label="Time" className="mv-muted">{alert.timestamp}</td>
+              <td data-label="Module">{alert.module}</td>
+              <td data-label="Source">{alert.source}</td>
+              <td data-label="Alert"><RowOpenButton onOpen={() => navigate(alertTarget(alert))}>{alert.summary}</RowOpenButton></td>
+              <td data-label="Severity"><span className={`mv-status mv-status--${SEVERITY_TONE[alert.severity]}`}>{SEVERITY_LABEL[alert.severity]}</span></td>
+              <td data-label="Status">{alert.status}</td>
+              <RowChevronCell />
+            </ClickableRow>
           ))}
         </tbody>
       </table>

@@ -211,9 +211,19 @@ def task(id: str, group: str, title: str, **kw):
 
 
 def login(page: Page, role: str):
-    page.goto(BASE + "/login")
-    page.get_by_role("button", name=re.compile(r"^" + re.escape(role))).first.click()
-    page.wait_for_url(re.compile(r"/(admin/dashboard)?$"), timeout=10000)
+    # The dev server is shared with other people editing the app: a cold or rebuilding server can stall the first
+    # load, so the sign-in page is retried a few times before the task is called failed.
+    last: Optional[Exception] = None
+    for _attempt in range(4):
+        try:
+            page.goto(BASE + "/login", wait_until="domcontentloaded", timeout=20000)
+            page.get_by_role("button", name=re.compile(r"^" + re.escape(role))).first.click(timeout=20000)
+            break
+        except PWTimeout as exc:
+            last = exc
+    else:
+        raise last  # type: ignore[misc]
+    page.wait_for_url(re.compile(r"/(admin/dashboard)?$"), timeout=30000)
     page.wait_for_timeout(1200)
 
 
@@ -236,6 +246,19 @@ def spa_goto(page: Page, path: str):
         path,
     )
     page.wait_for_timeout(500)
+
+
+def signed_out(page: Page) -> bool:
+    return "/login" in page.url or bool(page.get_by_role("region", name="Demo mode").count())
+
+
+def spa_goto_signed_in(page: Page, path: str, role: str = "Owner"):
+    """spa_goto that survives a dev-server hot reload: a full reload empties the in-memory demo session, so sign in again."""
+    spa_goto(page, path)
+    page.wait_for_timeout(300)
+    if signed_out(page):
+        login(page, role)
+        spa_goto(page, path)
 
 
 SHOT_DIR: Optional[str] = None
@@ -339,31 +362,25 @@ for _path, _id, _g, _item, _h in MENU_PAGES:
     ))
 
 
-@task("reach.invoices", "reach-page", "Reach /invoices via the Cloud Cost menu (menu entry exists for invoice-only orgs only)")
+@task("reach.invoices", "reach-page", "Reach /invoices via the Cloud Cost menu (Invoices is a menu entry now; it was URL-only at the baseline)")
 def _(c):
-    hdr = c.page.locator("header")
-    c.click(hdr.get_by_role("button", name="Cloud Cost", exact=True), "header menu 'Cloud Cost'")
-    if c.page.get_by_role("menuitem", name=re.compile(r"^\s*Invoices")).count() == 0:
-        raise AssertionError("'Invoices' is not in the Cloud Cost menu for the Owner demo account (isHybridOrg false); URL-only, 4 clicks via Cost Overview")
-    c.click(c.page.get_by_role("menuitem", name=re.compile(r"^\s*Invoices")), "Invoices")
+    c.menu("Cloud Cost", "Invoices")
+    c.expect_path(r"/invoices/?$")
 
 
-# Pages that are not in the menu: how many clicks does the nearest path take?
-@task("reach.alerts", "reach-page", "Reach /alerts (not in the menu) from the dashboard")
+# Pages that were not in any menu at the baseline: /alerts is now Cloud Cost > All Alerts, /ai-assistant a header link.
+@task("reach.alerts", "reach-page", "Reach /alerts via the Cloud Cost menu (All Alerts; 1 click from a dashboard link at the baseline)")
 def _(c):
-    c.click(c.page.get_by_role("link", name=re.compile(r"All alerts|View all alerts|Manage Alerts")), "dashboard link to /alerts")
+    c.menu("Cloud Cost", "All Alerts")
     c.expect_path(r"/alerts/?$")
 
 
-@task("reach.ai-assistant", "reach-page", "Reach /ai-assistant (not in the menus or the dashboard)",
-      code_count="Not in any menu; the floating widget is the intended entry, the page is URL-only (Ctrl+K does not index it)")
+@task("reach.ai-assistant", "reach-page", "Reach /ai-assistant through Ctrl+K (type 'assistant', ArrowDown past the 'Open assistant' action, Enter); not in the menus any more",
+      code_count="No menu entry (it was removed from the header: the floating widget is the intended entry); the palette indexes the page")
 def _(c):
     c.key("Control+k", "Ctrl+K")
     c.type_here("assistant", "'assistant'")
-    try:
-        c.see(c.page.get_by_role("option", name=re.compile("AI Assistant", re.I)), "AI Assistant result", timeout=2500)
-    except PWTimeout:
-        raise AssertionError("Ctrl+K has no 'AI Assistant' page result; /ai-assistant is URL-only")
+    c.see(c.page.get_by_role("option", name=re.compile("AI Assistant", re.I)), "AI Assistant result")
     # The first result is the palette's "Open assistant" action (opens the widget); the page itself is the second.
     c.key("ArrowDown", "ArrowDown to the 'AI Assistant' page result")
     c.key("Enter")
@@ -382,14 +399,6 @@ def _(c):
     c.click(c.page.get_by_role("button", name="Profile menu"), "Profile menu")
     c.click(c.page.get_by_role("menuitem", name=re.compile("^Subscription")), "Subscription")
     c.expect_path(r"/subscription/?$")
-
-
-@task("reach.invoices-via-overview", "reach-page", "Reach /invoices when it is not in the menu (Cost Overview > Invoices summary > Upload more invoices)")
-def _(c):
-    c.menu("Cloud Cost", "Cost Overview")
-    c.click(c.page.get_by_role("button", name="Invoices summary"), "'Invoices summary' toggle")
-    c.click(c.page.get_by_role("link", name=re.compile("Upload more invoices|View all invoices|Upload invoices")), "link to Invoices")
-    c.expect_path(r"/invoices/?$")
 
 
 @task("reach.assistant-widget", "reach-page", "Open the floating assistant panel from any page")
@@ -431,12 +440,12 @@ for _id, _g, _item, _tab, _hash in TAB_PAGES:
     TASKS.append(Task(id=f"tab.{_id}", group="reach-tab", title=f"Reach tab '{_tab}' on {_item} ({_hash})", fn=make_tab(_g, _item, _tab, _hash)))
 
 
-@task("tab.subscription-plans", "reach-tab", "Reach tab 'Available plans' on /subscription (#plans)")
+@task("tab.subscription-access", "reach-tab", "Reach tab 'Modules and access' on /subscription (#access); the plans now sit on 'Your plan'")
 def _(c):
     c.click(c.page.get_by_role("button", name="Profile menu"), "Profile menu")
     c.click(c.page.get_by_role("menuitem", name=re.compile("^Subscription")), "Subscription")
-    c.click(c.page.get_by_role("tab", name=re.compile("Available plans")), "tab 'Available plans'")
-    c.page.wait_for_function("location.hash === '#plans'")
+    c.click(c.page.get_by_role("tab", name=re.compile("Modules and access")), "tab 'Modules and access'")
+    c.page.wait_for_function("location.hash === '#access'")
 
 
 for _tab, _hash in (("Security", "#security"), ("Appearance", "#appearance"), ("Help", "#help")):
@@ -453,6 +462,11 @@ for _tab, _hash in (("Security", "#security"), ("Appearance", "#appearance"), ("
 # --------------------------------------------------------------------------------------------------
 # Provider account detail + Executive / Operations / Technical views
 # --------------------------------------------------------------------------------------------------
+def COST_TABS(page: Page):
+    """The shared CostViewTabs: a tablist named 'Cost view' (it replaced the per-provider `nav` of buttons)."""
+    return page.get_by_role("tablist", name="Cost view")
+
+
 def open_account(c: Ctx, group_item: str, row_name: str, url_re: str):
     c.menu("Cloud Cost", group_item)
     c.click(c.page.get_by_role("button", name=re.compile(re.escape(row_name))), f"account row '{row_name}'")
@@ -462,13 +476,13 @@ def open_account(c: Ctx, group_item: str, row_name: str, url_re: str):
 @task("account.azure", "account-detail", "Open an Azure account detail (/azure/:id)")
 def _(c):
     open_account(c, "Azure Subscriptions", "Production Environment", r"/azure/az-acc-1/?$")
-    c.see(c.page.locator("nav[aria-label='Cost view']"), "Cost view switcher")
+    c.see(COST_TABS(c.page), "Cost view tabs")
 
 
 @task("account.aws", "account-detail", "Open an AWS account detail (/aws/account/:id)")
 def _(c):
     open_account(c, "AWS", "Production AWS", r"/aws/account/aws-acc-1/?$")
-    c.see(c.page.locator("nav[aria-label='Cost view']"), "Cost view switcher")
+    c.see(COST_TABS(c.page), "Cost view tabs")
 
 
 @task("account.gcp", "account-detail", "Open a GCP project detail (/gcp/account/:id)")
@@ -476,7 +490,7 @@ def _(c):
     c.menu("Cloud Cost", "Google Cloud")
     c.click(c.page.locator("button.mv-account-row").first, "first project row")
     c.expect_path(r"/gcp/account/")
-    c.see(c.page.locator("nav[aria-label='Cost view']"), "Cost view switcher")
+    c.see(COST_TABS(c.page), "Cost view tabs")
 
 
 @task("account.btp", "account-detail", "Open a BTP account detail (/btp/account/:id)")
@@ -484,7 +498,7 @@ def _(c):
     c.menu("Cloud Cost", "SAP BTP")
     c.click(c.page.locator("button.mv-account-row, .mv-account-row-body").first, "first BTP account row")
     c.expect_path(r"/btp/account/")
-    c.see(c.page.locator("nav[aria-label='Cost view']"), "Cost view switcher")
+    c.see(COST_TABS(c.page), "Cost view tabs")
 
 
 def view_task(provider: str, group_item: str, row: str, view: str):
@@ -499,8 +513,8 @@ def view_task(provider: str, group_item: str, row: str, view: str):
         else:
             c.menu("Cloud Cost", group_item)
             c.click(c.page.locator("button.mv-account-row, .mv-account-row-body").first, "first BTP account row")
-        c.click(c.page.locator("nav[aria-label='Cost view'] button", has_text=view), f"view '{view}'")
-        c.see(c.page.locator(f"nav[aria-label='Cost view'] button[aria-current='page']", has_text=view), f"view '{view}' active")
+        c.click(COST_TABS(c.page).get_by_role("tab", name=re.compile("^" + view)), f"view tab '{view}'")
+        c.see(COST_TABS(c.page).get_by_role("tab", name=re.compile("^" + view), selected=True), f"view '{view}' selected")
     return fn
 
 
@@ -527,6 +541,15 @@ def _(c):
     c.see(grp.get_by_role("button", name="Last 3 months", pressed=True), "3M pressed")
 
 
+@task("cost.period-remembered", "cost", "Cost Overview: spend period after it was set once (remembered for the session: menu only)",
+      setup=lambda c: (c.menu("Cloud Cost", "Cost Overview"),
+                       c.click(c.page.get_by_role("group", name="Spend trend period").get_by_role("button", name="Last 3 months"), "period 3M"),
+                       spa_goto(c.page, "/")))
+def _(c):
+    c.menu("Cloud Cost", "Cost Overview")
+    c.see(c.page.get_by_role("group", name="Spend trend period").get_by_role("button", name="Last 3 months", pressed=True), "3M already pressed")
+
+
 @task("cost.export", "cost", "Cost Analytics: export a report (CSV)")
 def _(c):
     c.menu("Cloud Cost", "Cost Analytics")
@@ -542,12 +565,12 @@ def _(c):
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("Saved view")), "toast")
 
 
-@task("cost.connect-from-overview", "connect", "Cost Overview: 'Connect cloud account' wizard (Azure sample values)",
-      note="This page's wizard has no provider picker and posts to the real API (no demo onSave); expect failure at Save in demo mode.")
+@task("cost.connect-from-overview", "connect", "Cost Overview: 'Connect cloud account' (shared dialog, Azure, sample credentials)",
+      note="Opens the shared dialog in place on Azure with 'Choose another provider' available; measured with sample credentials.")
 def _(c):
     c.menu("Cloud Cost", "Cost Overview")
     c.click(c.page.get_by_role("button", name="Connect cloud account"), "Connect cloud account")
-    fill_azure_wizard(c, "Overview Sub")
+    connect_in_dialog(c, "azure", sample=True)
 
 
 @task("optimization.act", "cost", "Savings & Optimization: open a recommendation and start review")
@@ -563,24 +586,42 @@ def _(c):
 # --------------------------------------------------------------------------------------------------
 # Budgets and alerts
 # --------------------------------------------------------------------------------------------------
-@task("budget.create", "governance", "Create a budget (name, amount, defaults for the rest)")
+@task("budget.create", "governance", "Create a budget (suggested name, 'Use $' limit from the spend trend, Add Budget)")
 def _(c):
     c.menu("Cloud Cost", "Budgets & Alerts")
-    form = c.page.locator("section[aria-label~='Create']").first
-    c.type(c.page.get_by_label("Budget Name"), "Audit Q4", "Budget Name")
-    c.type(c.page.get_by_label("Target Amount ($)"), "5000", "Target Amount")
-    c.click(c.page.get_by_role("button", name="Add Budget"), "Add Budget")
+    use = c.page.get_by_role("button", name=re.compile(r"^Use \$[\d,]+"))
+    use.first.wait_for(state="visible", timeout=STEP_TIMEOUT)
+    c.click(use, "Use the suggested limit")
+    c.click(c.page.locator("[data-tour=budget-submit]"), "Add Budget")
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("Budget created")), "toast 'Budget created'")
 
 
-@task("budget.channel", "governance", "Add a notification channel (email)")
+@task("budget.create-typed", "governance", "Create a budget typing your own name and amount")
 def _(c):
     c.menu("Cloud Cost", "Budgets & Alerts")
-    c.click(c.page.get_by_role("tab", name=re.compile("Alert integrations")), "tab 'Alert integrations'")
-    c.click(c.page.get_by_role("button", name=re.compile(r"Add (your first )?channel")), "Add channel")
+    c.type(c.page.get_by_label("Budget Name"), "Audit Q4", "Budget Name")
+    c.type(c.page.get_by_label("Target Amount ($)"), "5000", "Target Amount")
+    c.click(c.page.locator("[data-tour=budget-submit]"), "Add Budget")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("Budget created")), "toast 'Budget created'")
+
+
+@task("budget.channel", "governance", "Add a notification channel (header button; your own email is already the recipient)")
+def _(c):
+    c.menu("Cloud Cost", "Budgets & Alerts")
+    c.click(c.page.get_by_role("button", name=re.compile(r"Add (your first )?channel")).first, "Add channel (page header)")
     dlg = c.page.get_by_role("dialog", name="Add notification channel")
-    c.type(dlg.get_by_label("Recipients"), "ops@maitsys.com", "Recipients")
-    c.click(dlg.get_by_role("button", name="Add channel"), "Add channel (submit)")
+    c.click(dlg.locator("[data-tour=channel-submit]"), "Add channel (submit)")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("channel added", re.I)), "toast")
+
+
+@task("budget.channel-typed", "governance", "Add a notification channel for another address (type it, Enter, submit)")
+def _(c):
+    c.menu("Cloud Cost", "Budgets & Alerts")
+    c.click(c.page.get_by_role("button", name=re.compile(r"Add (your first )?channel")).first, "Add channel (page header)")
+    dlg = c.page.get_by_role("dialog", name="Add notification channel")
+    c.type(dlg.locator("[data-tour=channel-recipients]"), "ops@maitsys.com", "Recipients")
+    c.key("Enter", "Enter (adds the chip)")
+    c.click(dlg.locator("[data-tour=channel-submit]"), "Add channel (submit)")
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("channel added", re.I)), "toast")
 
 
@@ -605,11 +646,18 @@ def _(c):
     c.see(c.page.get_by_role("dialog"), "detail drawer")
 
 
-@task("alert.from-dashboard", "alerts", "Dashboard 'Needs attention': get to the alert that needs action and resolve it")
+@task("alert.from-dashboard", "alerts", "Dashboard 'Needs attention': resolve a cost alert (inline Resolve on the row; it opened the list page at the baseline)")
 def _(c):
-    c.click(c.page.locator("ul[aria-label='Items that need attention'] a[href='/smart-alerts']"), "Needs-attention row for the cost alerts")
-    c.settle(600)
-    c.click(c.page.get_by_role("button", name=re.compile(r"^Resolve ")), "Resolve (first row of the destination page)")
+    rows = c.page.locator("ul[aria-label='Items that need attention']")
+    rows.first.wait_for(state="visible", timeout=STEP_TIMEOUT)
+    inline = rows.get_by_role("button", name=re.compile(r"^Resolve"))
+    if inline.count() > 0:
+        c.click(inline, "inline Resolve on a Needs-attention row")
+        c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("resolved", re.I)), "toast")
+    else:
+        c.click(rows.locator("a[href='/smart-alerts']"), "Needs-attention row for the cost alerts (no inline action yet)")
+        c.settle(600)
+        c.click(c.page.get_by_role("button", name=re.compile(r"^Resolve ")), "Resolve (first row of the destination page)")
 
 
 @task("alert.mark-all-read", "alerts", "Bell: mark all notifications read")
@@ -639,28 +687,23 @@ def _(c):
 # Invoices
 # --------------------------------------------------------------------------------------------------
 def to_invoices(c: Ctx):
-    """/invoices has no menu entry for any demo account; the shortest in-app path goes through Cost Overview."""
-    c.menu("Cloud Cost", "Cost Overview")
-    c.click(c.page.get_by_role("button", name="Invoices summary"), "'Invoices summary' toggle")
-    c.click(c.page.get_by_role("link", name=re.compile("Upload more invoices|View all invoices|Upload invoices")), "link to Invoices")
+    """Invoices is in the Cloud Cost menu: 2 clicks (it was a 4-click detour through Cost Overview at the baseline)."""
+    c.menu("Cloud Cost", "Invoices")
     c.expect_path(r"/invoices/?$")
 
 
 def upload_invoice_flow(c: Ctx):
-    c.click(c.page.get_by_role("button", name="Upload Invoice").first, "Upload Invoice (header)")
-    dlg = c.page.get_by_role("dialog", name=re.compile("Upload invoice", re.I))
+    """'Upload Invoice' opens the OS file chooser straight away; a file name that names its provider needs no further click."""
     with c.page.expect_file_chooser(timeout=STEP_TIMEOUT) as fc:
-        dlg.locator("input[type=file]").click(force=True)
-    c.steps.append("click file input -> OS file picker")
+        c.click(c.page.get_by_role("button", name="Upload Invoice").first, "Upload Invoice (header) -> OS file picker")
     fc.value.set_files(dummy_pdf())
-    c.settle(400)
-    c.click(dlg.get_by_role("button", name="Upload Invoice"), "Upload Invoice (submit)")
-    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("uploaded", re.I)), "toast 'uploaded'", timeout=9000)
+    c.steps.append("choose the file in the OS dialog (not counted)")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("uploaded", re.I)), "toast 'uploaded'", timeout=12000)
     c.see(c.page.get_by_text(re.compile("Total Amount")), "analysis panel")
 
 
-@task("invoice.upload", "invoices", "Upload an invoice (small dummy PDF) and see the analysis",
-      note="Starts at /invoices (reached via Cost Overview; 3 extra clicks counted separately in reach.invoices-via-overview).",
+@task("invoice.upload", "invoices", "Upload an invoice (small dummy PDF, provider read from the file name) and see the analysis",
+      note="On the page only: starts at /invoices, which is 2 clicks away through the Cloud Cost menu (reach.invoices); see invoice.upload-total.",
       start="/invoices")
 def _(c):
     to_invoices(c)
@@ -668,47 +711,57 @@ def _(c):
     upload_invoice_flow(c)
 
 
-@task("invoice.delete", "invoices", "Delete an invoice (select, trash, confirm)", start="/invoices")
+@task("invoice.upload-total", "invoices", "Upload an invoice from the Dashboard: Cloud Cost > Invoices, Upload Invoice, file")
+def _(c):
+    to_invoices(c)
+    upload_invoice_flow(c)
+
+
+@task("invoice.delete", "invoices", "Delete an invoice (trash icon; undo toast, no confirm dialog)", start="/invoices")
 def _(c):
     to_invoices(c)
     c.reset()
-    c.click(c.page.locator("button[aria-pressed]").filter(has_text=re.compile(r"\$|INV|\.pdf|20\d\d", re.I)).first, "first invoice card")
     c.click(c.page.get_by_role("button", name="Delete invoice").first, "trash icon")
-    c.click(c.page.get_by_role("alertdialog").get_by_role("button", name="Delete invoice"), "confirm Delete invoice")
-    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("deleted", re.I)), "toast")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("deleted", re.I)), "toast with Undo")
 
 
-@task("invoice.pay", "invoices", "Billing: pay the newest Sent invoice")
+@task("invoice.delete-total", "invoices", "Delete an invoice from the Dashboard: Cloud Cost > Invoices, trash icon")
+def _(c):
+    to_invoices(c)
+    c.click(c.page.get_by_role("button", name="Delete invoice").first, "trash icon")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("deleted", re.I)), "toast with Undo")
+
+
+@task("invoice.pay", "invoices", "Billing: pay the newest unpaid invoice (Pay Now on its list row; it needed select + Pay Now at the baseline)")
 def _(c):
     c.menu("Cloud Cost", "Billing")
-    # The first invoice is auto-selected but is already Paid in the seed; the Sent one needs a click first.
-    c.click(c.page.locator("button").filter(has_text=re.compile("Sent")).first, "the Sent invoice")
-    c.click(c.page.get_by_role("button", name="Pay Now"), "Pay Now")
+    pay = c.page.get_by_role("button", name=re.compile(r"^Pay Now"))
+    pay.first.wait_for(state="visible", timeout=STEP_TIMEOUT)
+    c.click(pay, "Pay Now (on the unpaid invoice's row)")
+    c.settle(500)
 
 
 # --------------------------------------------------------------------------------------------------
 # SAP
 # --------------------------------------------------------------------------------------------------
-@task("sap.notes-upload", "sap", "Security Notes: upload note numbers by typing (3 notes)")
+@task("sap.notes-upload", "sap", "Security Notes: upload 3 note numbers by typing (status check runs by itself: the checkbox is on by default)")
 def _(c):
     c.menu("SAP Monitoring", "Security Notes")
     c.click(c.page.get_by_role("button", name="Upload", exact=True), "Upload")
     dlg = c.page.get_by_role("dialog", name=re.compile("Upload security notes", re.I))
     c.type_here("3800001, 3800002, 3800003", "3 note numbers")
     c.click(dlg.get_by_role("button", name="Upload", exact=True), "Upload (submit)")
-    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("added as Unknown", re.I)), "toast")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile(r"added.*checked", re.I)), "toast 'added and checked: N resolved'", timeout=9000)
 
 
-@task("sap.notes-upload-check", "sap", "Security Notes: upload 3 numbers AND resolve their status (Upload + Check Status)")
+@task("sap.notes-upload-check", "sap", "Security Notes: upload 3 numbers AND resolve their status (one flow now; it took Upload + Check Status)")
 def _(c):
     c.menu("SAP Monitoring", "Security Notes")
     c.click(c.page.get_by_role("button", name="Upload", exact=True), "Upload")
     dlg = c.page.get_by_role("dialog", name=re.compile("Upload security notes", re.I))
     c.type_here("3800001, 3800002, 3800003", "3 note numbers")
     c.click(dlg.get_by_role("button", name="Upload", exact=True), "Upload (submit)")
-    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("added as Unknown", re.I)), "toast")
-    c.click(c.page.get_by_role("button", name=re.compile("^Check Status")), "Check Status")
-    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile(r"Checked \d+ note", re.I)), "toast 'Checked N notes'", timeout=9000)
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile(r"\d+ resolved", re.I)), "toast 'N resolved'", timeout=9000)
 
 
 @task("sap.notes-check", "sap", "Security Notes: run Check Status on the existing notes")
@@ -718,41 +771,33 @@ def _(c):
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile(r"Checked \d+ note|No notes are waiting", re.I)), "toast", timeout=9000)
 
 
-@task("sap.notes-delete", "sap", "Security Notes: delete a note (trash + confirm)")
+@task("sap.notes-delete", "sap", "Security Notes: delete a note (trash icon; undo toast, no confirm dialog)")
 def _(c):
     c.menu("SAP Monitoring", "Security Notes")
-    c.click(c.page.get_by_role("button", name=re.compile(r"^Delete note")), "trash on first row")
-    c.click(c.page.get_by_role("alertdialog").get_by_role("button", name="Delete note"), "confirm Delete note")
-    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("deleted", re.I)), "toast")
+    c.click(c.page.get_by_role("button", name=re.compile(r"^Delete note")).first, "trash on first row")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("deleted", re.I)), "toast with Undo")
 
 
-def fill_destination(c: Ctx, name: str):
-    dlg = c.page.get_by_role("dialog")
-    c.type_here(name, "Environment Name")
-    c.type(dlg.get_by_label("SID"), "PRD", "SID")
-    c.type(dlg.get_by_label("Gateway URL"), "https://dev.maitsys.com", "Gateway URL")
-    c.click(dlg.get_by_role("button", name="Add Destination"), "Add Destination (submit)")
-    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("added", re.I)), "toast 'added'")
-
-
-@task("sap.destination", "connect", "SAP: add a destination / system via System Configuration (name, SID, URL)")
+@task("sap.destination", "connect", "SAP: add a system via System Configuration (shared connect dialog; name, SID, URL typed)")
 def _(c):
     c.menu("SAP Monitoring", "System Configuration")
     c.click(c.page.get_by_role("button", name="Add Destination").first, "Add Destination")
-    fill_destination(c, "Prod S4 Audit")
+    connect_in_dialog(c, "sap", sample=False)
 
 
-@task("sap.destination-from-quickaccess", "connect", "SAP: add a system starting from Dashboard Quick Access 'Add SAP System'",
-      note="The link lands on /sap/systems, which has no add flow; the user must then go to System Configuration through the menu.")
+@task("sap.destination-sample", "connect", "SAP: add a system via System Configuration with sample credentials")
 def _(c):
-    c.click(c.page.get_by_role("link", name=re.compile("Add SAP System")), "Quick Access 'Add SAP System'")
-    c.settle(800)
-    if not re.search(r"/sap/configuration/?$", c.page.url):
-        # Baseline behaviour: the link lands on SAP Overview, which has no add control. Take the menu path from here.
-        c.menu("SAP Monitoring", "System Configuration")
-    if c.page.get_by_role("dialog").count() == 0:
-        c.click(c.page.get_by_role("button", name="Add Destination").first, "Add Destination")
-    fill_destination(c, "Prod S4 Audit")
+    c.menu("SAP Monitoring", "System Configuration")
+    c.click(c.page.get_by_role("button", name="Add Destination").first, "Add Destination")
+    connect_in_dialog(c, "sap", sample=True)
+
+
+@task("sap.destination-from-quickaccess", "connect", "SAP: add a system starting from Dashboard Quick Access 'Add SAP System' (typed values)",
+      note="The Quick Access item opens the shared connect dialog in place (it landed on SAP Overview, which has no add flow, at the baseline).")
+def _(c):
+    c.click(c.page.get_by_role("link", name=re.compile("Add SAP System")).or_(c.page.get_by_role("button", name=re.compile("Add SAP System"))), "Quick Access 'Add SAP System'")
+    c.settle(600)
+    connect_in_dialog(c, "sap", sample=False)
 
 
 @task("sap.jobs-filter", "sap", "Jobs & Dumps: filter by status (Running) and search")
@@ -763,13 +808,28 @@ def _(c):
     c.see(c.page.locator("table tbody tr").first, "rows")
 
 
-@task("sap.hana-backup", "sap", "HANA: open backup details (Backups tab, select a marker)")
-def _(c):
+def _open_backups_tab(c: Ctx):
     c.menu("SAP Monitoring", "HANA/DB Monitoring")
     c.click(c.page.get_by_role("tab", name=re.compile("Backups")), "tab Backups")
-    c.click(c.page.get_by_role("button", name=re.compile("View data")).first, "View data (keyboard-reachable detail path)")
-    c.see(c.page.get_by_role("dialog"), "backup table dialog")
-    c.note = "Detail also appears on marker hover (mouse only, markers are aria-hidden/tabindex -1)"
+
+
+def _marker_detail(c: Ctx):
+    c.click(c.page.locator(".mv-backup-lane button.mv-backup-dot").first, "backup marker (a real button, also reachable with Tab and arrows)")
+    c.see(c.page.locator(".mv-backup-detail").get_by_text("Duration"), "marker detail (time, duration, size, status)")
+
+
+@task("sap.hana-backup", "sap", "HANA: open a backup's details (Backups tab, click a marker)")
+def _(c):
+    _open_backups_tab(c)
+    _marker_detail(c)
+
+
+@task("sap.hana-backup-remembered", "sap", "HANA: open a backup's details after the Backups tab was used once (the tab is remembered: menu, marker)",
+      setup=lambda c: (_open_backups_tab(c), spa_goto(c.page, "/")))
+def _(c):
+    c.menu("SAP Monitoring", "HANA/DB Monitoring")
+    c.see(c.page.get_by_role("tab", name=re.compile("Backups"), selected=True), "Backups tab already selected")
+    _marker_detail(c)
 
 
 @task("sap.transport-import", "sap", "Transport: import all released requests")
@@ -813,24 +873,21 @@ def _(c):
 # --------------------------------------------------------------------------------------------------
 # Users / roles / audit
 # --------------------------------------------------------------------------------------------------
-@task("users.add", "users", "Add a user with a role (Analyst) and no extra access")
+@task("users.add", "users", "Add a user with a chosen role (Analyst chip) and no extra access: email, chip, Add user")
 def _(c):
     c.menu("Administration", "User Management")
     c.click(c.page.get_by_role("button", name="Add user").first, "Add user")
     dlg = c.page.get_by_role("dialog", name="Add user")
-    c.type_here("Audit Person", "Full name")
-    c.type(dlg.get_by_label("Work email"), "audit.person@maitsys.com", "Work email")
-    c.select("Role", "Analyst", scope=dlg)
-    c.click(dlg.get_by_role("button", name="Add user", exact=True), "Add user (submit)")
+    c.type_here("audit.person@maitsys.com", "Work email (name is optional, taken from the email)")
+    c.click(dlg.get_by_role("group", name="Role").get_by_role("button", name=re.compile("^Analyst")), "role chip Analyst")
+    c.click(dlg.locator("[data-tour=add-user-submit]"), "Add user (submit)")
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("was added", re.I)), "toast")
 
 
-@task("users.add-default-role", "users", "Add a user keeping the default role (Viewer): name + email + Enter")
+@task("users.add-default-role", "users", "Add a user keeping the default role (Viewer): email + Enter")
 def _(c):
     c.menu("Administration", "User Management")
     c.click(c.page.get_by_role("button", name="Add user").first, "Add user")
-    c.type_here("Audit Person", "Full name")
-    c.key("Tab", "Tab")
     c.type_here("audit.person@maitsys.com", "Work email")
     c.key("Enter", "Enter (submit)")
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("was added", re.I)), "toast")
@@ -843,6 +900,20 @@ def _(c):
     c.click(sel, "role Select in a row")
     c.click(c.page.get_by_role("option", name="Analyst", exact=True), "option Analyst")
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("is now", re.I)), "toast")
+
+
+def grant_all_somewhere(c: Ctx):
+    """'All' on a module: the matrix opens on Dashboard (one action, so no 'All'); pick an area with real actions first."""
+    grant = c.page.get_by_role("button", name=re.compile(r"^Grant all actions on"))
+    c.settle(400)
+    if grant.count() == 0:
+        c.click(c.page.get_by_role("navigation", name="Product areas").get_by_role("button", name=re.compile("^Cloud Cost")), "area 'Cloud Cost' (the opening module has a single action)")
+        c.settle(300)
+    if grant.count() == 0:
+        # The area's first module is already fully granted for a copy of Analyst; pick one that is not.
+        c.click(c.page.get_by_role("navigation", name=re.compile("^Modules for")).get_by_role("button", name=re.compile("^Savings")), "module 'Savings and Optimization'")
+        c.settle(300)
+    c.click(grant, "All on the module")
 
 
 def add_role(c: Ctx, name="Audit role"):
@@ -874,12 +945,12 @@ def _(c):
     add_role(c)        # lands on #permissions with the new role selected
     c.page.wait_for_function("location.hash === '#permissions'", timeout=STEP_TIMEOUT)
     # counted path from the dashboard: menu(2) + (role already selected after add) module + All + Save
-    c.click(c.page.get_by_role("button", name=re.compile(r"^Grant all actions on")), "All on the first module")
+    grant_all_somewhere(c)
     c.click(c.page.get_by_role("button", name="Save changes"), "Save changes")
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("Permissions saved", re.I)), "toast")
 
 
-@task("users.edit-permissions-existing", "users", "Edit permissions of an EXISTING custom role (tab, role Select, area/module, All, Save)")
+@task("users.edit-permissions-existing", "users", "Edit permissions of an EXISTING custom role (Roles tab, row 'Edit permissions', All, Save)")
 def _(c):
     # setup (uncounted): create the role, then return to the dashboard
     c.menu("Administration", "User Management")
@@ -888,9 +959,26 @@ def _(c):
     c.page.wait_for_timeout(500)
     c.reset()
     c.menu("Administration", "User Management")
+    c.click(c.page.get_by_role("tab", name="Roles"), "tab Roles")
+    c.click(c.page.get_by_role("button", name=re.compile(r"^Edit permissions of Existing custom")), "row action 'Edit permissions'")
+    c.page.wait_for_function("location.hash === '#permissions'", timeout=STEP_TIMEOUT)
+    grant_all_somewhere(c)
+    c.click(c.page.get_by_role("button", name="Save changes"), "Save changes")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("Permissions saved", re.I)), "toast")
+
+
+@task("users.edit-permissions-existing-select", "users", "Edit permissions of an EXISTING custom role from the Permissions tab (tab, role Select, All, Save)")
+def _(c):
+    c.menu("Administration", "User Management")
+    add_role(c, "Existing custom")
+    spa_goto(c.page, "/")
+    c.page.wait_for_timeout(500)
+    c.reset()
+    c.menu("Administration", "User Management")
     c.click(c.page.get_by_role("tab", name="Permissions"), "tab Permissions")
-    c.select("Role", "Existing custom (custom)")
-    c.click(c.page.get_by_role("button", name=re.compile(r"^Grant all actions on")), "All on the first module")
+    c.click(c.page.get_by_role("button", name=re.compile(r"^Role", re.I)).and_(c.page.locator("[aria-haspopup='listbox']")).first, "Select Role")
+    c.click(c.page.get_by_role("option", name=re.compile("^Existing custom")), "option Existing custom")
+    grant_all_somewhere(c)
     c.click(c.page.get_by_role("button", name="Save changes"), "Save changes")
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("Permissions saved", re.I)), "toast")
 
@@ -908,11 +996,18 @@ def _(c):
     c.click(c.page.get_by_role("button", name="Failed", exact=True), "status Failed")
 
 
-@task("subscription.request-plan", "users", "Subscription: request a plan")
+@task("subscription.request-plan", "users", "Subscription: request a plan from the profile menu ('Request a plan', Send request)")
+def _(c):
+    c.click(c.page.get_by_role("button", name="Profile menu"), "Profile menu")
+    c.click(c.page.get_by_role("menuitem", name=re.compile("^Request a plan")), "Request a plan")
+    c.click(c.page.get_by_role("button", name="Send request"), "Send request")
+    c.see(c.page.locator(".mv-toast"), "toast")
+
+
+@task("subscription.request-plan-page", "users", "Subscription: request a plan on the page (Subscription, Choose plan, Send request)")
 def _(c):
     c.click(c.page.get_by_role("button", name="Profile menu"), "Profile menu")
     c.click(c.page.get_by_role("menuitem", name=re.compile("^Subscription")), "Subscription")
-    c.click(c.page.get_by_role("tab", name=re.compile("Available plans")), "tab Available plans")
     c.click(c.page.get_by_role("button", name=re.compile(r"^Choose plan")).first, "Choose plan")
     c.click(c.page.get_by_role("button", name="Send request"), "Send request")
     c.see(c.page.locator(".mv-toast"), "toast")
@@ -937,79 +1032,82 @@ def _(c):
 # --------------------------------------------------------------------------------------------------
 AZ = dict(sub="11111111-2222-3333-4444-555555555555", tenant="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", client="99999999-8888-7777-6666-555555555555")
 
-
-def fill_azure_wizard(c: Ctx, name: str):
-    dlg = c.page.get_by_role("dialog", name=re.compile("Connect Azure", re.I))
-    c.type(dlg.get_by_label("Account name"), name, "Account name")
-    c.type(dlg.get_by_label("Subscription ID"), AZ["sub"], "Subscription ID")
-    c.type(dlg.get_by_label("Tenant ID"), AZ["tenant"], "Tenant ID")
-    c.type(dlg.get_by_label("Client ID"), AZ["client"], "Client ID")
-    c.type(dlg.get_by_label("Client secret"), "s3cr3t-value", "Client secret")
-    c.click(dlg.get_by_role("button", name="Next"), "Next")
-    c.click(dlg.get_by_role("button", name="Validate details"), "Validate details")
-    c.click(dlg.get_by_role("button", name="Save account"), "Save account")
-    c.see(dlg.get_by_text("Account connected"), "'Account connected'", timeout=9000)
-    c.click(dlg.get_by_role("button", name="Done"), "Done")
+# What a person types when they bring their own credentials: (field label, value). The first field is auto-focused.
+CONNECT_VALUES = {
+    "azure": [("Account name", "Audit Azure"), ("Subscription ID", AZ["sub"]), ("Tenant ID", AZ["tenant"]), ("Client ID", AZ["client"]), ("Client secret", "s3cr3t-value")],
+    "aws": [("Account name", "Audit AWS"), ("Access key ID", "AKIAIOSFODNN7EXAMPLE"), ("Secret access key", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")],
+    "gcp": [("Display Name", "Audit GCP"), ("Project ID", "audit-gcp-123456"), ("Service Account JSON Key", '{"client_email":"a@b.iam.gserviceaccount.com","private_key":"x"}')],
+    "btp": [("Account Name", "Audit BTP"), ("Client ID", "sb-audit"), ("Client Secret", "s"), ("Token URL", "https://mavera.authentication.eu10.hana.ondemand.com"),
+            ("Reporting API Base URL", "https://reporting.cf.eu10.hana.ondemand.com")],
+    "sap": [("Environment Name", "Prod S4 Audit"), ("SID", "PRD"), ("Gateway URL", "https://dev.maitsys.com")],
+}
+CONNECT_TITLES = {"azure": "Azure", "aws": "AWS", "gcp": "Google Cloud", "btp": "BTP", "sap": "SAP system"}
 
 
-@task("connect.azure", "connect", "Connect Azure (wizard): menu, Manage Accounts, Connect Account, 5 fields, Next, Validate, Save, Done")
+def connect_in_dialog(c: Ctx, provider: str, sample: bool):
+    """The shared ConnectAccountDialog (data-tour hooks): one step, no Validate/Next/Done. Sample credentials = 2 interactions."""
+    page = c.page
+    dlg = page.locator("[data-tour=connect-dialog]")
+    c.see(dlg, "shared connect dialog")
+    if page.locator("[data-tour^='connect-provider-']").count():
+        c.click(page.locator(f"[data-tour=connect-provider-{provider}]"), f"provider picker: {CONNECT_TITLES[provider]}")
+    if sample:
+        c.click(page.locator("[data-tour=use-sample-credentials]"), "Use sample credentials")
+    else:
+        for index, (label, value) in enumerate(CONNECT_VALUES[provider]):
+            if index == 0:
+                c.type_here(value, label)
+            else:
+                c.type(dlg.get_by_label(label, exact=True), value, label)
+    c.click(page.locator("[data-tour=connect-submit]"), "Connect")
+    c.see(page.locator(".mv-toast").filter(has_text=re.compile("connected", re.I)), "toast '... connected'", timeout=9000)
+    page.locator("[data-tour=connect-dialog]").wait_for(state="detached", timeout=9000)
+
+
+def open_connect_from_page(c: Ctx, provider: str):
+    """The provider's own page: menu (2) plus the button that opens the dialog."""
+    if provider == "azure":
+        c.menu("Cloud Cost", "Azure Subscriptions")
+        c.click(c.page.get_by_role("button", name="Manage Accounts"), "Manage Accounts")
+        c.click(c.page.get_by_role("button", name="Connect Account"), "Connect Account")
+    elif provider == "aws":
+        c.menu("Cloud Cost", "AWS")
+        c.click(c.page.get_by_role("button", name="Manage Accounts"), "Manage Accounts")
+        c.click(c.page.get_by_role("button", name="Connect Account"), "Connect Account")
+    elif provider == "gcp":
+        c.menu("Cloud Cost", "Google Cloud")
+        c.click(c.page.get_by_role("button", name="Manage", exact=True), "Manage")
+        c.click(c.page.get_by_role("button", name="Connect Project"), "Connect Project")
+    elif provider == "btp":
+        c.menu("Cloud Cost", "SAP BTP")
+        c.click(c.page.get_by_role("button", name="Add Account"), "Add Account")
+        c.settle(500)
+        if c.page.locator("[data-tour=connect-dialog]").count() == 0:
+            c.click(c.page.get_by_role("button", name="Connect Account"), "Connect Account")
+    else:
+        c.menu("SAP Monitoring", "System Configuration")
+        c.click(c.page.get_by_role("button", name="Add Destination").first, "Add Destination")
+
+
+for _prov in ("azure", "aws", "gcp", "btp"):
+    for _sample in (False, True):
+        def _mk(prov=_prov, sample=_sample):
+            def fn(c: Ctx):
+                open_connect_from_page(c, prov)
+                connect_in_dialog(c, prov, sample)
+            return fn
+        _what = "sample credentials" if _sample else "typed credentials"
+        TASKS.append(Task(id=f"connect.{_prov}" + ("-sample" if _sample else ""), group="connect",
+                          title=f"Connect {CONNECT_TITLES[_prov]} (shared dialog, {_what}): menu, page button, " + ("Use sample, Connect" if _sample else f"{len(CONNECT_VALUES[_prov])} fields, Connect"),
+                          fn=_mk()))
+
+
+@task("connect.azure-open", "connect", "Connect Azure then see the new account open (it opens by itself after Connect)")
 def _(c):
-    c.menu("Cloud Cost", "Azure Subscriptions")
-    c.click(c.page.get_by_role("button", name="Manage Accounts"), "Manage Accounts")
-    c.click(c.page.get_by_role("button", name="Connect Account"), "Connect Account")
-    fill_azure_wizard(c, "Audit Azure")
-    c.see(c.page.get_by_text("Audit Azure").first, "new account row")
-
-
-@task("connect.azure-open", "connect", "Connect Azure then OPEN the new account", note="Known defect: the new Azure account cannot be opened (cost page only knows the fixtures).")
-def _(c):
-    c.menu("Cloud Cost", "Azure Subscriptions")
-    c.click(c.page.get_by_role("button", name="Manage Accounts"), "Manage Accounts")
-    c.click(c.page.get_by_role("button", name="Connect Account"), "Connect Account")
-    fill_azure_wizard(c, "Audit Azure")
-    c.click(c.page.get_by_role("button", name=re.compile("Audit Azure")), "open the new account")
-    c.see(c.page.locator("nav[aria-label='Cost view']"), "cost view of the new account (fails: 'Account not found')", timeout=3000)
-
-
-@task("connect.aws", "connect", "Connect AWS (wizard): menu, Manage Accounts, Connect Account, 3 fields, Next, Validate, Save, Done")
-def _(c):
-    c.menu("Cloud Cost", "AWS")
-    c.click(c.page.get_by_role("button", name="Manage Accounts"), "Manage Accounts")
-    c.click(c.page.get_by_role("button", name="Connect Account"), "Connect Account")
-    dlg = c.page.get_by_role("dialog", name=re.compile("Connect AWS", re.I))
-    c.type(dlg.get_by_label("Account name"), "Audit AWS", "Account name")
-    c.type(dlg.get_by_label("Access key ID"), "AKIAIOSFODNN7EXAMPLE", "Access key ID")
-    c.type(dlg.get_by_label("Secret access key"), "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "Secret access key")
-    c.click(dlg.get_by_role("button", name="Next"), "Next")
-    c.click(dlg.get_by_role("button", name="Validate details"), "Validate details")
-    c.click(dlg.get_by_role("button", name="Save account"), "Save account")
-    c.see(dlg.get_by_text("Account connected"), "'Account connected'", timeout=9000)
-    c.click(dlg.get_by_role("button", name="Done"), "Done")
-    c.see(c.page.get_by_text("Audit AWS").first, "new account row")
-
-
-@task("connect.gcp", "connect", "Connect GCP (inline form): menu, Manage, 3 fields, Connect Project")
-def _(c):
-    c.menu("Cloud Cost", "Google Cloud")
-    c.click(c.page.get_by_role("button", name="Manage", exact=True), "Manage")
-    c.type(c.page.get_by_label("Display Name"), "Audit GCP", "Display Name")
-    c.type(c.page.get_by_label("Project ID"), "audit-gcp-123456", "Project ID")
-    c.type(c.page.get_by_label("Service Account JSON Key"), '{"client_email":"a@b.iam.gserviceaccount.com","private_key":"x"}', "Service Account JSON")
-    c.click(c.page.get_by_role("button", name="Connect Project"), "Connect Project")
-    c.see(c.page.get_by_text("GCP account added successfully"), "success notice")
-
-
-@task("connect.btp", "connect", "Connect BTP (inline form): menu, Add Account, 5 fields, Connect Account")
-def _(c):
-    c.menu("Cloud Cost", "SAP BTP")
-    c.click(c.page.get_by_role("button", name="Add Account"), "Add Account")
-    c.type(c.page.get_by_label("Account Name"), "Audit BTP", "Account Name")
-    c.type(c.page.get_by_label("Client ID", exact=True), "sb-audit", "Client ID")
-    c.type(c.page.get_by_label("Client Secret", exact=True), "s", "Client Secret")
-    c.type(c.page.get_by_label("Token URL", exact=True), "https://mavera.authentication.eu10.hana.ondemand.com", "Token URL")
-    c.type(c.page.get_by_label("Reporting API Base URL"), "https://reporting.cf.eu10.hana.ondemand.com", "Reporting API Base URL")
-    c.click(c.page.get_by_role("button", name="Connect Account"), "Connect Account")
-    c.see(c.page.get_by_text("Audit BTP").first, "new account row (no success message exists)")
+    open_connect_from_page(c, "azure")
+    connect_in_dialog(c, "azure", sample=True)
+    c.page.wait_for_url(re.compile(r"/azure/[^/]+"), timeout=STEP_TIMEOUT)
+    c.see(COST_TABS(c.page), "cost view tabs of the new account")
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1047,6 +1145,25 @@ def _(c):
     c.see(c.page.get_by_role("dialog").filter(has_text=re.compile("Step 1 of")), "tour card")
 
 
+@task("tour.header-button", "assistant", "Start the page tour from the round '?' button in the page header (Dashboard)")
+def _(c):
+    c.click(c.page.get_by_role("button", name="Take a tour of this page").first, "page header '?' tour button")
+    c.see(c.page.get_by_role("dialog").filter(has_text=re.compile("Step 1 of")), "tour card")
+
+
+@task("tour.palette", "assistant", "Start the page tour from Ctrl+K ('Start tour for this page')")
+def _(c):
+    palette(c, "tour", "Start tour for this page")
+    c.see(c.page.get_by_role("dialog").filter(has_text=re.compile("Step 1 of")), "tour card")
+
+
+@task("tour.profile-menu", "assistant", "Start the page tour from the profile menu ('Tour of this page')")
+def _(c):
+    c.click(c.page.get_by_role("button", name="Profile menu"), "Profile menu")
+    c.click(c.page.get_by_role("menuitem", name=re.compile("^Tour of this page")), "Tour of this page")
+    c.see(c.page.get_by_role("dialog").filter(has_text=re.compile("Step 1 of")), "tour card")
+
+
 @task("search.ctrlk", "assistant", "Ctrl+K to reach a page (type 'budg', Enter)")
 def _(c):
     c.key("Control+k", "Ctrl+K")
@@ -1061,7 +1178,7 @@ def _(c):
     c.type_here("connect azure", "'connect azure'")
     c.see(c.page.get_by_role("option").first, "first result")
     c.key("Enter")
-    c.see(c.page.get_by_role("dialog", name=re.compile("Connect Azure|Connect", re.I)), "connect dialog (fails if Ctrl+K is page-only)", timeout=3000)
+    c.see(c.page.locator("[data-tour=connect-dialog]"), "connect dialog (fails if Ctrl+K is page-only)", timeout=3000)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1079,52 +1196,18 @@ def palette(c: Ctx, query: str, expect_option: str):
     c.settle(700)
 
 
-@task("palette.connect-azure", "palette", "Palette: Connect Azure (Ctrl+K, type, Enter, then the wizard)")
-def _(c):
-    palette(c, "connect azure", "Connect Azure")
-    fill_azure_wizard(c, "Audit Azure")
-
-
-@task("palette.connect-aws", "palette", "Palette: Connect AWS (Ctrl+K, type, Enter, then the wizard)")
-def _(c):
-    palette(c, "connect aws", "Connect AWS")
-    dlg = c.page.get_by_role("dialog", name=re.compile("Connect AWS", re.I))
-    c.type(dlg.get_by_label("Account name"), "Audit AWS", "Account name")
-    c.type(dlg.get_by_label("Access key ID"), "AKIAIOSFODNN7EXAMPLE", "Access key ID")
-    c.type(dlg.get_by_label("Secret access key"), "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", "Secret access key")
-    c.click(dlg.get_by_role("button", name="Next"), "Next")
-    c.click(dlg.get_by_role("button", name="Validate details"), "Validate details")
-    c.click(dlg.get_by_role("button", name="Save account"), "Save account")
-    c.see(dlg.get_by_text("Account connected"), "'Account connected'", timeout=9000)
-    c.click(dlg.get_by_role("button", name="Done"), "Done")
-
-
-@task("palette.connect-gcp", "palette", "Palette: Connect Google Cloud project (inline form, first field focused)")
-def _(c):
-    palette(c, "connect google", "Connect Google Cloud")
-    c.type_here("Audit GCP", "Display Name")
-    c.type(c.page.get_by_label("Project ID"), "audit-gcp-123456", "Project ID")
-    c.type(c.page.get_by_label("Service Account JSON Key"), '{"client_email":"a@b.iam.gserviceaccount.com","private_key":"x"}', "Service Account JSON")
-    c.click(c.page.get_by_role("button", name="Connect Project"), "Connect Project")
-    c.see(c.page.get_by_text("GCP account added successfully"), "success notice")
-
-
-@task("palette.connect-btp", "palette", "Palette: Connect SAP BTP account (inline form, first field focused)")
-def _(c):
-    palette(c, "connect sap btp", "Connect SAP BTP")
-    c.type_here("Audit BTP", "Account Name")
-    c.type(c.page.get_by_label("Client ID", exact=True), "sb-audit", "Client ID")
-    c.type(c.page.get_by_label("Client Secret", exact=True), "s", "Client Secret")
-    c.type(c.page.get_by_label("Token URL", exact=True), "https://mavera.authentication.eu10.hana.ondemand.com", "Token URL")
-    c.type(c.page.get_by_label("Reporting API Base URL"), "https://reporting.cf.eu10.hana.ondemand.com", "Reporting API Base URL")
-    c.click(c.page.get_by_role("button", name="Connect Account"), "Connect Account")
-    c.see(c.page.get_by_text("Audit BTP").first, "new account row")
-
-
-@task("palette.connect-sap", "palette", "Palette: Connect SAP system (destination dialog opens, Environment Name focused)")
-def _(c):
-    palette(c, "connect sap system", "Connect SAP system")
-    fill_destination(c, "Prod S4 Audit")
+for _prov, _query, _option in (("azure", "connect azure", "Connect Azure"), ("aws", "connect aws", "Connect AWS"), ("gcp", "connect google", "Connect Google Cloud"),
+                               ("btp", "connect sap btp", "Connect SAP BTP"), ("sap", "connect sap system", "Connect SAP system")):
+    for _sample in (True, False):
+        if not _sample and _prov not in ("azure", "sap"):
+            continue  # typed credentials are measured on the page paths above; the palette adds only the launch
+        def _mk(prov=_prov, query=_query, option=_option, sample=_sample):
+            def fn(c: Ctx):
+                palette(c, query, option)
+                connect_in_dialog(c, prov, sample)
+            return fn
+        TASKS.append(Task(id=f"palette.connect-{_prov}" + ("" if _sample else "-typed"), group="palette",
+                          title=f"Palette: {_option} (Ctrl+K, type, Enter, shared dialog, " + ("sample credentials)" if _sample else "typed credentials)"), fn=_mk()))
 
 
 @task("palette.add-budget", "palette", "Palette: Add budget (opens Budgets with Budget Name focused)")
@@ -1136,24 +1219,31 @@ def _(c):
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("Budget created")), "toast 'Budget created'")
 
 
-@task("palette.upload-invoice", "palette", "Palette: Upload invoice (opens the upload dialog on /invoices)")
+@task("palette.upload-invoice", "palette", "Palette: Upload invoice (Ctrl+K opens /invoices and the OS file chooser opens at once; the dialog is the fallback)")
 def _(c):
+    chosen: list = []
+    # The page opens the chooser itself while the Enter key press is still a fresh user activation, so listen before it happens.
+    c.page.once("filechooser", lambda fc: (chosen.append(fc), fc.set_files(dummy_pdf())))
     palette(c, "upload invoice", "Upload invoice")
+    c.settle(900)
     dlg = c.page.get_by_role("dialog", name=re.compile("Upload invoice", re.I))
-    with c.page.expect_file_chooser(timeout=STEP_TIMEOUT) as fc:
-        dlg.locator("input[type=file]").click(force=True)
-    c.steps.append("click file input -> OS file picker")
-    fc.value.set_files(dummy_pdf())
-    c.settle(400)
-    c.click(dlg.get_by_role("button", name="Upload Invoice"), "Upload Invoice (submit)")
-    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("uploaded", re.I)), "toast 'uploaded'", timeout=9000)
+    if chosen:
+        c.steps.append("file chooser opened by the palette command; file chosen in the OS dialog (not counted)")
+    else:
+        with c.page.expect_file_chooser(timeout=STEP_TIMEOUT) as fc:
+            dlg.locator("input[type=file]").click(force=True)
+        c.steps.append("click file input in the dialog -> OS file picker")
+        fc.value.set_files(dummy_pdf())
+        c.settle(400)
+        submit = dlg.get_by_role("button", name="Upload Invoice")
+        if submit.count() and submit.first.is_enabled():
+            c.click(submit, "Upload Invoice (submit)")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("uploaded", re.I)), "toast 'uploaded'", timeout=12000)
 
 
-@task("palette.add-user", "palette", "Palette: Add user (opens the dialog, Full name focused; default role)")
+@task("palette.add-user", "palette", "Palette: Add user (opens the dialog, Work email focused; default role)")
 def _(c):
     palette(c, "add user", "Add user")
-    c.type_here("Audit Person", "Full name")
-    c.key("Tab", "Tab")
     c.type_here("audit.person@maitsys.com", "Work email")
     c.key("Enter", "Enter (submit)")
     c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("was added", re.I)), "toast")
@@ -1165,7 +1255,34 @@ def _(c):
     dlg = c.page.get_by_role("dialog", name=re.compile("Upload security notes", re.I))
     c.type_here("3800001, 3800002, 3800003", "3 note numbers")
     c.click(dlg.get_by_role("button", name="Upload", exact=True), "Upload (submit)")
-    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("added as Unknown", re.I)), "toast")
+    c.see(c.page.locator(".mv-toast").filter(has_text=re.compile("added", re.I)), "toast 'added ... and checked'", timeout=9000)
+
+
+@task("sap.destination-from-quickaccess-sample", "connect", "SAP: add a system from Dashboard Quick Access 'Add SAP System' with sample credentials")
+def _(c):
+    c.click(c.page.get_by_role("link", name=re.compile("Add SAP System")).or_(c.page.get_by_role("button", name=re.compile("Add SAP System"))), "Quick Access 'Add SAP System'")
+    c.settle(600)
+    connect_in_dialog(c, "sap", sample=True)
+
+
+def _visit_account(c: Ctx):
+    c.menu("Cloud Cost", "Azure Subscriptions")
+    c.click(c.page.get_by_role("button", name=re.compile("Production Environment")), "account row 'Production Environment'")
+    c.expect_path(r"/azure/az-acc-1/?$")
+
+
+@task("account.last-viewed", "account-detail", "Open the account you were last in from the Dashboard tile ('Last viewed account')",
+      setup=lambda c: (_visit_account(c), c.settle(1200), spa_goto(c.page, "/"), c.settle(800)))
+def _(c):
+    c.click(c.page.locator("a.mv-last-viewed"), "Dashboard 'Last viewed account' tile")
+    c.expect_path(r"/azure/az-acc-1/?$")
+
+
+@task("view.remembered", "account-view", "Return to an account after choosing Operations once (the view is remembered per account): menu, row",
+      setup=lambda c: (_visit_account(c), c.click(COST_TABS(c.page).get_by_role("tab", name=re.compile("^Operations")), "Operations"), spa_goto(c.page, "/")))
+def _(c):
+    _visit_account(c)
+    c.see(COST_TABS(c.page).get_by_role("tab", name=re.compile("^Operations"), selected=True), "Operations already selected")
 
 
 # --------------------------------------------------------------------------------------------------
@@ -1288,7 +1405,7 @@ def layout_sweep(browser) -> list[dict]:
         for route in LAYOUT_ROUTES:
             row = {"route": route, "width": width}
             try:
-                spa_goto(page, route)
+                spa_goto_signed_in(page, route)
                 page.wait_for_timeout(1100)
                 data = page.evaluate(OVERFLOW_JS)
                 row.update(data)
@@ -1329,7 +1446,7 @@ def extra_layout_sweep(browser) -> list[dict]:
         for route in ADMIN_ROUTES:
             row = {"route": route, "width": width}
             try:
-                spa_goto(page, route)
+                spa_goto_signed_in(page, route, "Super Admin")
                 page.wait_for_timeout(1100)
                 row.update(page.evaluate(OVERFLOW_JS.replace("'main h1'", "'h1, h2'").replace("document.querySelectorAll('main *')", "document.querySelectorAll('body *')")))
             except Exception as exc:  # noqa: BLE001
@@ -1351,7 +1468,7 @@ def keyboard_sweep(browser) -> list[dict]:
     for route in LAYOUT_ROUTES:
         row = {"route": route}
         try:
-            spa_goto(page, route)
+            spa_goto_signed_in(page, route)
             page.wait_for_timeout(1000)
             reset_focus_start(page)
             n = 0
@@ -1381,9 +1498,9 @@ DEEP_LINKS = [
     ("/sap/databases#backups", "Backups"), ("/sap/databases#storage", "Services and disk"), ("/sap/performance#analytics", "Analytics"),
     ("/sap/jobs#dumps", "Dumps"), ("/sap/alerts#recipients", "Recipients"), ("/budgets#integrations", "Alert integrations"),
     ("/smart-alerts#settings", "Settings"), ("/cloud/optimization#opportunities", "Opportunities"), ("/users#permissions", "Permissions"),
-    ("/subscription#plans", "Available plans"), ("/account#security", "Security"),
+    ("/subscription#access", "Modules and access"), ("/account#security", "Security"),
     ("/sap/jobs?status=Running", None), ("/azure/az-acc-1", None), ("/aws/account/aws-acc-1", None), ("/gcp/account/gcp-acc-1", None),
-    ("/btp/account/btp-acc-1", None),
+    ("/btp/account/btp-acc-1", None), ("/azure/az-acc-1#operations", "Operations"), ("/gcp/account/gcp-acc-1#technical", "Technical"),
 ]
 
 
@@ -1393,7 +1510,7 @@ def deep_link_sweep(browser) -> list[dict]:
     for url, tab in DEEP_LINKS:
         row = {"url": url, "ok": False}
         try:
-            spa_goto(page, url)
+            spa_goto_signed_in(page, url)
             page.wait_for_timeout(1000)
             if tab:
                 sel = page.get_by_role("tab", name=re.compile(re.escape(tab), re.I), selected=True)
@@ -1401,7 +1518,7 @@ def deep_link_sweep(browser) -> list[dict]:
             elif "status=Running" in url:
                 row["ok"] = page.get_by_role("button", name=re.compile(r"^Running")).first.get_attribute("aria-pressed") == "true"
             else:
-                row["ok"] = page.locator("nav[aria-label='Cost view']").count() > 0
+                row["ok"] = COST_TABS(page).count() > 0
         except Exception as exc:  # noqa: BLE001
             row["error"] = str(exc).splitlines()[0][:150]
         out.append(row)

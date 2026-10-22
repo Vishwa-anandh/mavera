@@ -16,9 +16,11 @@ picked up), at 1440 px and 390 px:
   - no "NaN" or "undefined" text
   - no horizontal overflow of the page
   - pages whose data comes from a connection show a visible next-step action while nothing is connected
-Then it connects an Azure subscription (Account name, Subscription/Tenant/Client ID, secret -> Next -> Validate -> Save)
-and checks the dashboard, Cost Overview, Cost Analytics, Optimization, Resources, Budgets and the Azure pages now show
-data, under the account's name, labelled "Sample data" where the figures could be taken for live.
+Then it connects an Azure subscription through the shared connect dialog (data-tour="connect-dialog": Account name,
+Subscription/Tenant/Client ID, secret -> Connect; one step, it closes by itself and opens the new account) and checks
+the dashboard, Cost Overview, Cost Analytics, Optimization, Resources, Budgets and the Azure pages now show data, under
+the account's name, labelled "Sample data" where the figures could be taken for live. The light-theme runs type the
+credentials and the dark-theme runs click "Use sample credentials" (two clicks), so both paths of the dialog are exercised.
 
 The demo session lives in memory, so pages are visited by client-side navigation (history API), never a reload.
 Exit status is 1 when any check fails.
@@ -54,7 +56,7 @@ EXTRA_PATHS = {"aws": ["/aws/accounts"], "gcp": ["/gcp/accounts"], "btp": ["/btp
 BAD_TEXT = re.compile(r"\bNaN\b|\bundefined\b")
 ACTION_JS = """() => {
   const visible = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
-  const sel = '.mv-empty button, .mv-empty a, .mv-empty-inline button, .mv-empty-inline a, .mv-module-card-action, main .mv-primary-button, main a.mv-primary-button, [role=status] button';
+  const sel = '.mv-onboarding button, .mv-empty button, .mv-empty a, .mv-empty-inline button, .mv-empty-inline a, .mv-module-card-action, main .mv-primary-button, main a.mv-primary-button, [role=status] button';
   const hit = [...document.querySelectorAll(sel)].filter(visible);
   return hit.map((el) => (el.textContent || '').trim()).filter(Boolean).slice(0, 4);
 }"""
@@ -94,10 +96,15 @@ def sign_in(pw, width, theme):
     errors = []
     page.on("console", lambda m: errors.append(f"console {m.type}: {m.text}") if m.type == "error" else None)
     page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
-    page.goto(BASE + "/login")
+    page.goto(BASE + "/login", wait_until="domcontentloaded", timeout=45000)
     card = page.get_by_role("region", name="Demo mode")
     card.get_by_role("button", name=re.compile("^New organisation")).click()
     page.wait_for_url(lambda url: not url.endswith("/login"), timeout=15000)
+    # The owner of a new organisation is sent to the guided setup once after the first sign-in: leave it, the pages below are what is checked.
+    page.wait_for_timeout(2000)  # the redirect to /setup happens just after the landing page mounts
+    if "/setup" in page.url:
+        page.get_by_role("button", name="Skip for now").click(timeout=15000)
+        page.wait_for_url(lambda url: "/setup" not in url, timeout=15000)
     page.wait_for_selector("main, [role=main], .mv-app-main", timeout=15000)
     return browser, page, errors
 
@@ -138,23 +145,46 @@ def check_page(page, errors, report, label, route, shots, tag, need_action=False
     return actions
 
 
+def finish_connect(page, errors, report, where):
+    """The shared dialog is one step: Connect shows 'Syncing costs...', then it closes, toasts and opens the account."""
+    dialog = page.locator("[data-tour=connect-dialog]")
+    page.locator("[data-tour=connect-submit]").click()
+    try:
+        dialog.wait_for(state="detached", timeout=10000)
+    except Exception:
+        report.fail(where, "the connect dialog did not close after Connect")
+    page.wait_for_timeout(600)
+    toast = page.locator(".mv-toast").filter(has_text=re.compile("connected", re.I))
+    if toast.count() == 0:
+        report.fail(where, "no 'connected' toast after Connect")
+    if "/azure/" not in page.url:
+        report.fail(where, f"the new account did not open (still on {page.url})")
+    for error in errors:
+        report.fail(where, error)
+
+
 def connect_azure(page, errors, report):
     errors.clear()
     go(page, "/azure?open=connect")
-    dialog = page.get_by_role("dialog", name="Connect Azure account")
+    dialog = page.locator("[data-tour=connect-dialog]")
     dialog.wait_for(timeout=8000)
-    dialog.get_by_label("Account name").fill(ACCOUNT["name"])
-    dialog.get_by_label("Subscription ID").fill(ACCOUNT["subscription"])
-    dialog.get_by_label("Tenant ID").fill(ACCOUNT["tenant"])
-    dialog.get_by_label("Client ID").fill(ACCOUNT["client"])
-    dialog.get_by_label("Client secret").fill(ACCOUNT["secret"])
-    dialog.get_by_role("button", name="Next").click()
-    dialog.get_by_role("button", name="Validate details").click()
-    dialog.get_by_role("button", name="Save account").click()
-    dialog.get_by_text("Account connected").wait_for(timeout=8000)
-    dialog.get_by_role("button", name="Done").click()
-    for error in errors:
-        report.fail("connect Azure", error)
+    dialog.get_by_label("Account name", exact=True).fill(ACCOUNT["name"])
+    dialog.get_by_label("Subscription ID", exact=True).fill(ACCOUNT["subscription"])
+    dialog.get_by_label("Tenant ID", exact=True).fill(ACCOUNT["tenant"])
+    dialog.get_by_label("Client ID", exact=True).fill(ACCOUNT["client"])
+    dialog.get_by_label("Client secret", exact=True).fill(ACCOUNT["secret"])
+    finish_connect(page, errors, report, "connect Azure (typed credentials)")
+    return ACCOUNT["name"]
+
+
+def connect_azure_sample(page, errors, report):
+    errors.clear()
+    go(page, "/azure?open=connect")
+    page.locator("[data-tour=connect-dialog]").wait_for(timeout=8000)
+    page.locator("[data-tour=use-sample-credentials]").click()
+    name = page.locator("[data-tour=connect-dialog]").get_by_label("Account name", exact=True).input_value()
+    finish_connect(page, errors, report, "connect Azure (sample credentials)")
+    return name
 
 
 def main():
@@ -189,7 +219,8 @@ def main():
                 tag = f"{theme}-{width}-connected"
                 print(f"\n== after connecting Azure, {tag}")
                 browser, page, errors = sign_in(pw, width, theme)
-                connect_azure(page, errors, report)
+                # Typed credentials in the light theme, sample credentials in the dark one: both paths run at both widths.
+                name = (connect_azure if theme == "light" else connect_azure_sample)(page, errors, report)
 
                 def has(where, route, expected, absent=()):
                     check_page(page, errors, report, where, route, shots, tag, shot=True)
@@ -204,14 +235,14 @@ def main():
 
                 has("dashboard", "/", ["$"], absent=["No cloud account connected yet", "Connect your first account\n"])
                 has("cost-overview", "/cloud/overview", ["Total Spend (Month-to-Date)", "Azure"], absent=["Connect your first cloud account"])
-                has("azure-overview", "/azure", [ACCOUNT["name"], "Sample data"], absent=["No Azure subscriptions connected yet"])
-                has("azure-account", "/azure/az-acc-1", [ACCOUNT["name"], "Sample data"], absent=["Account not found"])
+                has("azure-overview", "/azure", [name, "Sample data"], absent=["No Azure subscriptions connected yet"])
+                has("azure-account", "/azure/az-acc-1", [name, "Sample data"], absent=["Account not found"])
                 has("cloud-analytics", "/cloud/analytics", ["Azure"], absent=["No cloud account connected yet"])
                 has("cloud-optimization", "/cloud/optimization", [], absent=["No cloud account connected yet"])
                 has("cloud-resources", "/cloud/resources", ["Azure"], absent=["No cloud account connected yet"])
                 has("smart-alerts", "/smart-alerts", ["Azure"], absent=["No cloud account connected yet"])
                 has("budgets", "/budgets", [], absent=[])
-                has("sync-logs", "/sync-logs", [ACCOUNT["name"]], absent=["No syncs yet"])
+                has("sync-logs", "/sync-logs", [name], absent=["No syncs yet"])
                 has("sap-systems (still nothing connected)", "/sap/systems", ["No SAP system connected yet"])
                 browser.close()
 

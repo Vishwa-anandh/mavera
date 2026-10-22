@@ -416,3 +416,85 @@ Cross-cutting fixes that remove friction on many pages at once (not counted as s
 - **Sign-in is untouched.** The harness uses the Demo mode card button for every session (1 click, not counted).
 
 Rerun: from `D:\mavera` with the dev server on :5173, `python tools/visual/click_audit.py --json audit.json --md audit.md` (about 25 minutes for everything). Useful flags: `--only <id or group>` (for example `--only connect`, `--only palette`), `--list`, `--skip-layout`, `--layout-only`, `--keyboard-only`, `--extra-layout`, `--shots <dir>` (screenshot of each failed task), `--headed`. `BASE_URL` points it at another origin (for example a `git archive` copy of a commit served on another port, which is how the baseline here was pinned).
+
+## 10. Result after the click-reduction program
+
+Re-measured 2026-10-22 on the live working tree (http://localhost:5173, after the shared connect dialog, the getting-started checklist and coach, Ctrl+K actions, shared tabs and the other click reductions landed), with the same harness and the same counting rules as sections 1 to 9. Every 'after' number below is a harness number: `python tools/visual/click_audit.py` (152 tasks now; the first full run covered 149 of them and 145 passed, the 4 that failed were selector problems in the harness, fixed and re-run singly, and all 4 then pass) and `python tools/visual/new_user_journey.py` (the new-user path). Tasks start on the Dashboard as before. Where a row cannot be automated it says so.
+
+Harness changes needed for the new UI (all in `tools/visual`): the shared connect dialog (`data-tour` hooks `connect-dialog`, `use-sample-credentials`, `connect-submit`, `connect-provider-*`; one step, no Validate, Next or Done), the shared `CostViewTabs` (tab roles replace the old 'Cost view' nav), SAP Overview rows opening a drawer, Invoices and All Alerts in the Cloud Cost menu, the add-user role chips, the round '?' tour button, undo toasts in place of confirm dialogs, the permissions matrix (it opens on Dashboard, which has a single action), and a sign-in retry plus automatic re-login in the sweeps, because a dev-server hot reload empties the in-memory demo session. The tasks `users.edit-permissions-existing`, `users.add-default-role` and `users.change-role` had failed for selector reasons; they pass now.
+
+### 10.1 The top 25, before and after
+
+'Before' is the baseline measured in sections 1 to 3 (commit `9a087dc`). 'Target' is the number section 8 set. 'After' is the live measurement. Interactions are counted as defined at the top of this document (clicks excluding field-focus clicks, plus fields typed into, plus keys). 'Typed' means the person brings their own credentials; 'sample' means 'Use sample credentials'.
+
+| # | Task | Before | Target | After (measured) | Verdict |
+|---|---|---|---|---|---|
+| 1 | Connect Azure | 13 | 3 sample / 7 typed | **6** sample and **10** typed from the Azure page (menu 2, Manage Accounts, Connect Account, then Use sample + Connect, or 5 fields + Connect); **5** sample from Ctrl+K; **5** from Cost Overview; **4** with the checklist 'Guide me' coach (journey); **3** from the new-organisation checklist's own Connect button | better; the 3-interaction target holds only from the checklist |
+| 2 | Connect AWS | 11 | 3 / 5 | **6** sample, **8** typed; **5** from Ctrl+K | better |
+| 3 | Connect SAP BTP | 9 | 3 / 6 | **6** sample, **10** typed (1 more than the baseline: Add Account now goes to the manager page and 'Connect Account' opens the dialog); **5** from Ctrl+K | sample path better, typed path 1 worse |
+| 4 | Connect Google Cloud | 7 | 3 / 3 | **6** sample, **8** typed (1 more than the baseline for the same reason: Manage, then Connect Project); **5** from Ctrl+K | sample path better, typed path 1 worse |
+| 5 | Add an SAP system or destination | 7 (Quick Access 8) | 3 | **5** sample and **7** typed via System Configuration; Quick Access **3** sample and **5** typed (it opens the dialog in place); **5** from Ctrl+K | target met from Quick Access with sample credentials |
+| 6 | Upload an invoice (reach + upload) | 7 | 3 | **3** (Cloud Cost menu 2, Upload Invoice opens the file chooser; the provider is read from the file name and parsing starts by itself); **3** from Ctrl+K | target met |
+| 7 | Delete an invoice (reach + delete) | 7 | 3 | **3** (menu 2, trash icon; an Undo toast replaces the confirm dialog) | target met |
+| 8 | Edit permissions of an existing custom role | 7 | 4 | **8** from the Roles tab row action 'Edit permissions' (menu 2, Roles tab, row action, area, module, All, Save); **9** through the Permissions tab and the role Select | worse by 1: the role opens on Dashboard (one action, so no 'All'), so an area and a module are picked before All; the row action itself works |
+| 9 | Add a user with a chosen role | 8 (default role 7) | 5 (4) | **6** with a chosen role (menu 2, Add user, email, role chip, submit); **5** with the default role (email + Enter); **5** from Ctrl+K | better, each 1 short of target |
+| 10 | Security notes: upload, then resolve status | 6 | 3 on the page | **5** from the Dashboard (menu 2, Upload, numbers, Upload); the status check runs by itself (checkbox on by default); **3** on the page alone | target met on the page |
+| 11 | Add a custom role and give it permissions | 8 | 5 | **10** (add role 6, then area, module, All, Save) | not improved: the role dialog does not yet open the matrix on a module with several actions |
+| 12 | Pay an invoice | 4 | 3 | **3** (menu 2, Pay Now on the unpaid row) | target met |
+| 13 | Add a notification channel | 6 | 4 | **4** with your own address (it starts in the list); **6** for a different address (type it, Enter) | target met for the common case |
+| 14 | Create a budget | 5 | 4 | **4** (menu 2, the 'Use $' suggested limit, Add Budget); **5** typing your own name and amount | target met |
+| 15 | Open a provider account | 3 | 2 (1 from the tile) | **1** from the Dashboard 'Last viewed account' tile; **3** through the menu (a single account still opens from a list) | target met through the tile only |
+| 16 | Switch to Operations or Technical | 4 | 3 the first time | **4** the first time, **3** on every later visit (the view is remembered per account) | target met on revisits |
+| 17 | Start a guided tour | 2 first, 3 returning | 1 | **1** from the round '?' button in the page header; **2** from the profile menu; **3** from Ctrl+K | target met |
+| 18 | Resolve a cost alert from the Dashboard | 2 | 1 | **1** (inline Resolve on the 'Needs attention' row) | target met |
+| 19 | Change the spend period on Cost Overview | 3 | 2 afterwards | **3** the first time, **2** afterwards (remembered, menu only) | target met |
+| 20 | Reach /alerts, /invoices, /ai-assistant | 1 (link only), 4, 4 | 2 each | **2**, **2**, **4** | /alerts and /invoices met; /ai-assistant is Ctrl+K only (it was taken out of the header on purpose; the floating assistant is the entry) |
+| 21 | Open the critical system from SAP Overview | not possible | 3 | **3** (the row opens a drawer) | target met |
+| 22 | Open HANA backup details | 4 | 3 when remembered | **4** the first time, **3** after the Backups tab was used once (the tab is remembered) | target met on revisits |
+| 23 | Delete a security note | 4 | 3 | **3** (menu 2, trash icon, Undo toast) | target met |
+| 24 | Request a plan | 5 | 4 | **3** from the profile menu ('Request a plan', Send request); **4** on the Subscription page | target met |
+| 25 | Public-page reach (/register, /forgot-password) | /forgot-password 3, /register no link | 2 | **3** and **no link** (harness: 'no link to /register from /login or /company-signup') | not done |
+
+Other results from the same run: every menu page is still 2 interactions from the Dashboard (33 destinations, now including Invoices and All Alerts); account pages 3; every tab 3 (the 'Available plans' tab no longer exists: the plans sit on 'Your plan' and the second tab is 'Modules and access'); Ctrl+K to a page 3; the palette connect commands 5 with sample credentials; palette upload invoice 3; palette add user 5. Super-admin and public tasks are unchanged (1 to 7).
+
+### 10.2 The new-user journey
+
+`python tools/visual/new_user_journey.py` signs in as new@mavera.local through the Demo mode card and walks the whole onboarding with the same trusted-click counting. After the first sign-in the owner of a new organisation is sent to the guided setup at `/setup`; the journey leaves it with 'Skip for now' (1 click, reported and not counted) and measures the checklist path. The wizard's own steps were not walked or counted.
+
+| Step | 1440 px | 390 px | What it is |
+|---|---|---|---|
+| 1 Connect Azure | 4 | 4 | checklist 'Guide me', Use sample credentials, Connect, Done on the closing note |
+| 2 Connect AWS | 6 | 6 | assistant launcher, type 'Help me connect AWS', Enter, Use sample credentials, Connect, Done |
+| 3 Connect Google Cloud | 6 | 6 | the same, through the assistant |
+| 4 Connect SAP BTP | 6 | 6 | the same, through the assistant |
+| 5 Connect an SAP system | 6 | 6 | the same, through the assistant |
+| 6 Create a budget | 4 | 5 | Dashboard, checklist 'Create budget', 'Use $' suggested limit, Add Budget |
+| 7 Add alert recipients | 3 | 4 | Dashboard, checklist 'Add recipients', Add channel (your own address is already listed) |
+| 8 Invite a teammate | 4 | 5 | Dashboard, checklist 'Invite', one email, Add user |
+| 9 Take the tour | 8 | 9 | Dashboard, 'Start tour', Next five times, Finish tour (six cards) |
+| **Total, steps 1 to 9** | **47** (38 clicks + 5 fields + 4 keys, 118 typed characters) | **51** (the extra clicks open the mobile menu to get back to the Dashboard) | |
+| 10 Verification (not in the total) | 3 | 3 | the spend question through the assistant chip, opening and closing the assistant |
+
+Four runs (1440 and 390 px, light and dark theme): 0 failed steps, 0 failed checks, 0 console or page errors. The checks after step 9 pass in all four: the Dashboard no longer says nothing is connected, the checklist is gone after six of six, current spend is above $0 ($34,730.90 of sample data), Cost Overview shows Azure, AWS, Google Cloud and BTP, Alerts lists 33 rows, and the assistant answers the spend question with figures. The screenshots of the key frames (coach form, Dashboard before and after, tour card, alerts, assistant answer) were opened and read at both widths and in both themes.
+
+For comparison, the same nine things taken one by one from the Dashboard at the baseline add up to 67 interactions (13 + 11 + 7 + 9 + 7 + 5 + 6 + 7 + 2), and a new organisation could not do them at all (there was no empty workspace and no sample credentials). The journey is 47, and 28 of those 47 are the five connections. The shortest connect from a new Dashboard is the checklist's own Connect button, then Use sample credentials and Connect: 3 interactions (measured), landing on the new account page.
+
+### 10.3 Layout and keyboard checks on the live tree
+
+- 74 page-width checks (37 routes at 1440 and 390 px): no horizontal page overflow and no inner scrollbar on any signed-in page (the baseline had 3 vertical scrollers at 1440 and 12 horizontal ones at 390). One route (/smart-alerts at 1440) landed on the sign-in page after a dev-server reload during the run; it was clean in the earlier run.
+- Public pages and the super-admin portal: no page overflow; three super-admin tables (Dashboard, Billing, Invoice generator) still scroll sideways inside their wrapper at 390 px.
+- `python tools/visual/new_org_check.py --themes light dark` (every signed-in page of a new organisation at 1440 and 390 px, then a connected Azure account through the shared dialog, typed credentials in the light theme and sample credentials in the dark one): all checks pass, no console errors.
+- Keyboard: 10 Tab presses to the first control in the page (11 at the baseline), and the skip link lands in the main content on all 37 routes. Deep links: all 18 load into the right tab or view (including `/subscription#access`, `/azure/az-acc-1#operations` and `/gcp/account/gcp-acc-1#technical`).
+
+### 10.4 What is still not good
+
+- **Permissions matrix** (rows 8 and 11): a custom role opens on Dashboard, which has only the View action, so granting 'All' costs an area click and a module click on top. Editing an existing role is 8 (was 7) and add role plus permissions is 10 (was 8). The role dialog should open the matrix on a module with several actions.
+- **Typed connect for Google Cloud and SAP BTP** is one click longer than at the baseline (Manage or Add Account opens the manager page, then a second button opens the dialog); the sample path is 6 for all four providers. The provider pages could open the dialog directly.
+- **The 3-interaction connect** holds only from the checklist and from the dialog launched in place (Quick Access for SAP is 3 with sample credentials). From a provider page it is 6 because of the menu (2) and the manager hop (1 or 2).
+- **/ai-assistant** takes 4 (Ctrl+K only) and **/register** still has no inbound link (row 25); /forgot-password is 3.
+- **Opening a single account** from the menu is still 3 (menu, list row); only the Dashboard tile makes it 1.
+- **Not automated**: the `/setup` wizard (left with 'Skip for now' in the journey and in `new_org_check.py`), the full company sign-up, the register steps, reset password, super-admin customer add and organisation save (all still 'code count').
+- **Harness caveat**: the dev server is shared and hot-reloads while other work lands, which empties the in-memory demo session. Sign-in is retried and the sweeps sign in again, but a reload during a task still fails that task (re-run it with `--only`). The 'after' numbers are from one full run plus single re-runs of the eight tasks added or fixed afterwards (the four that failed, and four new ones: quick access with sample credentials, the last-viewed tile, the remembered view, pay now), not from one uninterrupted run.
+- The numbers were measured on a tree that other work was still changing (the Dashboard, navigation and the setup wizard); they can move by a click.
+
+Rerun: `python tools/visual/click_audit.py --skip-layout --json audit.json` for the tasks (about 25 minutes), `python tools/visual/click_audit.py --layout-only` for the layout, keyboard, deep-link and public sweeps, `python tools/visual/new_user_journey.py --json journey.json` for the journey (about 5 minutes for four runs), and `python tools/visual/new_org_check.py --themes light dark` for the empty-organisation and connected-account checks.

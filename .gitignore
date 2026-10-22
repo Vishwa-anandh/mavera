@@ -16,3 +16,7 @@ dist
 
 # Graphify knowledge graph (rebuild with: graphify update .)
 graphify-out/
+
+# Python bytecode (tools/visual harnesses)
+__pycache__/
+*.pyc

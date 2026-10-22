@@ -746,10 +746,12 @@ def _(c):
       note="The link lands on /sap/systems, which has no add flow; the user must then go to System Configuration through the menu.")
 def _(c):
     c.click(c.page.get_by_role("link", name=re.compile("Add SAP System")), "Quick Access 'Add SAP System'")
-    c.settle(600)
-    # What a user lands on: no add control. Take the menu path from here.
-    c.menu("SAP Monitoring", "System Configuration")
-    c.click(c.page.get_by_role("button", name="Add Destination").first, "Add Destination")
+    c.settle(800)
+    if not re.search(r"/sap/configuration/?$", c.page.url):
+        # Baseline behaviour: the link lands on SAP Overview, which has no add control. Take the menu path from here.
+        c.menu("SAP Monitoring", "System Configuration")
+    if c.page.get_by_role("dialog").count() == 0:
+        c.click(c.page.get_by_role("button", name="Add Destination").first, "Add Destination")
     fill_destination(c, "Prod S4 Audit")
 
 
